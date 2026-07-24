@@ -1,0 +1,24 @@
+# Rust
+/target
+Cargo.lock
+
+# Node / frontend
+/node_modules
+/dist
+
+# Tauri
+/runtime/target
+/runtime/gen
+
+# Runtime user data (dev-time local testing artifacts, never real user data)
+/.dm-data/
+
+# Model files: downloaded via model/download-models.ps1, never committed.
+# Only the download script itself is tracked.
+/model/*
+!/model/download-models.ps1
+
+# Editor
+.vscode/
+.idea/
+*.log

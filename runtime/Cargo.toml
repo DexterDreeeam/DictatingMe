@@ -1,0 +1,32 @@
+[package]
+name = "dictatingme-runtime"
+version = "0.1.0"
+edition = "2021"
+description = "DictatingMe Runtime：状态机 + 音频 + 模型 + 存储 + 窗口/托盘编排（见 brainstrom/plan.md）"
+publish = false
+
+[lib]
+name = "dictatingme_runtime"
+path = "src/lib.rs"
+
+[[bin]]
+name = "dictatingme"
+path = "src/main.rs"
+
+[dependencies]
+# --- Tauri（UI 壳、多窗口、托盘、IPC） ---
+tauri = { version = "2", features = [] }
+
+# --- 序列化 / 异步运行时 ---
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+
+# --- 以下依赖版本待确认，先占位标注用途，不保证可编译通过 ---
+# ort = "2"                                   # ONNX Runtime 绑定，EvokeModel / DictationModel 共用
+# cpal = "0.15"                                # 跨平台音频采集（Audio Capture）
+# enigo = "0.2"                                # 模拟键盘输入（Text Injector 默认跨平台实现）
+# rusqlite = { version = "0.31", features = ["bundled"] }  # History / Config 持久化
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }

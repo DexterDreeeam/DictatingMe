@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DictatingMe",
+  "version": "0.1.0",
+  "identifier": "com.dictatingme.app",
+  "build": {
+    "frontendDist": "../ui",
+    "devUrl": "http://localhost:1420"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "DictatingMe",
+        "url": "main-window/index.html",
+        "width": 420,
+        "height": 640,
+        "resizable": false,
+        "visible": false,
+        "decorations": false,
+        "skipTaskbar": false
+      },
+      {
+        "label": "hud",
+        "title": "DictatingMe HUD",
+        "url": "hud-window/index.html",
+        "width": 160,
+        "height": 48,
+        "resizable": false,
+        "visible": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "focus": false
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/tray.png",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": false
+    },
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/icon.ico"
+    ]
+  }
+}

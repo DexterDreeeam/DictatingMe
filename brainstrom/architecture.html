@@ -224,6 +224,7 @@
         <li><b>MainWindow ⇄ HudWindow 互斥</b>：由 Window Manager 依据 State Machine 广播的状态切换，同一时刻只有一个可见</li>
         <li><b>因果链</b>：EvokeModel 检测到唤醒词 → State Machine → 才触发 DictationModel 加载（① → ②）→ 同时才允许 Audio Ring Buffer 开始缓冲（③）。三者都不会在唤醒词检测之前发生，Audio Capture 本身持续采集麦克风音频，但只有 State Machine 授权后音频才会被写入缓冲区</li>
         <li>点击托盘图标 = 向 State Machine 发出"打开 MainWindow 请求"，效果等价于一次 dismiss</li>
+        <li>MainWindow 标题栏播放按钮（进入后台运行）= 向 State Machine 发出"关闭 MainWindow"，回到 Listening；电源按钮 = 直接终止 Runtime 进程，不经过 State Machine，与托盘"退出"走同一路径</li>
         <li>EvokeModel 与 DictationModel 互斥运行：前者仅 Listening 态激活，后者仅 Loading/Dictating 态激活</li>
         <li>Streaming Output 不使用剪贴板，直接模拟键盘输入，只追加不回退</li>
         <li>Runtime 与 UI 同进程（Tauri），无需跨进程 IPC</li>

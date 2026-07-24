@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = ["runtime"]
+
+# 说明：仅 runtime/ 是 Rust crate（Tauri 后端 + Runtime 核心逻辑）。
+# ui/ 是纯前端（TypeScript），不属于本 workspace，由 package.json / vite 单独构建。
