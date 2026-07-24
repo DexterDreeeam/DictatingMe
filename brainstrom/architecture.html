@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DictatingMe · 架构设计图</title>
+<style>
+  :root{
+    --bg: #1e1f22;
+    --panel: #2b2d31;
+    --panel-alt: #313338;
+    --border: #3f4248;
+    --text: #dbdee1;
+    --text-muted: #949ba4;
+    --accent: #5865f2;
+    --accent-2: #7a8bff;
+    --yellow: #f0b232;
+    --green: #23a55a;
+    --red: #f23f42;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Microsoft YaHei", -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 28px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #24262b 0%, var(--bg) 100%);
+  }
+  header h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: 0.3px; }
+  header h1 .dot { color: var(--accent); }
+  header p { margin: 0; color: var(--text-muted); font-size: 13px; }
+
+  .tabs { display: flex; gap: 8px; padding: 16px 32px 0; border-bottom: 1px solid var(--border); }
+  .tab-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    padding: 10px 18px; font-size: 14px; cursor: pointer; border-radius: 8px 8px 0 0;
+    position: relative; top: 1px;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--panel); }
+  .tab-btn.active {
+    color: #fff; background: var(--panel-alt); border: 1px solid var(--border);
+    border-bottom: 1px solid var(--panel-alt); font-weight: 600;
+  }
+
+  .content { display: flex; gap: 24px; padding: 28px 32px 56px; max-width: 1660px; margin: 0 auto; }
+  .diagram-wrap {
+    flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 30px; overflow: auto;
+  }
+  .sidebar { width: 300px; flex-shrink: 0; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+  .card h3 { margin: 0 0 10px; font-size: 14px; color: #fff; display: flex; align-items: center; gap: 8px; }
+  .card p, .card li { font-size: 12.5px; color: var(--text-muted); line-height: 1.7; }
+  .card ul { margin: 0; padding-left: 18px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12.5px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .pane { display: none; }
+  .pane.active { display: flex; }
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px; border-top: 1px solid var(--border); }
+  a { color: var(--accent-2); }
+
+  /* ---------- 图表通用：网格节点 + SVG 连线层 ---------- */
+  .diagram-canvas { position: relative; }
+  .connector-layer { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
+  .node-grid { display: grid; position: relative; z-index: 2; }
+  .node {
+    background: var(--panel-alt); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; text-align: center; min-width: 130px; max-width: 165px;
+  }
+  .node .node-title { font-weight: 700; font-size: 12.5px; color: #fff; }
+  .node .node-sub { font-size: 10.5px; color: var(--text-muted); margin-top: 5px; line-height: 1.5; }
+  .node-core { background: var(--accent); border-color: #4752c4; min-width: 170px; }
+  .node-core .node-title { font-size: 14px; }
+  .node-core .node-sub { color: #dfe2ff; }
+  .node-core-wide {
+    min-width: 100%; max-width: none; width: 100%;
+    padding: 16px 28px; box-shadow: 0 6px 20px rgba(88,101,242,0.35);
+  }
+  .node-core-wide .node-title { font-size: 16px; }
+  .node-core-wide .sm-states {
+    margin-top: 8px; font-size: 10.5px; color: #dfe2ff; letter-spacing: 0.3px;
+    border-top: 1px solid rgba(255,255,255,0.2); padding-top: 8px;
+  }
+  .node-model { border-left: 3px solid var(--green); }
+  .node-store { border-left: 3px solid var(--yellow); }
+  .node-ui { border: 1px solid var(--accent-2); }
+  .node-os { border: 1px dashed var(--text-muted); background: #26272b; }
+  .node-os .node-title { color: var(--text-muted); font-weight: 600; }
+
+  /* ---------- 互斥窗口组合卡片 ---------- */
+  .combo-card {
+    background: var(--panel-alt); border: 1px solid var(--accent-2); border-radius: 12px;
+    padding: 12px 18px; text-align: center; min-width: 320px;
+  }
+  .combo-title { font-weight: 700; font-size: 12.5px; color: #fff; margin-bottom: 8px; }
+  .combo-body { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .combo-mini {
+    background: #26272b; border-radius: 10px; padding: 8px 12px; min-width: 90px;
+  }
+  .combo-xor { font-size: 16px; color: var(--accent-2); font-weight: 700; }
+  .combo-note { font-size: 10px; color: var(--text-muted); margin-top: 8px; }
+
+  text.edge-label { font-size: 10.5px; fill: #c9cdfb; font-family: "Segoe UI", "Microsoft YaHei", sans-serif; }
+  rect.edge-label-bg { fill: #1b1c1f; }
+
+  /* ---------- 时序图（纯 CSS 时间线） ---------- */
+  .timeline { position: relative; padding-left: 34px; }
+  .timeline::before {
+    content: ""; position: absolute; left: 10px; top: 6px; bottom: 6px; width: 2px; background: var(--border);
+  }
+  .tl-step { position: relative; padding-bottom: 26px; }
+  .tl-step:last-child { padding-bottom: 0; }
+  .tl-marker {
+    position: absolute; left: -34px; top: 0; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--panel-alt); border: 2px solid var(--accent-2); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; z-index: 2;
+  }
+  .tl-content { background: var(--panel-alt); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .tl-tag {
+    display: inline-block; font-size: 10.5px; padding: 2px 9px; border-radius: 8px; font-weight: 700;
+    margin-bottom: 6px; color: #1e1f22;
+  }
+  .tag-voice-wake { background: var(--yellow); }
+  .tag-voice-on { background: var(--green); color: #fff; }
+  .tag-voice-off { background: var(--text-muted); }
+  .tl-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .tl-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .tl-loop {
+    margin-left: -34px; margin-top: 6px; padding: 8px 14px; border: 1px dashed var(--border); border-radius: 10px;
+    font-size: 11.5px; color: var(--text-muted); text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DictatingMe <span class="dot">·</span> 架构设计图</h1>
+  <p>Runtime（Rust） + Tauri UI ｜ 模块设计图 / 状态机图 / 时序图 ｜ 配套 <code>plan.md</code> 阅读</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="module">模块设计图</button>
+  <button class="tab-btn" data-tab="state">状态机图</button>
+  <button class="tab-btn" data-tab="sequence">时序图</button>
+</div>
+
+<!-- ================= 模块设计图 ================= -->
+<div class="content pane active" id="pane-module">
+  <div class="diagram-wrap">
+    <div class="diagram-canvas" id="module-canvas">
+      <svg class="connector-layer" id="module-svg"></svg>
+      <div class="node-grid" id="module-grid" style="grid-template-columns: repeat(7, 1fr); column-gap: 46px; row-gap: 44px; justify-items: center; align-items: center;">
+
+        <!-- T1: 托盘图标 / Combo互斥窗口 -->
+        <div></div>
+        <div class="node node-os" id="n-tray-icon"><div class="node-title">📌 托盘图标</div><div class="node-sub">操作系统</div></div>
+        <div class="combo-card" id="n-combo" style="grid-column: span 3;">
+          <div class="combo-title">🪟 UI 窗口 · 互斥显示</div>
+          <div class="combo-body">
+            <div class="combo-mini node-ui"><div class="node-title" style="font-size:11.5px;">MainWindow</div><div class="node-sub">Configure 态</div></div>
+            <div class="combo-xor">⇄</div>
+            <div class="combo-mini node-ui"><div class="node-title" style="font-size:11.5px;">🟡HudWindow</div><div class="node-sub">其余 4 态</div></div>
+          </div>
+          <div class="combo-note">同一时刻有且只有一个可见，由 Runtime 统一切换</div>
+        </div>
+        <div></div><div></div>
+
+        <!-- T2: Tray Manager / Window Manager，分别对齐宽 State Machine 的左/右两侧 -->
+        <div></div><div></div>
+        <div class="node" id="n-traymgr"><div class="node-title">Tray Manager</div><div class="node-sub">托盘图标持有者</div></div>
+        <div class="node" id="n-winmgr"><div class="node-title">Window Manager</div><div class="node-sub">互斥显示切换器</div></div>
+        <div></div><div></div><div></div>
+
+        <!-- M: 主处理流水线，State Machine 加宽横跨2列，让四周模块就近直连 -->
+        <div class="node" id="n-ac"><div class="node-title">Audio Capture</div><div class="node-sub">麦克风采集<br/>设备管理</div></div>
+        <div class="node node-model" id="n-evk"><div class="node-title">EvokeModel</div><div class="node-sub">ONNX 唤醒词<br/>&lt;20MB · 常驻内存</div></div>
+        <div class="node node-core node-core-wide" id="n-sm" style="grid-column: span 2;">
+          <div class="node-title">⚙️ State Machine</div>
+          <div class="node-sub">核心调度中枢</div>
+          <div class="sm-states">Configure ・ Listening ・ Loading ・ Dictating ・ Unloading</div>
+        </div>
+        <div class="node node-model" id="n-dic"><div class="node-title">DictationModel</div><div class="node-sub">本地 ONNX 千问ASR<br/>仅Evoke触发后加载</div></div>
+        <div class="node" id="n-out"><div class="node-title">Streaming Output</div><div class="node-sub">Text Diff<br/>+ Text Injector</div></div>
+        <div></div>
+
+        <!-- B1: Ring Buffer 绕行 / History+Config（独立列，避免遮挡右侧竖直通道） -->
+        <div></div>
+        <div class="node node-store" id="n-buf"><div class="node-title">Audio Ring Buffer</div><div class="node-sub">仅唤醒后启用<br/>Loading阶段缓冲</div></div>
+        <div></div><div></div><div></div><div></div>
+        <div class="node node-store" id="n-store"><div class="node-title">History + Config</div><div class="node-sub">持久化存储<br/>FIFO 20 条 / 设置</div></div>
+
+        <!-- B2: Global Input Monitor，对齐 State Machine 底部中段 -->
+        <div></div><div></div><div></div>
+        <div class="node" id="n-mon"><div class="node-title">Global Input Monitor</div><div class="node-sub">全局键鼠监听</div></div>
+        <div></div><div></div><div></div>
+
+        <!-- OS: 麦克风 / 键鼠事件 / 焦点输入框 -->
+        <div class="node node-os" id="n-mic"><div class="node-title">🎤 麦克风</div><div class="node-sub">操作系统</div></div>
+        <div></div><div></div>
+        <div class="node node-os" id="n-kbd"><div class="node-title">⌨️🖱️ 键鼠事件</div><div class="node-sub">操作系统</div></div>
+        <div></div>
+        <div class="node node-os" id="n-focus"><div class="node-title">📝 焦点输入框</div><div class="node-sub">操作系统 · 任意应用</div></div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="card">
+      <h3>🎨 图例</h3>
+      <div class="legend-item"><span class="swatch" style="background:var(--accent)"></span> 核心调度（State Machine）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--panel-alt);border-left:3px solid var(--green)"></span> AI 模型引擎</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--panel-alt);border-left:3px solid var(--yellow)"></span> 持久化存储</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--panel-alt);border:1px solid var(--accent-2)"></span> UI 窗口（互斥）</div>
+      <div class="legend-item"><span class="swatch" style="background:#26272b;border:1px dashed var(--text-muted)"></span> 操作系统边界</div>
+      <div class="legend-item">━━ 实线 = 数据流　┅┅ 虚线 = 控制/调度</div>
+    </div>
+    <div class="card">
+      <h3>🧩 关键约束</h3>
+      <ul>
+        <li><b>MainWindow ⇄ HudWindow 互斥</b>：由 Window Manager 依据 State Machine 广播的状态切换，同一时刻只有一个可见</li>
+        <li><b>因果链</b>：EvokeModel 检测到唤醒词 → State Machine → 才触发 DictationModel 加载（① → ②）→ 同时才允许 Audio Ring Buffer 开始缓冲（③）。三者都不会在唤醒词检测之前发生，Audio Capture 本身持续采集麦克风音频，但只有 State Machine 授权后音频才会被写入缓冲区</li>
+        <li>点击托盘图标 = 向 State Machine 发出"打开 MainWindow 请求"，效果等价于一次 dismiss</li>
+        <li>EvokeModel 与 DictationModel 互斥运行：前者仅 Listening 态激活，后者仅 Loading/Dictating 态激活</li>
+        <li>Streaming Output 不使用剪贴板，直接模拟键盘输入，只追加不回退</li>
+        <li>Runtime 与 UI 同进程（Tauri），无需跨进程 IPC</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 状态机图 ================= -->
+<div class="content pane" id="pane-state">
+  <div class="diagram-wrap">
+    <div class="diagram-canvas" id="state-canvas">
+      <svg class="connector-layer" id="state-svg"></svg>
+      <div class="node-grid" id="state-grid" style="grid-template-columns: repeat(4, 1fr); column-gap: 50px; row-gap: 90px; justify-items: center; align-items: center;">
+        <div class="node" id="s-configure" style="border-left:3px solid var(--text-muted);"><div class="node-title">🔒 Configure</div><div class="node-sub">MainWindow 已打开（含二级页）<br/>Evoke停止 · MainWindow显示</div></div>
+        <div></div><div></div><div></div>
+
+        <div class="node" id="s-listening" style="border-left:3px solid var(--yellow);"><div class="node-title">🟡 Listening</div><div class="node-sub">等待唤醒词<br/>EvokeModel 运行中</div></div>
+        <div class="node" id="s-loading" style="border-left:3px solid var(--green);"><div class="node-title">🟢 Loading</div><div class="node-sub">加载 DictationModel<br/>同时缓冲录音</div></div>
+        <div class="node" id="s-dictating" style="border-left:3px solid var(--green);"><div class="node-title">🟢 Dictating</div><div class="node-sub">流式转写+打字<br/>无静音超时</div></div>
+        <div class="node" id="s-unloading" style="border-left:3px solid var(--text-muted);"><div class="node-title">Unloading</div><div class="node-sub">丢弃未转换内容<br/>卸载模型/写History</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="card">
+      <h3>🎨 颜色语义</h3>
+      <div class="legend-item"><span class="swatch" style="background:var(--yellow)"></span> 黄：可被唤醒（EvokeModel 监听中）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--green)"></span> 绿：正在记录输入（缓冲录音 或 流式转写）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--text-muted)"></span> 灰：无响应状态（不监听也不记录）</div>
+    </div>
+    <div class="card">
+      <h3>🔄 状态一览</h3>
+      <ul>
+        <li><b>Configure</b>：MainWindow 打开中，全局锁定（灰，不分首页/二级页）</li>
+        <li><b>Listening</b>：默认待机监听唤醒词（黄灯）</li>
+        <li><b>Loading</b>：加载ASR模型 + 无缝缓冲录音（绿灯，录音已开始）</li>
+        <li><b>Dictating</b>：流式转写 + 打字（绿灯）</li>
+        <li><b>Unloading</b>：收尾清理，不再记录（灰），回到 Listening</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>⚠️ 设计取舍</h3>
+      <ul>
+        <li><b>Configure↔Listening 双向</b>：打开MainWindow进入，关闭MainWindow退出</li>
+        <li>非 Listening 态收到"打开MainWindow"请求时，自动先走完 Unloading→Listening，再进入 Configure，无需二次操作</li>
+        <li>Dictating 无静音超时，只能靠任意键鼠 dismiss（或打开MainWindow请求）结束</li>
+        <li>Unloading 会丢弃尚未转换完成的内容，不等模型跑完</li>
+        <li>Loading→Dictating：缓冲音频是第一批处理数据，无缝衔接不丢帧</li>
+        <li>EvokeModel 仅 Listening 态运行，与 Dictating 天然互斥</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 时序图 ================= -->
+<div class="content pane" id="pane-sequence">
+  <div class="diagram-wrap">
+    <div class="timeline">
+
+      <div class="tl-step">
+        <div class="tl-marker">1</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-wake">Listening</span>
+          <div class="tl-title">用户说出唤醒词</div>
+          <div class="tl-desc">麦克风音频持续流向 EvokeModel（&lt;20MB 常驻模型）</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">2</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-wake">Listening → Loading</span>
+          <div class="tl-title">EvokeModel 检测到唤醒词</div>
+          <div class="tl-desc">State Machine 切换到 Loading；HUD 沿用黄灯（过渡态）</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">3</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-on">Loading</span>
+          <div class="tl-title">异步加载 DictationModel + 同步开始录音缓冲</div>
+          <div class="tl-desc">本地 ONNX 千问 ASR 模型加载中；麦克风音频同时写入 Ring Buffer，不等待模型加载完成</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">4</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-on">Loading → Dictating</span>
+          <div class="tl-title">DictationModel 加载完成</div>
+          <div class="tl-desc">State Machine 切换到 Dictating；HUD 变绿灯</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">5</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-on">Dictating</span>
+          <div class="tl-title">缓冲音频无缝喂入，不丢帧</div>
+          <div class="tl-desc">Ring Buffer 中 Loading 阶段录制的音频作为第一批数据喂给模型，随后无缝接续实时音频流</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">6</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-on">Dictating · 循环</span>
+          <div class="tl-title">流式识别 → 增量打字</div>
+          <div class="tl-desc">DictationModel 产出当前完整识别文本 → Text Diff 对比上一次结果，仅取新增后缀 → Text Injector 模拟键盘打字到当前系统焦点（不用剪贴板，不做回退修正）</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">7</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-off">Dictating → Unloading</span>
+          <div class="tl-title">用户任意键盘/鼠标操作（dismiss）</div>
+          <div class="tl-desc">全局键鼠监听捕获事件 → State Machine 立即切换到 Unloading</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">8</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-off">Unloading</span>
+          <div class="tl-title">停止喂音频，丢弃未转换内容，卸载模型</div>
+          <div class="tl-desc">不等待模型处理完最后一段；DictationModel 立即卸载释放内存</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">9</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-off">Unloading</span>
+          <div class="tl-title">写入 History</div>
+          <div class="tl-desc">本次记录（音频 + 最终文本 + 时间戳）写入 History Store，FIFO 队列超过 20 条自动淘汰最旧一条</div>
+        </div>
+      </div>
+
+      <div class="tl-step">
+        <div class="tl-marker">10</div>
+        <div class="tl-content">
+          <span class="tl-tag tag-voice-off">Unloading → Listening</span>
+          <div class="tl-title">清理完成，回到待机</div>
+          <div class="tl-desc">State Machine 回到 Listening，HUD 变黄灯，等待下一次唤醒</div>
+        </div>
+        <div class="tl-loop">↺ 循环回到步骤 1，等待下一次唤醒</div>
+      </div>
+
+    </div>
+  </div>
+  <div class="sidebar">
+    <div class="card">
+      <h3>🎨 颜色语义</h3>
+      <div class="legend-item"><span class="swatch" style="background:var(--yellow)"></span> 黄：唤醒词识别阶段（步骤1-2，EvokeModel监听中）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--green)"></span> 绿：声音采集/转换阶段（步骤3-6，录音缓冲或流式转写）</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--text-muted)"></span> 灰：不检测声音阶段（步骤7-10，收尾清理）</div>
+    </div>
+    <div class="card">
+      <h3>📌 时序要点</h3>
+      <ul>
+        <li>唤醒→Loading 是异步的：模型加载与录音缓冲同时开始</li>
+        <li>Dictating 每一轮都是"全量假设 → diff → 追加打字"，不是逐字符流</li>
+        <li>Dismiss 后立即中断，未转换内容直接丢弃，不等模型收尾</li>
+        <li>History 写入发生在 Unloading 阶段，回到 Listening 之前</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🔗 相关文档</h3>
+      <p><a href="./plan.md">plan.md</a> — 完整设计文档与决策日志</p>
+      <p><a href="./ui-mockup.html">ui-mockup.html</a> — 可点击界面预览</p>
+    </div>
+  </div>
+</div>
+
+<footer>DictatingMe Brainstorm v1.1 · 生成于头脑风暴会话，尚未进入开发排期</footer>
+
+<script>
+  // ---------- 通用连线画布 ----------
+  function ConnectorCanvas(svg, container) {
+    svg.innerHTML = `<defs>
+      <marker id="${svg.id}-arrow-data" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#7a8bff"/>
+      </marker>
+      <marker id="${svg.id}-arrow-ctrl" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#949ba4"/>
+      </marker>
+    </defs>`;
+
+    function anchor(el, side) {
+      const r = el.getBoundingClientRect();
+      const c = container.getBoundingClientRect();
+      const pts = {
+        top:    { x: r.left + r.width / 2 - c.left, y: r.top - c.top },
+        bottom: { x: r.left + r.width / 2 - c.left, y: r.bottom - c.top },
+        left:   { x: r.left - c.left, y: r.top + r.height / 2 - c.top },
+        right:  { x: r.right - c.left, y: r.top + r.height / 2 - c.top },
+        // 宽节点专用：边缘上的多个分散连接点，避免多条线挤到同一中心点造成重叠
+        'top-left':     { x: r.left + r.width * 0.18 - c.left, y: r.top - c.top },
+        'top-mid':      { x: r.left + r.width * 0.5  - c.left, y: r.top - c.top },
+        'top-right':    { x: r.left + r.width * 0.82 - c.left, y: r.top - c.top },
+        'bottom-left':  { x: r.left + r.width * 0.18 - c.left, y: r.bottom - c.top },
+        'bottom-mid':   { x: r.left + r.width * 0.5  - c.left, y: r.bottom - c.top },
+        'bottom-right': { x: r.left + r.width * 0.82 - c.left, y: r.bottom - c.top },
+      };
+      return pts[side];
+    }
+
+    // 去重相邻的重复点：避免折线末段长度为0，导致 SVG marker-end 的 auto 朝向计算失败（箭头会歪掉）
+    function dedupePoints(points) {
+      const result = [points[0]];
+      for (let i = 1; i < points.length; i++) {
+        const prev = result[result.length - 1];
+        const cur = points[i];
+        if (Math.abs(prev.x - cur.x) > 0.5 || Math.abs(prev.y - cur.y) > 0.5) {
+          result.push(cur);
+        }
+      }
+      return result.length >= 2 ? result : points;
+    }
+
+    function drawPolyline(points, opts) {
+      const pts = dedupePoints(points);
+      const d = 'M ' + pts.map(p => `${p.x} ${p.y}`).join(' L ');
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', opts.dashed ? '#6b6e76' : (opts.color || '#7a8bff'));
+      p.setAttribute('stroke-width', opts.width || 1.6);
+      if (opts.dashed) p.setAttribute('stroke-dasharray', '5,5');
+      p.setAttribute('marker-end', `url(#${svg.id}-arrow-${opts.dashed ? 'ctrl' : 'data'})`);
+      svg.appendChild(p);
+    }
+
+    function label(x, y, text) {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x); t.setAttribute('y', y + 4);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('class', 'edge-label');
+      t.textContent = text;
+      svg.appendChild(t);
+      const bbox = t.getBBox();
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', bbox.x - 5);
+      rect.setAttribute('y', bbox.y - 2);
+      rect.setAttribute('width', bbox.width + 10);
+      rect.setAttribute('height', bbox.height + 4);
+      rect.setAttribute('rx', 4);
+      rect.setAttribute('class', 'edge-label-bg');
+      svg.insertBefore(rect, t);
+    }
+
+    // 通用正交连线：默认先纵向(用from的x,to的y)再横向；opts.bend='h-v' 则先横后纵。两点对齐时自动去重退化为直线（避免零长末段导致箭头歪斜）
+    function connect(fromId, fromSide, toId, toSide, opts = {}) {
+      const a = anchor(document.getElementById(fromId), fromSide);
+      const b = anchor(document.getElementById(toId), toSide);
+      const mid = opts.bend === 'h-v' ? { x: b.x, y: a.y } : { x: a.x, y: b.y };
+      drawPolyline([a, mid, b], opts);
+      if (opts.label) {
+        const lx = opts.labelAt ? opts.labelAt[0] : (Math.abs(a.x - b.x) < 2 ? a.x + (opts.labelDx||36) : (a.x + b.x) / 2);
+        const ly = opts.labelAt ? opts.labelAt[1] : (Math.abs(a.y - b.y) < 2 ? a.y - 10 : (a.y + b.y) / 2 - 6);
+        label(lx, ly, opts.label);
+      }
+    }
+
+    // 自定义折线（用于状态机的回环箭头）
+    function customPath(points, opts = {}) {
+      const pts = points.map(p => ({ x: p[0], y: p[1] }));
+      drawPolyline(pts, opts);
+      if (opts.label) {
+        if (opts.labelAt) { label(opts.labelAt[0], opts.labelAt[1], opts.label); }
+        else {
+          const mid = points[Math.floor(points.length / 2)];
+          label(mid[0], mid[1], opts.label);
+        }
+      }
+    }
+
+    function sizeToContainer() {
+      const r = container.getBoundingClientRect();
+      svg.setAttribute('width', r.width);
+      svg.setAttribute('height', r.height);
+      svg.style.width = r.width + 'px';
+      svg.style.height = r.height + 'px';
+    }
+
+    return { anchor, connect, customPath, sizeToContainer };
+  }
+
+  function renderModuleDiagram() {
+    const svg = document.getElementById('module-svg');
+    const canvas = document.getElementById('module-canvas');
+    const cc = ConnectorCanvas(svg, canvas);
+    cc.sizeToContainer();
+
+    // 上方：托盘 / 窗口互斥控制链 — 分别就近连到宽 State Machine 的左/右两端
+    // 目标是 top/bottom 类锚点时用 h-v（先横后竖），确保箭头最后一段垂直戳入，而非贴边斜插
+    cc.connect('n-tray-icon', 'bottom', 'n-traymgr', 'top', { bend: 'h-v' });
+    cc.connect('n-combo', 'bottom', 'n-winmgr', 'top', { bend: 'h-v' });
+    cc.connect('n-traymgr', 'bottom', 'n-sm', 'top-left', { bend: 'h-v', label: '打开MainWindow请求' });
+    cc.connect('n-sm', 'top-right', 'n-winmgr', 'bottom', { bend: 'h-v', label: '状态驱动显示切换' });
+
+    // 中间：唤醒 → 触发 → 转写 主链（因果关系①②），左右直连宽 State Machine 两侧
+    cc.connect('n-ac', 'right', 'n-evk', 'left', { label: '监听中' });
+    cc.connect('n-evk', 'right', 'n-sm', 'left', { label: '①唤醒词' });
+    cc.connect('n-sm', 'right', 'n-dic', 'left', { dashed: true, label: '②加载' });
+    cc.connect('n-dic', 'right', 'n-out', 'left', { label: '识别文本' });
+
+    // 下方绕行：Ring Buffer 无缝喂入通道（仅唤醒后才开始，因果编号③延续①②），就近接宽 State Machine 左下角
+    cc.connect('n-ac', 'bottom', 'n-buf', 'left', { label: '麦克风音频' });
+    cc.connect('n-sm', 'bottom-left', 'n-buf', 'top', { bend: 'h-v', dashed: true, label: '③唤醒后才缓冲' });
+    cc.connect('n-buf', 'right', 'n-dic', 'bottom', { bend: 'h-v', label: '无缝喂入·不丢帧' });
+
+    // 下方：dismiss 链（标签贴近 Global Input Monitor 自身，避免与下方 Ring Buffer 横线混淆）
+    {
+      const monTop = cc.anchor(document.getElementById('n-mon'), 'top');
+      cc.connect('n-mon', 'top', 'n-sm', 'bottom-mid', { bend: 'h-v', label: 'dismiss信号', labelAt: [monTop.x + 92, monTop.y - 14] });
+    }
+
+    // 存储读写：绕开 Ring Buffer 横线所在高度——先在 State Machine 正下方的空隙右移，再从空列(History正上方)垂直下降，全程不与其他线交叉
+    {
+      const smBR = cc.anchor(document.getElementById('n-sm'), 'bottom-right');
+      const storeTop = cc.anchor(document.getElementById('n-store'), 'top');
+      const gapY = smBR.y + 22;
+      cc.customPath(
+        [[smBR.x, smBR.y], [smBR.x, gapY], [storeTop.x, gapY], [storeTop.x, storeTop.y]],
+        { dashed: true, label: '读写记录', labelAt: [(smBR.x + storeTop.x) / 2, gapY - 10] }
+      );
+    }
+
+    // OS 边界
+    cc.connect('n-kbd', 'top', 'n-mon', 'bottom', {});
+    cc.connect('n-mic', 'top', 'n-ac', 'bottom', {});
+    cc.connect('n-out', 'bottom', 'n-focus', 'top', { label: '模拟键盘输入' });
+  }
+
+  function renderStateDiagram() {
+    const svg = document.getElementById('state-svg');
+    const canvas = document.getElementById('state-canvas');
+    const cc = ConnectorCanvas(svg, canvas);
+    cc.sizeToContainer();
+
+    // Configure ↔ Listening 双向：左右各偏移一条线，充分分开避免交叠；标签直接贴在各自线上
+    const cBottom = cc.anchor(document.getElementById('s-configure'), 'bottom');
+    const lTop = cc.anchor(document.getElementById('s-listening'), 'top');
+    const dx = 48;
+    const midY = (lTop.y + cBottom.y) / 2;
+    cc.customPath([[lTop.x - dx, lTop.y], [cBottom.x - dx, cBottom.y]], { label: '打开MainWindow', labelAt: [lTop.x - dx, midY] });
+    cc.customPath([[cBottom.x + dx, cBottom.y], [lTop.x + dx, lTop.y]], { label: '关闭MainWindow', labelAt: [lTop.x + dx, midY] });
+
+    cc.connect('s-listening', 'right', 's-loading', 'left', { label: '唤醒词' });
+    cc.connect('s-loading', 'right', 's-dictating', 'left', { label: '加载完成' });
+    cc.connect('s-dictating', 'right', 's-unloading', 'left', { label: 'dismiss' });
+
+    // Loading -> Unloading：打开MainWindow请求中断加载，走统一清理出口（浅探，与下方回环区分）
+    const loadBot = cc.anchor(document.getElementById('s-loading'), 'bottom');
+    const unloadBot = cc.anchor(document.getElementById('s-unloading'), 'bottom');
+    const shallowDrop = 38;
+    cc.customPath([[loadBot.x, loadBot.y], [loadBot.x, loadBot.y + shallowDrop], [unloadBot.x, unloadBot.y + shallowDrop], [unloadBot.x, unloadBot.y]],
+      { dashed: true, label: '打开MainWindow请求(中断加载)', labelAt: [(loadBot.x + unloadBot.x) / 2, loadBot.y + shallowDrop] });
+
+    // 回环：Unloading 底部 -> 下探(更深) -> 左移 -> 回到 Listening 底部
+    const a = cc.anchor(document.getElementById('s-unloading'), 'bottom');
+    const b = cc.anchor(document.getElementById('s-listening'), 'bottom');
+    const drop = 78;
+    cc.customPath([[a.x, a.y], [a.x, a.y + drop], [b.x, b.y + drop], [b.x, b.y]], { label: '清理完成 · 回到待机' });
+  }
+
+  const renderers = { module: renderModuleDiagram, state: renderStateDiagram, sequence: null };
+  function renderActive(name) {
+    if (renderers[name]) renderers[name]();
+  }
+
+  const tabs = document.querySelectorAll('.tab-btn');
+  const panes = document.querySelectorAll('.pane');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      panes.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+      requestAnimationFrame(() => renderActive(btn.dataset.tab));
+    });
+  });
+
+  window.addEventListener('load', () => renderActive('module'));
+  window.addEventListener('resize', () => {
+    const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
+    renderActive(activeTab);
+  });
+</script>
+
+</body>
+</html>
