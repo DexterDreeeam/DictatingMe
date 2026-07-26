@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DictatingMe · 唤醒设置接口图</title>
+  <style>
+    :root{color-scheme:dark;--bg:#111318;--panel:#191c23;--panel2:#20242d;--line:#353b48;--text:#e8ebf2;--muted:#9aa3b4;--accent:#5865f2;--green:#50c878;--yellow:#e5b95c;--red:#e06b72;--blue:#66a8ff;--code:#dbe5f8}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+    header{padding:28px 32px 17px;border-bottom:1px solid var(--line);background:#24262b}h1{margin:0 0 6px;font-size:22px}.lead{margin:0;color:var(--muted);font-size:13px}
+    .status{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #715f36;border-radius:7px;color:var(--yellow);font-size:10px;vertical-align:3px}
+    .tabs{display:flex;gap:8px;padding:16px 32px 0;border-bottom:1px solid var(--line)}.tab{position:relative;top:1px;padding:10px 16px;border:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);cursor:pointer;font-weight:600}.tab.active{border:1px solid var(--line);border-bottom-color:var(--panel2);background:var(--panel2);color:#fff}
+    .pane{display:none;max-width:1540px;margin:auto;padding:28px 32px 60px}.pane.active{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px}.canvas{min-width:0;padding:24px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:auto}
+    .sidebar .card{margin-bottom:14px;padding:16px;border:1px solid var(--line);border-radius:11px;background:var(--panel)}.card h3{margin:0 0 8px;color:#fff;font-size:13px}.card p,.card li{margin:0;color:var(--muted);font-size:11.5px;line-height:1.6}.card ul{margin:0;padding-left:17px}
+    .row{display:flex;align-items:stretch;justify-content:center;gap:9px;min-width:max-content}.node{display:flex;min-width:150px;max-width:205px;min-height:72px;padding:11px 13px;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:11px;background:var(--panel2);text-align:center}.node strong{color:#fff;font-size:12px}.node span{margin-top:5px;color:var(--muted);font-size:10px;line-height:1.4}.node.ui{border-color:#7a8bff}.node.service{border-color:var(--accent);background:rgba(88,101,242,.16)}.node.trait{border-color:#4d9d70}.node.port{border-style:dashed;border-color:#858b96}.node.runtime{border-color:#e4b34c}
+    .arrow{display:flex;align-items:center;color:#b5bac1;font-size:18px;font-weight:700}.arrow.down{height:27px;justify-content:center;transform:rotate(90deg)}
+    .bar{margin:18px auto;max-width:900px;padding:10px 14px;border:1px dashed #687080;border-radius:9px;color:#b5bac1;text-align:center;font-size:11px}.bar strong{color:#fff}.bar.good{border-color:#397d54;color:#7fd49e}.bar.stop{border-color:#7c4146;color:#ef9da2}
+    .type-grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px;min-width:820px}.type{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.type strong{display:block;color:#fff;font-size:12px}.type code{display:block;margin-top:7px;color:#aeb8ff;font-size:10px}.type span{display:block;margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
+    .signature{margin:9px 0;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:10.5px;white-space:pre;overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:760px;border:1px solid var(--line);background:var(--panel2);font-size:11px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:#282c35}td{color:var(--muted)}tr:last-child td{border-bottom:0}td code{color:var(--code)}
+    .contract{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;min-width:780px}.contract-side{padding:18px;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}.contract-side h3{margin:0 0 10px;font-size:13px}.contract-side ul{margin:0;padding-left:17px;color:var(--muted);font-size:11px;line-height:1.7}.contract-mid{width:240px;padding:16px;border:2px solid var(--green);border-radius:12px;background:rgba(80,200,120,.08);text-align:center}.contract-mid strong{display:block;color:#fff;font-size:13px}.contract-mid code{display:block;margin-top:7px;color:#8bd5a7;font-size:10.5px}
+    code{font-family:"Cascadia Code",Consolas,monospace}.keep{color:var(--green)}.remove{color:#ef8e94}.change{color:var(--yellow)}
+    footer{padding:20px;border-top:1px solid var(--line);color:var(--muted);text-align:center;font-size:11px}a{color:#8c98ff}
+    @media(max-width:900px){.pane.active{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.pane{padding-inline:16px}.tabs{padding-left:16px;overflow:auto}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DictatingMe · 唤醒设置接口图 <span class="status">待评审 / 未实现</span></h1>
+    <p class="lead">Evoke Setup 只挂在 SettingsHandle；与 RuntimeHandle 的公开交互数量为 0。</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-pane="surface">公共面</button>
+    <button class="tab" data-pane="processor">Trait</button>
+    <button class="tab" data-pane="commands">Commands / Events</button>
+    <button class="tab" data-pane="boundary">Runtime 边界</button>
+  </div>
+
+  <section class="pane active" id="pane-surface">
+    <div class="canvas">
+      <div class="row">
+        <div class="node ui"><strong>UI API</strong><span>begin / capture / finish / cancel</span></div><div class="arrow">→</div>
+        <div class="node service"><strong>SettingsHandle</strong><span>Actor message 边界</span></div><div class="arrow">→</div>
+        <div class="node service"><strong>EvokeSetupService</strong><span>唯一 public service</span></div><div class="arrow">→</div>
+        <div class="node trait"><strong>EvokeModeProcessor</strong><span>四个实现</span></div>
+      </div>
+      <div class="bar stop"><strong>没有：</strong>RuntimeHandle.begin_evoke_setup / RuntimeCore.capture_sample / Processor → Runtime callback。</div>
+
+      <div class="type-grid">
+        <div class="type"><strong>StartEvokeSetup</strong><code>mode · phrase</code><span>所有模式相同入口</span></div>
+        <div class="type"><strong>EnrollmentPlan</strong><code>0/3/3/6 · 5000ms</code><span>Processor 返回需求</span></div>
+        <div class="type"><strong>EvokeSetupSession</strong><code>id · phase · progress</code><span>向导可恢复</span></div>
+        <div class="type"><strong>RecordingReceipt</strong><code>quality · remaining</code><span>不暴露 ContentRef</span></div>
+        <div class="type"><strong>ProcessedEvokeProfile</strong><code>artifacts · metadata</code><span>只在 Runtime 内部 domain 使用</span></div>
+        <div class="type"><strong>EvokeProfileSummary</strong><code>id · mode · phrase</code><span>UI 展示 DTO</span></div>
+        <div class="type"><strong>EvokeDecision</strong><code>accepted · score · stages</code><span>运行时唯一判定输出</span></div>
+        <div class="type"><strong>OperationRef</strong><code>operationId</code><span>复用 Storage operation</span></div>
+      </div>
+
+      <div class="signature">enum EvokeMode { Text, VoiceMatch, SpeakerVerify, Classifier }</div>
+      <div class="signature">enum EvokeSetupPhase { Draft, Capturing, ReadyToProcess, Processing, Committed, Failed, Cancelled }</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>最少 DTO</h3><p>录音和 artifact 路径不跨 IPC；UI 只拿 receipt/summary。</p></div>
+      <div class="card"><h3>一个 Operation</h3><p>处理进度复用 operation-progress，不新增 classifier-progress 等事件。</p></div>
+      <div class="card"><h3>一个 Service</h3><p>四种模式不创建四套 commands/service。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-processor">
+    <div class="canvas">
+      <div class="row">
+        <div class="node service"><strong>EvokeSetupService</strong><span>按 mode 查 registry</span></div><div class="arrow">→</div>
+        <div class="node trait"><strong>EvokeModeProcessor</strong><span>统一 enrollment + process + runtime factory</span></div>
+      </div>
+      <div class="arrow down">→</div>
+      <div class="type-grid">
+        <div class="type"><strong>TextProcessor</strong><code>0 recordings</code><span>tokens / KWS params</span></div>
+        <div class="type"><strong>VoiceMatchProcessor</strong><code>3 recordings</code><span>templates / threshold</span></div>
+        <div class="type"><strong>SpeakerProcessor</strong><code>3 recordings</code><span>centroid / threshold</span></div>
+        <div class="type"><strong>ClassifierProcessor</strong><code>6 recordings</code><span>classifier / metrics</span></div>
+      </div>
+
+      <div class="signature">trait EvokeModeProcessor: Send + Sync {
+  fn mode(&amp;self) -&gt; EvokeMode;
+  fn enrollment_plan(&amp;self, assets: &amp;AssetSnapshot) -&gt; EnrollmentPlan;
+  async fn process(&amp;self, input: EvokeEnrollment, ctx: &amp;ProcessorContext)
+    -&gt; Result&lt;ProcessedEvokeProfile, EvokeSetupError&gt;;
+  fn create_runtime(&amp;self, profile: &amp;EvokeProfile, assets: &amp;dyn AssetResolver,
+    content: &amp;dyn ContentResolver) -&gt; Result&lt;Box&lt;dyn EvokeRuntimeVerifier&gt;, EvokeSetupError&gt;;
+}</div>
+
+      <div class="signature">trait EvokeRuntimeVerifier: Send {
+  fn reset(&amp;mut self);
+  fn accept_audio(&amp;mut self, frame: &amp;AudioFrame) -&gt; Result&lt;(), EvokeRuntimeError&gt;;
+  fn evaluate(&amp;mut self, candidate: &amp;WakeWordDetection) -&gt; Result&lt;EvokeDecision, EvokeRuntimeError&gt;;
+}</div>
+
+      <div class="row">
+        <div class="node port"><strong>EvokeRecordingPort</strong><span>capture_fixed(5000ms)</span></div>
+        <div class="arrow">←</div>
+        <div class="node service"><strong>EvokeSetupService</strong><span>只依赖 Port</span></div>
+        <div class="arrow">→</div>
+        <div class="node port"><strong>EvokeStoragePort</strong><span>setup / recording / commit</span></div>
+        <div class="arrow">+</div>
+        <div class="node port"><strong>EvokeAssetPort</strong><span>snapshot / acquire_all</span></div>
+      </div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>Processor 禁止</h3><ul><li>访问 RuntimeCore</li><li>拼绝对路径</li><li>下载资源</li><li>提交 active ID</li></ul></div>
+      <div class="card"><h3>Profile Commit</h3><p>由 EvokeStoragePort 原子执行；Processor 只返回 pending artifacts。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-commands">
+    <div class="canvas">
+      <div class="row">
+        <div class="node ui"><strong>Tauri Command</strong><span>thin serialization layer</span></div><div class="arrow">→</div>
+        <div class="node service"><strong>State&lt;SettingsHandle&gt;</strong><span>不是 RuntimeHandle</span></div><div class="arrow">→</div>
+        <div class="node service"><strong>Settings Actor</strong><span>串行处理 mutation</span></div>
+      </div>
+
+      <table style="margin-top:18px">
+        <thead><tr><th>Command</th><th>Request</th><th>Response</th><th>Handle</th></tr></thead>
+        <tbody>
+          <tr><td><code>begin_evoke_setup</code></td><td>StartEvokeSetup</td><td>EvokeSetupSession</td><td>SettingsHandle</td></tr>
+          <tr><td><code>capture_evoke_sample</code></td><td>setupId</td><td>RecordingReceipt</td><td>SettingsHandle</td></tr>
+          <tr><td><code>finish_evoke_setup</code></td><td>setupId</td><td>OperationRef</td><td>SettingsHandle</td></tr>
+          <tr><td><code>get_evoke_setup</code></td><td>setupId</td><td>EvokeSetupSession</td><td>SettingsHandle</td></tr>
+          <tr><td><code>cancel_evoke_setup</code></td><td>setupId</td><td>void</td><td>SettingsHandle</td></tr>
+        </tbody>
+      </table>
+
+      <table style="margin-top:14px">
+        <thead><tr><th>Event</th><th>Payload</th><th>复用</th></tr></thead>
+        <tbody>
+          <tr><td><code>input-level</code></td><td>number 0..1</td><td class="keep">现有事件；录音音量</td></tr>
+          <tr><td><code>operation-progress</code></td><td>OperationProgress</td><td class="keep">下载/处理共用</td></tr>
+          <tr><td><code>settings-changed</code></td><td>{ generation }</td><td class="change">只发 invalidation；UI 重取 snapshot</td></tr>
+        </tbody>
+      </table>
+
+      <div class="bar good"><strong>TypeScript API：</strong>beginEvokeSetup / captureEvokeSample / finishEvokeSetup / getEvokeSetup / cancelEvokeSetup。</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>移除</h3><p><code>set_evoke_word</code> 被统一会话替代。</p></div>
+      <div class="card"><h3>保留</h3><p><code>set_sensitivity</code> 仍是轻量 SettingsHandle mutation。</p></div>
+      <div class="card"><h3>不新增</h3><p>setup_voice / setup_speaker / train_classifier 等模式专用命令。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-boundary">
+    <div class="canvas">
+      <div class="contract">
+        <div class="contract-side">
+          <h3>Evoke / Settings</h3>
+          <ul>
+            <li>提交 profile</li>
+            <li>generation++</li>
+            <li>向 UI emit settings-changed</li>
+            <li>不调用 RuntimeHandle</li>
+          </ul>
+        </div>
+        <div class="contract-mid">
+          <strong>0 个直接接口</strong>
+          <code>EvokeSetupService ↛ Runtime</code>
+          <code>SettingsHandle ↛ RuntimeHandle</code>
+        </div>
+        <div class="contract-side">
+          <h3>Runtime</h3>
+          <ul>
+            <li>独立 watch generation</li>
+            <li>进入 Listening 前取 RuntimeBundle</li>
+            <li>从 profile factory 构建 EvokePipeline</li>
+            <li>不感知 setup session</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="arrow down">→</div>
+      <div class="row">
+        <div class="node service"><strong>commit profile</strong><span>Settings operation 完成</span></div><div class="arrow">→</div>
+        <div class="node port"><strong>Storage generation</strong><span>internal watch u64</span></div><div class="arrow">→</div>
+        <div class="node runtime"><strong>Runtime dirty</strong><span>不立即 reload</span></div><div class="arrow">→</div>
+        <div class="node runtime"><strong>request_background</strong><span>acquire RuntimeBundle</span></div>
+      </div>
+      <div class="bar stop"><strong>Runtime 公开接口保持：</strong>get_state / request_background / quit_app；不加入任何 Evoke Setup 方法。</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>为何不直连</h3><p>MainWindow 已保证 Configure；设置完成不需要驱动状态转移。</p></div>
+      <div class="card"><h3>为何只发 generation</h3><p>避免 profile DTO、路径和下载状态进入 Runtime mailbox。</p></div>
+      <div class="card"><h3>失败隔离</h3><p>设置失败只影响 operation；旧 RuntimeBundle 仍可用。</p></div>
+    </aside>
+  </section>
+
+  <footer>
+    DictatingMe · Evoke Setup Interface ·
+    <a href="./architecture-evoke-setup.html">架构图</a> /
+    <a href="./interface-storage.html">Storage 接口图</a> /
+    <a href="./plan.md">Plan</a>
+  </footer>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('.pane');
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(item => item.classList.remove('active'));
+      panes.forEach(item => item.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
+    }));
+  </script>
+</body>
+</html>

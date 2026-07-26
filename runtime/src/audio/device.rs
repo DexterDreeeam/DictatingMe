@@ -1,7 +1,8 @@
 //! 音频输入设备管理（对应 MainWindow 的 InputDevice 设置页，见 plan.md §6.2）。
 
 /// 一个可用的音频输入设备。
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AudioDeviceInfo {
     /// 平台相关的设备唯一标识
     pub id: String,

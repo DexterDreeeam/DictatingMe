@@ -1,10 +1,12 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "DictatingMe",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.dictatingme.app",
   "build": {
-    "frontendDist": "../ui",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
   "app": {
@@ -24,8 +26,8 @@
         "label": "hud",
         "title": "DictatingMe HUD",
         "url": "hud-window/index.html",
-        "width": 160,
-        "height": 48,
+        "width": 800,
+        "height": 64,
         "resizable": false,
         "visible": false,
         "decorations": false,
@@ -33,24 +35,38 @@
         "alwaysOnTop": true,
         "skipTaskbar": true,
         "shadow": false,
-        "focus": false
+        "focus": false,
+        "backgroundColor": [0, 0, 0, 0]
       }
     ],
     "trayIcon": {
       "iconPath": "icons/tray.png",
-      "iconAsTemplate": true,
+      "iconAsTemplate": false,
       "menuOnLeftClick": false
     },
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'",
+      "devCsp": "default-src 'self'; connect-src ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
+    "targets": ["nsis"],
+    "resources": {
+      "../assets/manifest-cn.json": "manifest-cn.json"
+    },
+    "windows": {
+      "allowDowngrades": false,
+      "nsis": {
+        "installMode": "perMachine",
+        "compression": "lzma",
+        "installerHooks": "windows-nsis-hooks.nsh"
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
+      "icons/128x128@2x.png",
       "icons/icon.ico"
     ]
   }

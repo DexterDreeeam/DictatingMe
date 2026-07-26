@@ -5,6 +5,7 @@ Cargo.lock
 # Node / frontend
 /node_modules
 /dist
+/release/
 
 # Tauri
 /runtime/target
@@ -13,10 +14,14 @@ Cargo.lock
 # Runtime user data (dev-time local testing artifacts, never real user data)
 /.dm-data/
 
-# Model files: downloaded via model/download-models.ps1, never committed.
-# Only the download script itself is tracked.
-/model/*
-!/model/download-models.ps1
+# Models and acceptance assets: downloaded via assets/download-assets.ps1, never committed.
+# Only the PowerShell download script is tracked inside the assets directory.
+/assets/*
+!/assets/download-assets.ps1
+!/assets/sha.json
+!/assets/manifest-cn.json
+!/assets/run-package.ps1
+!/assets/run-release.ps1
 
 # Editor
 .vscode/

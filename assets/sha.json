@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "id": "evoke.sherpa-zipformer-wenetspeech",
+      "kind": "presetEvoke",
+      "version": "2024-01-01",
+      "bundled": true,
+      "format": "directory",
+      "installPath": "preset/sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01",
+      "files": [
+        {
+          "path": "encoder-epoch-12-avg-2-chunk-16-left-64.onnx",
+          "sizeBytes": 12152560,
+          "sha256": "859cd6decc23f35e6ddb3a6ddb7172a57f6de7b54288728c2433ab94b7635c59"
+        },
+        {
+          "path": "decoder-epoch-12-avg-2-chunk-16-left-64.onnx",
+          "sizeBytes": 675349,
+          "sha256": "fb581d6734511676e246e0dff2fea01b31b0913176cb3ca64576dbab0a177774"
+        },
+        {
+          "path": "joiner-epoch-12-avg-2-chunk-16-left-64.onnx",
+          "sizeBytes": 253410,
+          "sha256": "fcf43a2edf687e2e1bc8a2b2cf53129d3b0d693d90dcc4202e2d53b43db6c43c"
+        },
+        {
+          "path": "tokens.txt",
+          "sizeBytes": 1627,
+          "sha256": "72316508d9119696145abc6f1f8cdc46287535c34e5ce7e595f845cb1499cf2e"
+        }
+      ]
+    },
+    {
+      "id": "dictation.sherpa-zipformer-zh-en",
+      "kind": "dictationModel",
+      "version": "2023-02-20",
+      "bundled": false,
+      "format": "tarBz2",
+      "installPath": "dictation/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20",
+      "archiveRoot": "sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20",
+      "files": [
+        {
+          "path": "encoder-epoch-99-avg-1.int8.onnx",
+          "sizeBytes": 181895032,
+          "sha256": "8fa764187a261844f859d7143ebaa563af5d10adfece4c18a8f414c88cba2a9b"
+        },
+        {
+          "path": "decoder-epoch-99-avg-1.onnx",
+          "sizeBytes": 13876452,
+          "sha256": "2e3b5ec371f8899ee6acd829fd753ba45772df57a91bdf37cde3136354e7db7d"
+        },
+        {
+          "path": "joiner-epoch-99-avg-1.int8.onnx",
+          "sizeBytes": 3228404,
+          "sha256": "1ed689c5ed19dbaa725d9d191bb4822b5f4855a39e1ffd28cbc1f340d25b2ee0"
+        },
+        {
+          "path": "tokens.txt",
+          "sizeBytes": 56317,
+          "sha256": "a8e0e4ec53810e433789b54a5c0134a7eaa2ffca595a6334d54c00da858841d3"
+        }
+      ]
+    },
+    {
+      "id": "speaker.campplus-zh",
+      "kind": "speakerEmbedding",
+      "version": "2026-01-30",
+      "bundled": false,
+      "format": "file",
+      "installPath": "speaker/campplus-zh",
+      "outputFile": "3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx",
+      "files": [
+        {
+          "path": "3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx",
+          "sizeBytes": 28281138,
+          "sha256": "f682b514c05d947ee3fa91cd6ec6c5c7543479a128373fa29b1faedccd21fd11"
+        }
+      ]
+    },
+    {
+      "id": "classifier.ms-snsd-babble",
+      "kind": "classifierResource",
+      "version": "fe61c4b",
+      "bundled": false,
+      "format": "file",
+      "installPath": "classifier/ms-snsd-babble",
+      "outputFile": "babble-16k.wav",
+      "files": [
+        {
+          "path": "babble-16k.wav",
+          "sizeBytes": 2599512,
+          "sha256": "b0a51acb7f1ed9410be5b8e4e3e9d3178a460de7542c9c563ff4516290e9720d"
+        }
+      ]
+    }
+  ]
+}

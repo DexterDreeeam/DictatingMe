@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "dictatingme-desktop",
+  "description": "Minimal permissions required by the DictatingMe windows.",
+  "windows": ["main", "hud"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-size"
+  ]
+}

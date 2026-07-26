@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DictatingMe · 内容存储架构图</title>
+  <style>
+    :root{color-scheme:dark;--bg:#1e1f22;--panel:#2b2d31;--panel2:#313338;--line:#454952;--text:#dbdee1;--muted:#949ba4;--accent:#5865f2;--green:#23a55a;--yellow:#f0b232;--red:#f23f42;--blue:#65a9ff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+    header{padding:28px 32px 17px;border-bottom:1px solid var(--line);background:#24262b}
+    h1{margin:0 0 6px;font-size:22px}.lead{margin:0;color:var(--muted);font-size:13px}
+    .status{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #715f36;border-radius:7px;color:var(--yellow);font-size:10px;vertical-align:3px}
+    .tabs{display:flex;gap:8px;padding:16px 32px 0;border-bottom:1px solid var(--line)}
+    .tab{position:relative;top:1px;padding:10px 16px;border:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);cursor:pointer;font-weight:600}
+    .tab.active{border:1px solid var(--line);border-bottom-color:var(--panel2);background:var(--panel2);color:#fff}
+    .pane{display:none;max-width:1540px;margin:auto;padding:28px 32px 60px}.pane.active{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:20px}
+    .canvas{min-width:0;padding:24px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:auto}
+    .sidebar .card{margin-bottom:14px;padding:16px;border:1px solid var(--line);border-radius:11px;background:var(--panel)}
+    .card h3{margin:0 0 8px;color:#fff;font-size:13px}.card p,.card li{margin:0;color:var(--muted);font-size:11.5px;line-height:1.6}.card ul{margin:0;padding-left:17px}
+    .lane{margin-bottom:20px;padding:15px;border:1px solid var(--line);border-radius:12px;background:#26282d}.lane:last-child{margin-bottom:0}
+    .lane-title{margin-bottom:12px;color:var(--muted);font-size:11px;font-weight:700}
+    .row{display:flex;align-items:stretch;justify-content:center;gap:9px;min-width:max-content}
+    .node{display:flex;min-width:145px;max-width:195px;min-height:72px;padding:11px 13px;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:11px;background:var(--panel2);text-align:center}
+    .node strong{color:#fff;font-size:12px}.node span{margin-top:5px;color:var(--muted);font-size:10px;line-height:1.4}
+    .node.ui{border-color:#7a8bff}.node.service{border-color:#5865f2;background:rgba(88,101,242,.18)}.node.store{border-color:#b88c36;background:rgba(240,178,50,.08)}.node.db{border-color:#5e9472}.node.runtime{border-color:#e4b34c}.node.port{border-style:dashed;border-color:#858b96}
+    .arrow{display:flex;align-items:center;color:#b5bac1;font-size:18px;font-weight:700}.arrow.down{height:27px;justify-content:center;transform:rotate(90deg)}
+    .bar{margin:18px auto;max-width:900px;padding:10px 14px;border:1px dashed #687080;border-radius:9px;color:#b5bac1;text-align:center;font-size:11px}.bar strong{color:#fff}.bar.good{border-color:#397d54;color:#7fd49e}.bar.stop{border-color:#7c4146;color:#ef9da2}
+    .state-row{display:flex;align-items:center;justify-content:center;gap:8px;min-width:930px}
+    .state{min-width:110px;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);text-align:center;font-size:11px}.state.active{border-color:var(--accent);background:rgba(88,101,242,.16);color:#fff}.state.error{border-color:#8c484d}.state.ready{border-color:#3e8d5b}.state-arrow{color:var(--muted)}
+    .tree{display:grid;grid-template-columns:220px 1fr;gap:10px;min-width:760px}.tree-label{padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:#fff;font-size:11px}.tree-value{padding:11px;border:1px dashed var(--line);border-radius:9px;color:var(--muted);font-family:"Cascadia Code",Consolas,monospace;font-size:10.5px}
+    .ref-grid{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:10px;min-width:820px}.ref{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);text-align:center}.ref strong{display:block;color:#fff;font-size:11px}.ref span{display:block;margin-top:6px;color:var(--muted);font-size:10px}
+    .contract{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;min-width:780px}.contract-side{padding:18px;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}.contract-side h3{margin:0 0 10px;font-size:13px}.contract-side ul{margin:0;padding-left:17px;color:var(--muted);font-size:11px;line-height:1.7}
+    .contract-mid{width:240px;padding:16px;border:2px solid var(--green);border-radius:12px;background:rgba(35,165,90,.09);text-align:center}.contract-mid strong{display:block;color:#fff;font-size:13px}.contract-mid code{display:block;margin-top:7px;color:#8bd5a7;font-size:10.5px}
+    .sequence{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));min-width:800px}.actor{padding:10px;border-bottom:2px solid var(--accent);color:#fff;text-align:center;font-size:12px;font-weight:700}.step{position:relative;min-height:60px;padding:9px 10px;border-right:1px dashed var(--line);color:var(--muted);font-size:10.5px}.step.send::after{content:"";position:absolute;top:29px;left:50%;width:100%;border-top:1px solid var(--blue)}.step.send::before{content:"›";position:absolute;z-index:2;top:18px;right:-3px;color:var(--blue);font-size:20px}.step.return::after{content:"";position:absolute;top:29px;right:50%;width:100%;border-top:1px dashed var(--green)}.step.return::before{content:"‹";position:absolute;z-index:2;top:18px;left:-3px;color:var(--green);font-size:20px}.step b{display:block;color:#d8dbe0;font-weight:600}
+    code{font-family:"Cascadia Code",Consolas,monospace}footer{padding:20px;border-top:1px solid var(--line);color:var(--muted);text-align:center;font-size:11px}a{color:#8c98ff}
+    @media(max-width:900px){.pane.active{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.pane{padding-inline:16px}.tabs{padding-left:16px;overflow:auto}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DictatingMe · 内容存储架构图 <span class="status">待评审 / 未实现</span></h1>
+    <p class="lead">Settings 拥有写入；Runtime 只消费自包含 bundle 和写入 History，不能直接访问 AssetManager/ContentStorage。</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-pane="module">模块图</button>
+    <button class="tab" data-pane="asset">Asset 流程</button>
+    <button class="tab" data-pane="content">引用与清理</button>
+    <button class="tab" data-pane="boundary">Runtime 边界</button>
+    <button class="tab" data-pane="recovery">恢复时序</button>
+  </div>
+
+  <section class="pane active" id="pane-module">
+    <div class="canvas">
+      <div class="lane">
+        <div class="lane-title">SETTINGS / WRITE OWNER</div>
+        <div class="row">
+          <div class="node ui"><strong>MainWindow</strong><span>下载 / 选择 / Evoke Setup</span></div>
+          <div class="arrow">→</div>
+          <div class="node service"><strong>SettingsHandle</strong><span>独立 Actor / 所有 mutation</span></div>
+          <div class="arrow">→</div>
+          <div class="node service"><strong>SettingsCoordinator</strong><span>snapshot / readiness / operation</span></div>
+          <div class="arrow">→</div>
+          <div class="node store"><strong>ManagedStorage</strong><span>唯一持久化 facade</span></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="node store"><strong>AssetManager</strong><span>manifest-cn + SHA / download / lease</span></div>
+        <div class="arrow">←</div>
+        <div class="node store"><strong>ManagedStorage</strong><span>事务与引用协调</span></div>
+        <div class="arrow">→</div>
+        <div class="node store"><strong>ContentStorage</strong><span>writer / refs / trash</span></div>
+        <div class="arrow">+</div>
+        <div class="node db"><strong>SQLite</strong><span>metadata / journal / generation</span></div>
+        <div class="arrow">+</div>
+        <div class="node store"><strong>Domain Stores</strong><span>Config / Profile / Setup / History</span></div>
+      </div>
+
+      <div class="bar good"><strong>唯一变更出口：</strong>SettingsCoordinator transaction → generation++ → settings-changed / internal watch。</div>
+
+      <div class="lane">
+        <div class="lane-title">RUNTIME / READ-MOSTLY CONSUMER</div>
+        <div class="row">
+          <div class="node runtime"><strong>RuntimeCore</strong><span>不持有 ManagedStorage</span></div>
+          <div class="arrow">→</div>
+          <div class="node port"><strong>RuntimeDataPort</strong><span>3 methods</span></div>
+          <div class="arrow">→</div>
+          <div class="node store"><strong>RuntimeBundleBuilder</strong><span>profile + leases + config</span></div>
+        </div>
+      </div>
+      <div class="bar stop"><strong>禁止连接：</strong>RuntimeCore → AssetManager / ContentStorage / ProfileStore / SQLite。</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>单写入拥有者</h3><p>除 History append 外，所有设置 mutation 经 SettingsHandle 串行化。</p></div>
+      <div class="card"><h3>大文件不入 SQLite</h3><p>数据库只存 metadata、相对路径、引用、状态与 generation。</p></div>
+      <div class="card"><h3>统一资源根</h3><p><code>%LOCALAPPDATA%\DictatingMe\assets</code> 保存 preset、模型和训练资源。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-asset">
+    <div class="canvas">
+      <div class="state-row">
+        <div class="state">Missing</div><div class="state-arrow">→</div>
+        <div class="state">Checking</div><div class="state-arrow">→</div>
+        <div class="state">Connecting</div><div class="state-arrow">→</div>
+        <div class="state active">Downloading</div><div class="state-arrow">→</div>
+        <div class="state">Verifying</div><div class="state-arrow">→</div>
+        <div class="state ready">Ready</div>
+      </div>
+      <div class="arrow down">→</div>
+      <div class="flow">
+        <div class="node ui"><strong>DownloadButton</strong><span>links + folder</span></div><div class="arrow">→</div>
+        <div class="node service"><strong>SettingsHandle</strong><span>install_asset</span></div><div class="arrow">→</div>
+        <div class="node store"><strong>manifest-cn</strong><span>group / name / sources</span></div><div class="arrow">→</div>
+        <div class="node service"><strong>Concurrent Probe</strong><span>256KiB Range / 12s / rank</span></div><div class="arrow">+</div>
+        <div class="node store"><strong>sha.json</strong><span>path / format / size / SHA</span></div><div class="arrow">→</div>
+        <div class="node store"><strong>Staging Writer</strong><span>assets\.staging\UUID\download.part</span></div><div class="arrow">→</div>
+        <div class="node store"><strong>Full SHA Verify</strong><span>size + every file</span></div><div class="arrow">→</div>
+        <div class="node store"><strong>Delete Archive</strong><span>成功校验后立即删除</span></div><div class="arrow">→</div>
+        <div class="node db"><strong>Atomic Commit</strong><span>rename + metadata</span></div>
+      </div>
+      <div class="bar stop"><strong>失败路径：</strong>立即删除本次 .staging/UUID（含压缩包与解压内容）；当前 Ready version 不被覆盖；generation 不变。</div>
+      <div class="bar good"><strong>成功路径：</strong>校验后先删除压缩包，再原子安装到 assets 子目录；generation++；UI 解锁选项。</div>
+      <div class="bar good"><strong>Manifest 更新：</strong>NSIS 明文安装 → 启动时原子同步至 AppData → AssetManager 从 AppData 加载。</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>目录存在 ≠ Ready</h3><p>Catalog 中全部文件 size + SHA-256 通过才 Ready。</p></div>
+      <div class="card"><h3>配置唯一来源</h3><p>UI 名称、资源列表和 URL 只读 manifest-cn；sha.json 不重复保存。</p></div>
+      <div class="card"><h3>先测速再下载</h3><p>所有可信源同步探测；最快有效源优先，完整连接失败按排名回退。</p></div>
+      <div class="card"><h3>单路径单 writer</h3><p>同一最终 asset path 只允许一个 install operation。</p></div>
+      <div class="card"><h3>下载不自动选择</h3><p>Ready 只解锁模型；select 是单独 settings mutation。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-content">
+    <div class="canvas">
+      <div class="ref-grid">
+        <div class="ref"><strong>History</strong><span>audio ContentRef</span></div>
+        <div class="ref"><strong>EvokeSetup</strong><span>recording refs</span></div>
+        <div class="ref"><strong>EvokeProfile</strong><span>artifact + asset refs</span></div>
+        <div class="ref"><strong>Operation</strong><span>temporary refs / lease</span></div>
+        <div class="ref"><strong>RuntimeBundle</strong><span>live AssetLease</span></div>
+      </div>
+      <div class="arrow down">→</div>
+      <div class="row">
+        <div class="node db"><strong>content_references</strong><span>owner_kind + owner_id + content_id</span></div>
+        <div class="arrow">+</div>
+        <div class="node db"><strong>asset_references</strong><span>owner → asset version</span></div>
+        <div class="arrow">+</div>
+        <div class="node store"><strong>Runtime Lease Registry</strong><span>process-local active readers</span></div>
+      </div>
+      <div class="arrow down">→</div>
+      <div class="state-row">
+        <div class="state">ref &gt; 0<br/>KEEP</div><div class="state-arrow">/</div>
+        <div class="state">lease &gt; 0<br/>KEEP</div><div class="state-arrow">/</div>
+        <div class="state">active<br/>KEEP</div><div class="state-arrow">/</div>
+        <div class="state active">all zero + expired<br/>CANDIDATE</div><div class="state-arrow">→</div>
+        <div class="state">Trash</div><div class="state-arrow">→</div>
+        <div class="state ready">Deleted</div>
+      </div>
+      <div class="bar"><strong>默认保留：</strong>asset staging 为 operation 作用域并立即清理；失败 setup 24h；最近 1 个 retired profile 7d；旧 asset 按 LRU + soft quota。</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>没有 delete(path)</h3><p>业务模块只 release owner；CleanupWorker 决定物理删除。</p></div>
+      <div class="card"><h3>先 Trash</h3><p>原子移动后再异步删除，崩溃后可重试。</p></div>
+      <div class="card"><h3>History FIFO</h3><p>第 21 条只释放最旧 owner；共享内容仍有引用则不删。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-boundary">
+    <div class="canvas">
+      <div class="contract">
+        <div class="contract-side">
+          <h3>ManagedStorage / Settings</h3>
+          <ul>
+            <li>拥有 Asset/Profile/Config mutation</li>
+            <li>计算完整 Readiness</li>
+            <li>构建自包含 RuntimeBundle</li>
+            <li>generation watch sender</li>
+          </ul>
+        </div>
+        <div class="contract-mid">
+          <strong>RuntimeDataPort</strong>
+          <code>subscribe_generation()</code>
+          <code>acquire_active_bundle()</code>
+          <code>append_history()</code>
+        </div>
+        <div class="contract-side">
+          <h3>RuntimeCore</h3>
+          <ul>
+            <li>持有 watch receiver</li>
+            <li>持有当前 RuntimeBundle</li>
+            <li>进入 Listening 前刷新 dirty bundle</li>
+            <li>Unloading 写一次 History</li>
+          </ul>
+        </div>
+      </div>
+      <div class="bar good"><strong>RuntimeBundle：</strong>generation / inputDeviceId / sensitivity / LoadedEvokeProfile / Dictation AssetLease。</div>
+      <div class="row">
+        <div class="node store"><strong>Storage generation 42</strong><span>Settings commit 完成</span></div><div class="arrow">→</div>
+        <div class="node runtime"><strong>Runtime sees 42</strong><span>只标记 dirty</span></div><div class="arrow">→</div>
+        <div class="node runtime"><strong>request_background</strong><span>acquire_active_bundle()</span></div><div class="arrow">→</div>
+        <div class="node runtime"><strong>Bundle 42</strong><span>lease 保持整个运行周期</span></div>
+      </div>
+      <div class="bar stop"><strong>Runtime 不调用：</strong>inspect_asset / install_asset / cleanup / get_profile / open_content / SQLite query。</div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>watch 是 invalidation</h3><p>只传 u64，不传 settings/profile DTO，避免 Runtime 消息洪泛。</p></div>
+      <div class="card"><h3>Bundle 是快照</h3><p>一次加载所有运行依赖；运行期间不反复查询 Store。</p></div>
+      <div class="card"><h3>History 是唯一写入</h3><p>每次 Unloading 一次 append；内部再转成 ContentRef。</p></div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-recovery">
+    <div class="canvas">
+      <div class="sequence">
+        <div class="actor">Startup</div><div class="actor">ManagedStorage</div><div class="actor">Filesystem</div><div class="actor">RuntimeCore</div>
+
+        <div class="step send"><b>open()</b></div><div class="step"><b>migrate DB</b></div><div class="step"></div><div class="step"></div>
+        <div class="step"></div><div class="step send"><b>reconcile journal</b></div><div class="step"><b>staging / trash scan</b></div><div class="step"></div>
+        <div class="step"></div><div class="step send"><b>verify active refs</b></div><div class="step"><b>fast active check</b></div><div class="step"></div>
+        <div class="step"></div><div class="step"><b>build readiness + generation</b></div><div class="step"></div><div class="step"></div>
+        <div class="step"></div><div class="step return"><b>RuntimeDataPort ready</b></div><div class="step return"></div><div class="step"><b>subscribe_generation</b></div>
+        <div class="step"></div><div class="step return"><b>RuntimeBundle</b></div><div class="step return"></div><div class="step"><b>acquire_active_bundle</b></div>
+      </div>
+      <div class="tree" style="margin-top:22px">
+        <div class="tree-label">Interrupted operation</div><div class="tree-value">Running row + no worker → Interrupted → staging recovery/trash</div>
+        <div class="tree-label">rename 已完成 / DB 未提交</div><div class="tree-value">full SHA →补写 installation metadata；失败 → trash</div>
+        <div class="tree-label">active asset 损坏</div><div class="tree-value">Readiness blocked；不进入 Listening；保留目录供 repair</div>
+        <div class="tree-label">orphan asset staging</div><div class="tree-value">启动时立即删除 assets\.staging 下全部孤儿操作目录</div>
+        <div class="tree-label">旧 AppData 根</div><div class="tree-value">首次启动迁移 com.dictatingme.app 的 DB/assets/profile/session/history → %LOCALAPPDATA%\DictatingMe</div>
+      </div>
+    </div>
+    <aside class="sidebar">
+      <div class="card"><h3>启动顺序</h3><p>Storage reconcile 完成后才创建 RuntimeDataPort 与 RuntimeCore。</p></div>
+      <div class="card"><h3>不全量 SHA</h3><p>启动关键路径只查 active/最近使用；完整旧资源验证可后台执行。</p></div>
+    </aside>
+  </section>
+
+  <footer>
+    DictatingMe · Storage Architecture ·
+    <a href="./interface-storage.html">接口图</a> /
+    <a href="./architecture-evoke-setup.html">Evoke 架构图</a> /
+    <a href="./plan.md">Plan</a>
+  </footer>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('.pane');
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(item => item.classList.remove('active'));
+      panes.forEach(item => item.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
+    }));
+  </script>
+</body>
+</html>

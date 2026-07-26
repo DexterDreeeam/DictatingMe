@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DictatingMe 类型与接口总览</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d12;
+      --panel: #12151d;
+      --panel-2: #181c26;
+      --line: #2a3040;
+      --text: #e8ebf2;
+      --muted: #929bad;
+      --runtime: #71d9a7;
+      --runtime-soft: rgba(113, 217, 167, 0.12);
+      --ui: #7eb6ff;
+      --ui-soft: rgba(126, 182, 255, 0.12);
+      --warning: #f0c36a;
+      --code: #d8e2f3;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(113, 217, 167, 0.09), transparent 32rem),
+        radial-gradient(circle at 88% 8%, rgba(126, 182, 255, 0.09), transparent 34rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+    }
+
+    code, .signature, .field-type, .source {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+    }
+
+    header {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 54px 28px 30px;
+    }
+
+    .eyebrow {
+      color: var(--runtime);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-size: clamp(34px, 5vw, 62px);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .lead {
+      max-width: 850px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .metric {
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(18, 21, 29, 0.82);
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 13, 18, 0.88);
+      backdrop-filter: blur(18px);
+    }
+
+    .toolbar-inner {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 9px 15px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover { background: var(--panel-2); }
+    button[data-target="runtime"].active {
+      border-color: var(--runtime);
+      background: var(--runtime-soft);
+      color: var(--runtime);
+    }
+    button[data-target="ui"].active {
+      border-color: var(--ui);
+      background: var(--ui-soft);
+      color: var(--ui);
+    }
+    button[data-target="all"].active {
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+
+    .search {
+      flex: 1;
+      min-width: 180px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 10px 13px;
+      outline: none;
+    }
+
+    .search:focus { border-color: #59657e; }
+
+    main {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 28px 28px 80px;
+    }
+
+    .cross-layer {
+      margin-bottom: 36px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(135deg, var(--runtime-soft), var(--ui-soft));
+    }
+
+    .part {
+      margin-top: 26px;
+    }
+
+    .part-title {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin: 0 0 18px;
+      font-size: 30px;
+      letter-spacing: -0.02em;
+    }
+
+    .part.runtime .part-title { color: var(--runtime); }
+    .part.ui .part-title { color: var(--ui); }
+
+    .part-title small {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .module {
+      margin: 0 0 24px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(18, 21, 29, 0.76);
+    }
+
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 16px;
+    }
+
+    .module h3 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .source {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--panel-2);
+    }
+
+    .card.wide { grid-column: 1 / -1; }
+
+    .card-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .card h4 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge.runtime {
+      border-color: rgba(113, 217, 167, 0.36);
+      background: var(--runtime-soft);
+      color: var(--runtime);
+    }
+
+    .badge.ui {
+      border-color: rgba(126, 182, 255, 0.36);
+      background: var(--ui-soft);
+      color: var(--ui);
+    }
+
+    .badge.private { color: #b8a8d8; }
+    .badge.serialized { color: var(--warning); }
+
+    .description {
+      margin: 0 0 11px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    .field-type { color: #aebde0; overflow-wrap: anywhere; }
+
+    .signatures {
+      display: grid;
+      gap: 7px;
+    }
+
+    .signature {
+      padding: 9px 11px;
+      border: 1px solid #31394b;
+      border-radius: 9px;
+      background: #0f1219;
+      color: var(--code);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .signature .return { color: var(--runtime); }
+    .ui .signature .return { color: var(--ui); }
+
+    .variants {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin: 4px 0 0;
+    }
+
+    .variant {
+      padding: 5px 9px;
+      border-radius: 8px;
+      background: #0f1219;
+      color: var(--code);
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-left: 3px solid var(--warning);
+      background: rgba(240, 195, 106, 0.08);
+      color: #d7c8a7;
+      font-size: 12px;
+    }
+
+    .empty {
+      display: none;
+      padding: 40px 0;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    footer {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 0 28px 44px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .summary-grid, .cards { grid-template-columns: 1fr; }
+      .card.wide { grid-column: auto; }
+      .toolbar-inner { flex-wrap: wrap; }
+      .search { order: 2; flex-basis: 100%; }
+      .module-header { display: block; }
+      .source { margin-top: 5px; text-align: left; }
+    }
+
+    @media print {
+      :root { color-scheme: light; }
+      body { background: white; color: #15171c; }
+      .toolbar { display: none; }
+      .part { display: block !important; }
+      .module, .card, .cross-layer {
+        break-inside: avoid;
+        background: white;
+        border-color: #cfd4dc;
+      }
+      .signature, .variant { background: #f3f5f8; color: #1f2937; }
+      .description, .source, .metric span, footer { color: #5f6775; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">DictatingMe · Interface Inventory</div>
+    <h1>类型 / 字段 / 接口总览</h1>
+    <p class="lead">
+      基于当前 Rust Runtime 与 TypeScript UI 源码生成。内容只描述现有契约，不代表方法已经实现。
+      Runtime 与 UI 分为两个独立部分，并额外列出跨层 DTO、Tauri Commands 与 Events 的对应关系。
+    </p>
+    <div class="summary-grid">
+      <div class="metric"><strong>2</strong><span>Runtime / UI 两部分</span></div>
+      <div class="metric"><strong>11</strong><span>Tauri Commands</span></div>
+      <div class="metric"><strong>3</strong><span>Runtime → UI Events</span></div>
+      <div class="metric"><strong>20</strong><span>History 固定容量</span></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="toolbar-inner">
+      <div class="tabs" aria-label="内容切换">
+        <button class="active" data-target="all">全部</button>
+        <button data-target="runtime">Runtime</button>
+        <button data-target="ui">UI</button>
+      </div>
+      <input id="search" class="search" type="search" placeholder="搜索类型、字段、方法或源文件…" />
+    </div>
+  </div>
+
+  <main>
+    <section class="cross-layer searchable">
+      <div class="module-header">
+        <div>
+          <h2 style="margin:0 0 5px">跨层契约对照</h2>
+          <p class="description" style="margin:0">Rust 使用 camelCase 序列化后与 TypeScript 类型对齐；历史录音本地路径不会传给 UI。</p>
+        </div>
+        <span class="badge serialized">IPC Boundary</span>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Runtime</th><th>UI</th><th>字段 / 值</th><th>方向</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>State</code></td><td><code>DmState</code></td><td>Configure · Listening · Loading · Dictating · Unloading</td><td>Runtime → UI</td></tr>
+          <tr><td><code>HudLight</code></td><td><code>HudLight</code></td><td>Yellow · Green · Off</td><td>Runtime → UI</td></tr>
+          <tr><td><code>AudioDeviceInfo</code></td><td><code>AudioDeviceInfo</code></td><td>id · name · isDefault</td><td>Runtime → UI</td></tr>
+          <tr><td><code>AppConfig</code></td><td><code>AppConfig</code></td><td>inputDeviceId · evokeWord · sensitivity</td><td>双向</td></tr>
+          <tr><td><code>HistoryEntry</code></td><td><code>HistoryEntry</code></td><td>id · timestampMs · text；<code>audio_path</code> 仅 Runtime 可见</td><td>Runtime → UI</td></tr>
+          <tr><td><code>EVENT_STATE_CHANGED</code></td><td><code>onStateChanged</code></td><td><code>state-changed</code> / DmState</td><td>Runtime → UI</td></tr>
+          <tr><td><code>EVENT_HISTORY_UPDATED</code></td><td><code>onHistoryUpdated</code></td><td><code>history-updated</code> / HistoryEntry</td><td>Runtime → UI</td></tr>
+          <tr><td><code>EVENT_INPUT_LEVEL</code></td><td><code>onInputLevel</code></td><td><code>input-level</code> / number 0-1</td><td>Runtime → UI</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div id="empty" class="empty">没有匹配的类型或接口。</div>
+
+    <section id="runtime" class="part runtime">
+      <h2 class="part-title">Runtime <small>Rust · Tauri Backend · Core Runtime</small></h2>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>Runtime 编排</h3><p class="description">Tauri 调用句柄与后台核心对象。</p></div>
+          <div class="source">runtime/src/runtime.rs</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>RuntimeError</h4><span class="badge runtime">tuple struct</span></div>
+            <table><tbody><tr><td><code>0</code></td><td class="field-type">String</td><td>Runtime 级错误消息</td></tr></tbody></table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>RuntimeHandle</h4><span class="badge runtime">struct</span><span class="badge">Clone</span></div>
+            <p class="description">供 Tauri 命令安全跨线程调用 RuntimeCore 的 Actor 句柄；当前尚未声明内部字段。</p>
+            <div class="signatures">
+              <div class="signature">async get_state(&amp;self) <span class="return">→ Result&lt;State, RuntimeError&gt;</span></div>
+              <div class="signature">async get_config(&amp;self) <span class="return">→ Result&lt;AppConfig, RuntimeError&gt;</span></div>
+              <div class="signature">async get_history(&amp;self) <span class="return">→ Result&lt;Vec&lt;HistoryEntry&gt;, RuntimeError&gt;</span></div>
+            </div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>RuntimeCore</h4><span class="badge runtime">struct</span><span class="badge private">private fields</span></div>
+            <table>
+              <thead><tr><th>字段</th><th>类型</th><th>职责</th></tr></thead>
+              <tbody>
+                <tr><td><code>state_machine</code></td><td class="field-type">StateMachine</td><td>状态与副作用决策</td></tr>
+                <tr><td><code>audio_capture</code></td><td class="field-type">Box&lt;dyn AudioCapture + Send&gt;</td><td>持续麦克风采集</td></tr>
+                <tr><td><code>ring_buffer</code></td><td class="field-type">AudioRingBuffer</td><td>Loading 阶段音频缓冲</td></tr>
+                <tr><td><code>evoke_model</code></td><td class="field-type">EvokeModelEngine</td><td>唤醒词识别</td></tr>
+                <tr><td><code>dictation_model</code></td><td class="field-type">DictationModelEngine</td><td>流式听写识别</td></tr>
+                <tr><td><code>text_diff</code></td><td class="field-type">TextDiffEngine</td><td>计算新增文本后缀</td></tr>
+                <tr><td><code>text_injector</code></td><td class="field-type">Box&lt;dyn TextInjector + Send&gt;</td><td>系统文本注入</td></tr>
+                <tr><td><code>input_monitor</code></td><td class="field-type">Box&lt;dyn GlobalInputMonitor + Send&gt;</td><td>全局 dismiss 输入监听</td></tr>
+                <tr><td><code>db</code></td><td class="field-type">Arc&lt;Database&gt;</td><td>共享数据库</td></tr>
+                <tr><td><code>history_store</code></td><td class="field-type">HistoryStore</td><td>听写历史</td></tr>
+                <tr><td><code>config_store</code></td><td class="field-type">ConfigStore</td><td>应用配置</td></tr>
+                <tr><td><code>tray_manager</code></td><td class="field-type">Box&lt;dyn TrayManager + Send&gt;</td><td>系统托盘</td></tr>
+                <tr><td><code>window_manager</code></td><td class="field-type">Box&lt;dyn WindowManager + Send&gt;</td><td>窗口互斥与 HUD</td></tr>
+              </tbody>
+            </table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new(audio_capture, evoke_model, dictation_model, text_injector, input_monitor, db, tray_manager, window_manager) <span class="return">→ Self</span></div>
+              <div class="signature">start(&amp;mut self) <span class="return">→ Result&lt;(), RuntimeError&gt;</span></div>
+              <div class="signature">handle_event(&amp;mut self, event: StateEvent) <span class="return">→ Result&lt;State, RuntimeError&gt;</span></div>
+              <div class="signature">current_state(&amp;self) <span class="return">→ State</span></div>
+              <div class="signature">history(&amp;self) <span class="return">→ &amp;HistoryStore</span></div>
+              <div class="signature">config(&amp;self) <span class="return">→ &amp;ConfigStore</span></div>
+              <div class="signature">shutdown(&amp;mut self) <span class="return">→ ()</span></div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>状态机</h3><p class="description">状态、事件、转移和副作用意图。</p></div>
+          <div class="source">runtime/src/state_machine/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>State</h4><span class="badge runtime">enum</span><span class="badge serialized">Serialize</span></div>
+            <div class="variants"><span class="variant">Configure</span><span class="variant">Listening</span><span class="variant">Loading</span><span class="variant">Dictating</span><span class="variant">Unloading</span></div>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">evoke_model_active(&amp;self) <span class="return">→ bool</span></div>
+              <div class="signature">dictation_model_active(&amp;self) <span class="return">→ bool</span></div>
+              <div class="signature">visible_window(&amp;self) <span class="return">→ WindowKind</span></div>
+              <div class="signature">hud_light(&amp;self) <span class="return">→ HudLight</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>WindowKind / HudLight</h4><span class="badge runtime">enums</span></div>
+            <table>
+              <tbody>
+                <tr><td><code>WindowKind</code></td><td>MainWindow · HudWindow</td></tr>
+                <tr><td><code>HudLight</code></td><td>Yellow · Green · Off</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>StateEvent</h4><span class="badge runtime">enum</span></div>
+            <table>
+              <thead><tr><th>Variant</th><th>字段</th><th>触发来源</th></tr></thead>
+              <tbody>
+                <tr><td><code>OpenMainWindowRequested</code></td><td>—</td><td>托盘左键 / 打开配置请求</td></tr>
+                <tr><td><code>MainWindowClosed</code></td><td>—</td><td>进入后台运行</td></tr>
+                <tr><td><code>WakeWordDetected</code></td><td>—</td><td>唤醒模型</td></tr>
+                <tr><td><code>DictationModelLoaded</code></td><td class="field-type">session_id: u64</td><td>异步模型加载任务</td></tr>
+                <tr><td><code>DismissDetected</code></td><td>—</td><td>全局键鼠监听</td></tr>
+                <tr><td><code>CleanupFinished</code></td><td class="field-type">session_id: u64</td><td>异步清理任务</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>TransitionEffect</h4><span class="badge runtime">enum</span></div>
+            <div class="variants">
+              <span class="variant">StartEvokeModel</span><span class="variant">StopEvokeModel</span>
+              <span class="variant">StartLoadingDictationModel</span><span class="variant">StartAudioBuffering</span>
+              <span class="variant">DrainRingBufferIntoDictationModel</span><span class="variant">StopDictationModelAndDiscardPending</span>
+              <span class="variant">UnloadDictationModel</span><span class="variant">WriteHistoryEntry</span>
+              <span class="variant">ShowMainWindow</span><span class="variant">HideMainWindow</span>
+              <span class="variant">ShowHudWindow</span><span class="variant">HideHudWindow</span>
+              <span class="variant">StartGlobalInputMonitor</span><span class="variant">StopGlobalInputMonitor</span>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>Transition / TransitionError</h4><span class="badge runtime">result types</span></div>
+            <table>
+              <tbody>
+                <tr><td><code>Transition.new_state</code></td><td class="field-type">State</td></tr>
+                <tr><td><code>Transition.effects</code></td><td class="field-type">Vec&lt;TransitionEffect&gt;</td></tr>
+                <tr><td><code>TransitionError::Invalid</code></td><td class="field-type">(State, StateEvent)</td></tr>
+                <tr><td><code>TransitionError::Ignored</code></td><td>无字段</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>StateMachine</h4><span class="badge runtime">struct</span><span class="badge private">private fields</span></div>
+            <table>
+              <tbody>
+                <tr><td><code>current</code></td><td class="field-type">State</td><td>当前状态</td></tr>
+                <tr><td><code>pending_open_main_window</code></td><td class="field-type">bool</td><td>清理完成后自动进入 Configure</td></tr>
+              </tbody>
+            </table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new() <span class="return">→ Self</span></div>
+              <div class="signature">current(&amp;self) <span class="return">→ State</span></div>
+              <div class="signature">apply(&amp;mut self, event: StateEvent) <span class="return">→ Result&lt;Transition, TransitionError&gt;</span></div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>音频</h3><p class="description">设备、采集帧、回调和 Loading 缓冲。</p></div>
+          <div class="source">runtime/src/audio/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>AudioDeviceInfo</h4><span class="badge runtime">struct</span><span class="badge serialized">Serde camelCase</span></div>
+            <table><tbody>
+              <tr><td><code>id</code></td><td class="field-type">String</td><td>平台设备 ID</td></tr>
+              <tr><td><code>name</code></td><td class="field-type">String</td><td>展示名称</td></tr>
+              <tr><td><code>is_default</code></td><td class="field-type">bool</td><td>是否系统默认设备</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AudioDeviceProvider</h4><span class="badge runtime">trait</span></div>
+            <div class="signatures">
+              <div class="signature">list_devices(&amp;self) <span class="return">→ Result&lt;Vec&lt;AudioDeviceInfo&gt;, AudioError&gt;</span></div>
+              <div class="signature">select_device(&amp;mut self, device_id: &amp;str) <span class="return">→ Result&lt;(), AudioError&gt;</span></div>
+              <div class="signature">current_device(&amp;self) <span class="return">→ Option&lt;AudioDeviceInfo&gt;</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AudioFrame</h4><span class="badge runtime">struct</span></div>
+            <table><tbody>
+              <tr><td><code>samples</code></td><td class="field-type">Vec&lt;i16&gt;</td><td>单声道 PCM</td></tr>
+              <tr><td><code>sample_rate</code></td><td class="field-type">u32</td><td>采样率</td></tr>
+              <tr><td><code>timestamp_ms</code></td><td class="field-type">u64</td><td>当前听写会话相对时间</td></tr>
+            </tbody></table>
+            <div class="note"><code>AudioFrameCallback = Box&lt;dyn FnMut(AudioFrame) + Send&gt;</code></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AudioCapture</h4><span class="badge runtime">trait</span></div>
+            <div class="signatures">
+              <div class="signature">start(&amp;mut self, device: &amp;AudioDeviceInfo) <span class="return">→ Result&lt;(), AudioError&gt;</span></div>
+              <div class="signature">stop(&amp;mut self) <span class="return">→ ()</span></div>
+              <div class="signature">set_frame_callback(&amp;mut self, callback: AudioFrameCallback) <span class="return">→ ()</span></div>
+              <div class="signature">is_capturing(&amp;self) <span class="return">→ bool</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>CpalAudioCapture</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>current_device</code></td><td class="field-type">Option&lt;AudioDeviceInfo&gt;</td><td>当前采集设备</td></tr></tbody></table>
+            <div class="signature" style="margin-top:12px">new() <span class="return">→ Self</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AudioRingBuffer</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>capacity_ms</code></td><td class="field-type">u64</td><td>最大缓冲时长</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new(capacity_ms: u64) <span class="return">→ Self</span></div>
+              <div class="signature">push(&amp;mut self, frame: AudioFrame) <span class="return">→ ()</span></div>
+              <div class="signature">drain(&amp;mut self) <span class="return">→ Vec&lt;AudioFrame&gt;</span></div>
+              <div class="signature">clear(&amp;mut self) <span class="return">→ ()</span></div>
+              <div class="signature">buffered_duration_ms(&amp;self) <span class="return">→ u64</span></div>
+            </div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>错误类型</h4><span class="badge runtime">tuple structs</span></div>
+            <table><tbody><tr><td><code>AudioError(pub String)</code></td><td>设备枚举、选择或采集错误</td></tr></tbody></table>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>模型</h3><p class="description">ONNX 会话、唤醒模型和听写模型。</p></div>
+          <div class="source">runtime/src/models/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>OnnxSession</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>model_path</code></td><td class="field-type">String</td><td>模型路径</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">load(model_path: &amp;str) <span class="return">→ Result&lt;Self, ModelError&gt;</span></div>
+              <div class="signature">async load_async(model_path: &amp;str) <span class="return">→ Result&lt;Self, ModelError&gt;</span></div>
+              <div class="signature">model_path(&amp;self) <span class="return">→ &amp;str</span></div>
+              <div class="signature">unload(self) <span class="return">→ ()</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>WakeWordDetection</h4><span class="badge runtime">struct</span></div>
+            <table><tbody>
+              <tr><td><code>confidence</code></td><td class="field-type">f32</td><td>检测置信度</td></tr>
+              <tr><td><code>detected_at_ms</code></td><td class="field-type">u64</td><td>检测时间</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>EvokeModelEngine</h4><span class="badge runtime">struct</span><span class="badge private">private fields</span></div>
+            <table><tbody>
+              <tr><td><code>session</code></td><td class="field-type">OnnxSession</td></tr>
+              <tr><td><code>sensitivity</code></td><td class="field-type">f32</td></tr>
+              <tr><td><code>active_word</code></td><td class="field-type">String</td></tr>
+            </tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new(model_path: &amp;str, active_word: String) <span class="return">→ Result&lt;Self, ModelError&gt;</span></div>
+              <div class="signature">active_word(&amp;self) <span class="return">→ &amp;str</span></div>
+              <div class="signature">set_active_word(&amp;mut self, word: String) <span class="return">→ Result&lt;(), ModelError&gt;</span></div>
+              <div class="signature">sensitivity(&amp;self) <span class="return">→ f32</span></div>
+              <div class="signature">set_sensitivity(&amp;mut self, value: f32) <span class="return">→ ()</span></div>
+              <div class="signature">process_frame(&amp;mut self, frame: &amp;AudioFrame) <span class="return">→ Option&lt;WakeWordDetection&gt;</span></div>
+              <div class="signature">fine_tune_with_voice_samples(&amp;mut self, samples: Vec&lt;AudioFrame&gt;) <span class="return">→ Result&lt;(), ModelError&gt;</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>TranscriptionUpdate / LoadState</h4><span class="badge runtime">result types</span></div>
+            <table><tbody>
+              <tr><td><code>full_text</code></td><td class="field-type">String</td><td>当前完整识别文本</td></tr>
+              <tr><td><code>is_final</code></td><td class="field-type">bool</td><td>是否最终结果</td></tr>
+              <tr><td><code>LoadState</code></td><td colspan="2">Unloaded · Loading · Loaded</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>DictationModelEngine</h4><span class="badge runtime">struct</span><span class="badge private">private fields</span></div>
+            <table><tbody>
+              <tr><td><code>model_path</code></td><td class="field-type">String</td></tr>
+              <tr><td><code>session</code></td><td class="field-type">Option&lt;OnnxSession&gt;</td></tr>
+              <tr><td><code>load_state</code></td><td class="field-type">LoadState</td></tr>
+            </tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new(model_path: &amp;str) <span class="return">→ Self</span></div>
+              <div class="signature">load_state(&amp;self) <span class="return">→ LoadState</span></div>
+              <div class="signature">async load(&amp;mut self) <span class="return">→ Result&lt;(), ModelError&gt;</span></div>
+              <div class="signature">unload(&amp;mut self) <span class="return">→ ()</span></div>
+              <div class="signature">process_frame(&amp;mut self, frame: &amp;AudioFrame) <span class="return">→ Option&lt;TranscriptionUpdate&gt;</span></div>
+            </div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>ModelError</h4><span class="badge runtime">tuple struct</span></div>
+            <table><tbody><tr><td><code>0</code></td><td class="field-type">String</td><td>模型加载或推理错误</td></tr></tbody></table>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>文本与输入监听</h3><p class="description">识别文本追加、系统注入和 dismiss 信号。</p></div>
+          <div class="source">runtime/src/text/* · input_monitor/* · platform/windows/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>TextDiffEngine</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>last_full_text</code></td><td class="field-type">String</td><td>上次完整结果</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new() <span class="return">→ Self</span></div>
+              <div class="signature">compute_suffix(&amp;mut self, current_full_text: &amp;str) <span class="return">→ String</span></div>
+              <div class="signature">reset(&amp;mut self) <span class="return">→ ()</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>TextInjector</h4><span class="badge runtime">trait</span></div>
+            <div class="signature">type_text(&amp;self, text: &amp;str) <span class="return">→ Result&lt;(), InjectorError&gt;</span></div>
+            <p class="description" style="margin-top:10px">Windows 实现：<code>WindowsTextInjector</code>，提供 <code>new()</code> 并实现该 trait。</p>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>InputEventKind</h4><span class="badge runtime">enum</span></div>
+            <div class="variants"><span class="variant">Keyboard</span><span class="variant">MouseLeft</span><span class="variant">MouseRight</span><span class="variant">MouseMiddle</span><span class="variant">MouseSide</span></div>
+            <div class="note"><code>DismissCallback = Box&lt;dyn Fn(InputEventKind) + Send&gt;</code></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>GlobalInputMonitor</h4><span class="badge runtime">trait</span></div>
+            <div class="signatures">
+              <div class="signature">start(&amp;mut self, callback: DismissCallback) <span class="return">→ Result&lt;(), MonitorError&gt;</span></div>
+              <div class="signature">stop(&amp;mut self) <span class="return">→ ()</span></div>
+              <div class="signature">is_monitoring(&amp;self) <span class="return">→ bool</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>WindowsInputMonitor</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>monitoring</code></td><td class="field-type">bool</td><td>监听是否启动</td></tr></tbody></table>
+            <div class="signature" style="margin-top:12px">new() <span class="return">→ Self</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>错误类型</h4><span class="badge runtime">tuple structs</span></div>
+            <table><tbody>
+              <tr><td><code>InjectorError(pub String)</code></td><td>文本注入错误</td></tr>
+              <tr><td><code>MonitorError(pub String)</code></td><td>全局输入监听错误</td></tr>
+            </tbody></table>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>存储</h3><p class="description">数据库、配置与 FIFO 历史记录。</p></div>
+          <div class="source">runtime/src/storage/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>Database</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>path</code></td><td class="field-type">String</td><td>数据库文件路径</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">open(path: &amp;str) <span class="return">→ Result&lt;Arc&lt;Self&gt;, StorageError&gt;</span></div>
+              <div class="signature">migrate(&amp;self) <span class="return">→ Result&lt;(), StorageError&gt;</span></div>
+              <div class="signature">path(&amp;self) <span class="return">→ &amp;str</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AppConfig</h4><span class="badge runtime">struct</span><span class="badge serialized">Serde camelCase</span></div>
+            <table><tbody>
+              <tr><td><code>input_device_id</code></td><td class="field-type">String</td></tr>
+              <tr><td><code>evoke_word</code></td><td class="field-type">String</td></tr>
+              <tr><td><code>sensitivity</code></td><td class="field-type">f32</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>ConfigStore</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>db</code></td><td class="field-type">Arc&lt;Database&gt;</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new(db: Arc&lt;Database&gt;) <span class="return">→ Self</span></div>
+              <div class="signature">load(&amp;self) <span class="return">→ Result&lt;AppConfig, StorageError&gt;</span></div>
+              <div class="signature">save(&amp;self, config: &amp;AppConfig) <span class="return">→ Result&lt;(), StorageError&gt;</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>HistoryEntry</h4><span class="badge runtime">struct</span><span class="badge serialized">Serialize camelCase</span></div>
+            <table><tbody>
+              <tr><td><code>id</code></td><td class="field-type">String</td><td>公开</td></tr>
+              <tr><td><code>timestamp_ms</code></td><td class="field-type">u64</td><td>公开为 timestampMs</td></tr>
+              <tr><td><code>text</code></td><td class="field-type">String</td><td>公开</td></tr>
+              <tr><td><code>audio_path</code></td><td class="field-type">String</td><td><code>skip_serializing</code>，仅 Runtime 可见</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>HistoryStore</h4><span class="badge runtime">struct</span><span class="badge private">private field</span></div>
+            <table><tbody><tr><td><code>db</code></td><td class="field-type">Arc&lt;Database&gt;</td><td>共享数据库</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">new(db: Arc&lt;Database&gt;) <span class="return">→ Self</span></div>
+              <div class="signature">append(&amp;mut self, entry: HistoryEntry) <span class="return">→ Result&lt;(), StorageError&gt;</span></div>
+              <div class="signature">get(&amp;self, id: &amp;str) <span class="return">→ Result&lt;Option&lt;HistoryEntry&gt;, StorageError&gt;</span></div>
+              <div class="signature">list(&amp;self) <span class="return">→ Result&lt;Vec&lt;HistoryEntry&gt;, StorageError&gt;</span></div>
+              <div class="signature">count(&amp;self) <span class="return">→ Result&lt;usize, StorageError&gt;</span></div>
+            </div>
+            <div class="note"><code>HISTORY_CAPACITY: usize = 20</code></div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>StorageError</h4><span class="badge runtime">tuple struct</span></div>
+            <table><tbody><tr><td><code>0</code></td><td class="field-type">String</td><td>存储层错误消息</td></tr></tbody></table>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>窗口与托盘</h3><p class="description">MainWindow/HudWindow 互斥、HUD 定位和托盘回调。</p></div>
+          <div class="source">runtime/src/window/* · tray/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>WindowManager</h4><span class="badge runtime">trait</span></div>
+            <div class="signatures">
+              <div class="signature">apply_visible_window(&amp;mut self, visible: WindowKind) <span class="return">→ Result&lt;(), WindowError&gt;</span></div>
+              <div class="signature">show_main_window(&amp;mut self) <span class="return">→ Result&lt;(), WindowError&gt;</span></div>
+              <div class="signature">hide_main_window(&amp;mut self) <span class="return">→ Result&lt;(), WindowError&gt;</span></div>
+              <div class="signature">show_hud_window(&amp;mut self) <span class="return">→ Result&lt;(), WindowError&gt;</span></div>
+              <div class="signature">hide_hud_window(&amp;mut self) <span class="return">→ Result&lt;(), WindowError&gt;</span></div>
+              <div class="signature">set_hud_light(&amp;mut self, light: HudLight) <span class="return">→ Result&lt;(), WindowError&gt;</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>HudPosition</h4><span class="badge runtime">struct</span></div>
+            <table><tbody>
+              <tr><td><code>x</code></td><td class="field-type">i32</td></tr>
+              <tr><td><code>y</code></td><td class="field-type">i32</td></tr>
+            </tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">compute_hud_position(primary_monitor_width: i32, hud_width: i32) <span class="return">→ HudPosition</span></div>
+            </div>
+            <div class="note"><code>HUD_TOP_OFFSET_PX: i32 = 80</code></div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>TrayManager</h4><span class="badge runtime">trait</span></div>
+            <div class="signatures">
+              <div class="signature">create(&amp;mut self, on_open_main_window: OpenMainWindowCallback, on_exit: ExitCallback) <span class="return">→ Result&lt;(), TrayError&gt;</span></div>
+              <div class="signature">destroy(&amp;mut self) <span class="return">→ ()</span></div>
+            </div>
+            <div class="note">
+              <code>OpenMainWindowCallback = Box&lt;dyn Fn() + Send&gt;</code><br />
+              <code>ExitCallback = Box&lt;dyn Fn() + Send&gt;</code>
+            </div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>错误类型</h4><span class="badge runtime">tuple structs</span></div>
+            <table><tbody>
+              <tr><td><code>WindowError(pub String)</code></td><td>窗口操作错误</td></tr>
+              <tr><td><code>TrayError(pub String)</code></td><td>托盘操作错误</td></tr>
+            </tbody></table>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>Tauri Commands</h3><p class="description">UI 调用 Runtime 的 11 个异步命令；配置修改返回最新 AppConfig。</p></div>
+          <div class="source">runtime/src/commands.rs</div>
+        </div>
+        <div class="card wide">
+          <table>
+            <thead><tr><th>命令</th><th>业务参数</th><th>返回</th></tr></thead>
+            <tbody>
+              <tr><td><code>get_state</code></td><td>—</td><td class="field-type">Result&lt;State, String&gt;</td></tr>
+              <tr><td><code>list_devices</code></td><td>—</td><td class="field-type">Result&lt;Vec&lt;AudioDeviceInfo&gt;, String&gt;</td></tr>
+              <tr><td><code>set_input_device</code></td><td class="field-type">device_id: String</td><td class="field-type">Result&lt;AppConfig, String&gt;</td></tr>
+              <tr><td><code>get_config</code></td><td>—</td><td class="field-type">Result&lt;AppConfig, String&gt;</td></tr>
+              <tr><td><code>set_evoke_word</code></td><td class="field-type">word: String</td><td class="field-type">Result&lt;AppConfig, String&gt;</td></tr>
+              <tr><td><code>set_sensitivity</code></td><td class="field-type">value: f32</td><td class="field-type">Result&lt;AppConfig, String&gt;</td></tr>
+              <tr><td><code>list_history</code></td><td>—</td><td class="field-type">Result&lt;Vec&lt;HistoryEntry&gt;, String&gt;</td></tr>
+              <tr><td><code>copy_history_text</code></td><td class="field-type">id: String</td><td class="field-type">Result&lt;(), String&gt;</td></tr>
+              <tr><td><code>play_history_audio</code></td><td class="field-type">id: String</td><td class="field-type">Result&lt;(), String&gt;</td></tr>
+              <tr><td><code>request_background</code></td><td>—</td><td class="field-type">Result&lt;(), String&gt;</td></tr>
+              <tr><td><code>quit_app</code></td><td>—</td><td class="field-type">Result&lt;(), String&gt;</td></tr>
+            </tbody>
+          </table>
+          <div class="note">每个命令还接收由 Tauri 注入的 <code>State&lt;RuntimeHandle&gt;</code>，该参数不由 UI 显式传递。</div>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>Runtime → UI Events 与启动入口</h3><p class="description">低频状态/历史通知，以及 Tauri Builder 注册入口。</p></div>
+          <div class="source">runtime/src/events.rs · lib.rs · main.rs</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>Events</h4><span class="badge runtime">Tauri emit</span></div>
+            <div class="signatures">
+              <div class="signature">EVENT_STATE_CHANGED = "state-changed"</div>
+              <div class="signature">emit_state_changed(app: &amp;AppHandle, state: State) <span class="return">→ Result&lt;(), tauri::Error&gt;</span></div>
+              <div class="signature">EVENT_HISTORY_UPDATED = "history-updated"</div>
+              <div class="signature">emit_history_updated(app: &amp;AppHandle, entry: HistoryEntry) <span class="return">→ Result&lt;(), tauri::Error&gt;</span></div>
+              <div class="signature">EVENT_INPUT_LEVEL = "input-level"</div>
+              <div class="signature">emit_input_level(app: &amp;AppHandle, level: f32) <span class="return">→ Result&lt;(), tauri::Error&gt;</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>run / main</h4><span class="badge runtime">startup</span></div>
+            <div class="signatures">
+              <div class="signature">dictatingme_runtime::run() <span class="return">→ ()</span></div>
+              <div class="signature">main() <span class="return">→ dictatingme_runtime::run()</span></div>
+            </div>
+            <p class="description" style="margin-top:10px"><code>run()</code> 注册全部 Commands，并预留 RuntimeCore 组装、后台 spawn、RuntimeHandle 托管及窗口/托盘创建。</p>
+          </section>
+        </div>
+      </article>
+    </section>
+
+    <section id="ui" class="part ui">
+      <h2 class="part-title">UI <small>TypeScript · MainWindow · HudWindow</small></h2>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>共享类型</h3><p class="description">与 Rust 序列化 DTO 对齐的前端类型。</p></div>
+          <div class="source">ui/shared/types.ts</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>DmState</h4><span class="badge ui">union</span></div>
+            <div class="variants"><span class="variant">'Configure'</span><span class="variant">'Listening'</span><span class="variant">'Loading'</span><span class="variant">'Dictating'</span><span class="variant">'Unloading'</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>HudLight</h4><span class="badge ui">union</span></div>
+            <div class="variants"><span class="variant">'Yellow'</span><span class="variant">'Green'</span><span class="variant">'Off'</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AudioDeviceInfo</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>id</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>name</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>isDefault</code></td><td class="field-type">boolean</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>AppConfig</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>inputDeviceId</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>evokeWord</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>sensitivity</code></td><td class="field-type">number</td></tr>
+            </tbody></table>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>HistoryEntry</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>id</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>timestampMs</code></td><td class="field-type">number</td></tr>
+              <tr><td><code>text</code></td><td class="field-type">string</td></tr>
+            </tbody></table>
+            <div class="note"><code>HISTORY_CAPACITY = 20</code>；录音文件路径不暴露给 UI。</div>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>Runtime API 封装</h3><p class="description">TypeScript 调用 Tauri Commands 的 Promise 接口。</p></div>
+          <div class="source">ui/shared/api.ts</div>
+        </div>
+        <div class="card wide">
+          <div class="signatures">
+            <div class="signature">getState() <span class="return">→ Promise&lt;DmState&gt;</span></div>
+            <div class="signature">listDevices() <span class="return">→ Promise&lt;AudioDeviceInfo[]&gt;</span></div>
+            <div class="signature">setInputDevice(deviceId: string) <span class="return">→ Promise&lt;AppConfig&gt;</span></div>
+            <div class="signature">getConfig() <span class="return">→ Promise&lt;AppConfig&gt;</span></div>
+            <div class="signature">setEvokeWord(word: string) <span class="return">→ Promise&lt;AppConfig&gt;</span></div>
+            <div class="signature">setSensitivity(value: number) <span class="return">→ Promise&lt;AppConfig&gt;</span></div>
+            <div class="signature">listHistory() <span class="return">→ Promise&lt;HistoryEntry[]&gt;</span></div>
+            <div class="signature">copyHistoryText(id: string) <span class="return">→ Promise&lt;void&gt;</span></div>
+            <div class="signature">playHistoryAudio(id: string) <span class="return">→ Promise&lt;void&gt;</span></div>
+            <div class="signature">requestBackground() <span class="return">→ Promise&lt;void&gt;</span></div>
+            <div class="signature">quitApp() <span class="return">→ Promise&lt;void&gt;</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>事件订阅</h3><p class="description">监听 Runtime 推送的状态与历史事件。</p></div>
+          <div class="source">ui/shared/events.ts</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>Unlisten</h4><span class="badge ui">type alias</span></div>
+            <div class="signature">type Unlisten = () <span class="return">→ void</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>订阅函数</h4><span class="badge ui">functions</span></div>
+            <div class="signatures">
+              <div class="signature">onStateChanged(callback: (state: DmState) =&gt; void) <span class="return">→ Promise&lt;Unlisten&gt;</span></div>
+              <div class="signature">onHistoryUpdated(callback: (entry: HistoryEntry) =&gt; void) <span class="return">→ Promise&lt;Unlisten&gt;</span></div>
+              <div class="signature">onInputLevel(callback: (level: number) =&gt; void) <span class="return">→ Promise&lt;Unlisten&gt;</span></div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>页面与路由</h3><p class="description">MainWindow 页面生命周期和四个固定路由。</p></div>
+          <div class="source">ui/main-window/page.ts · router.ts · pages/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>PageComponent</h4><span class="badge ui">interface</span></div>
+            <div class="signatures">
+              <div class="signature">mount(container: HTMLElement) <span class="return">→ void</span></div>
+              <div class="signature">unmount() <span class="return">→ void</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>RouteName</h4><span class="badge ui">union</span></div>
+            <div class="variants"><span class="variant">'home'</span><span class="variant">'input-device'</span><span class="variant">'evoke-word'</span><span class="variant">'history'</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>Router</h4><span class="badge ui">class</span><span class="badge private">constructor field</span></div>
+            <table><tbody><tr><td><code>container</code></td><td class="field-type">HTMLElement</td><td>private readonly</td></tr></tbody></table>
+            <div class="signatures" style="margin-top:12px">
+              <div class="signature">constructor(container: HTMLElement)</div>
+              <div class="signature">register(route: RouteName, factory: () =&gt; PageComponent) <span class="return">→ void</span></div>
+              <div class="signature">navigate(route: RouteName) <span class="return">→ void</span></div>
+              <div class="signature">current() <span class="return">→ RouteName</span></div>
+            </div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>HomePageDeps</h4><span class="badge ui">interface</span></div>
+            <table><tbody><tr><td><code>onNavigate</code></td><td class="field-type">(route: RouteName) =&gt; void</td></tr></tbody></table>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>页面类</h4><span class="badge ui">classes</span><span class="badge">PageComponent</span></div>
+            <table>
+              <thead><tr><th>类</th><th>构造字段</th><th>接口</th></tr></thead>
+              <tbody>
+                <tr><td><code>HomePage</code></td><td class="field-type">private readonly deps: HomePageDeps</td><td>mount · unmount</td></tr>
+                <tr><td><code>InputDevicePage</code></td><td>—</td><td>mount · unmount</td></tr>
+                <tr><td><code>EvokeWordPage</code></td><td>—</td><td>mount · unmount</td></tr>
+                <tr><td><code>HistoryPage</code></td><td>—</td><td>mount · unmount</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>MainWindow 组件</h3><p class="description">组件 Props 类型与纯渲染函数。</p></div>
+          <div class="source">ui/main-window/components/*</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>TitleBarProps</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>appName</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>onBackground</code></td><td class="field-type">() =&gt; void</td></tr>
+              <tr><td><code>onQuit</code></td><td class="field-type">() =&gt; void</td></tr>
+            </tbody></table>
+            <div class="signature" style="margin-top:12px">renderTitleBar(props: TitleBarProps) <span class="return">→ HTMLElement</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>NavCardProps</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>icon</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>title</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>subtitle</code></td><td class="field-type">string</td></tr>
+              <tr><td><code>onClick</code></td><td class="field-type">() =&gt; void</td></tr>
+            </tbody></table>
+            <div class="signature" style="margin-top:12px">renderNavCard(props: NavCardProps) <span class="return">→ HTMLElement</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>DeviceItemProps</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>device</code></td><td class="field-type">AudioDeviceInfo</td></tr>
+              <tr><td><code>selected</code></td><td class="field-type">boolean</td></tr>
+              <tr><td><code>onSelect</code></td><td class="field-type">(deviceId: string) =&gt; void</td></tr>
+            </tbody></table>
+            <div class="signature" style="margin-top:12px">renderDeviceItem(props: DeviceItemProps) <span class="return">→ HTMLElement</span></div>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>HistoryItemProps</h4><span class="badge ui">interface</span></div>
+            <table><tbody>
+              <tr><td><code>entry</code></td><td class="field-type">HistoryEntry</td></tr>
+              <tr><td><code>onCopy</code></td><td class="field-type">(id: string) =&gt; void</td></tr>
+              <tr><td><code>onPlay</code></td><td class="field-type">(id: string) =&gt; void</td></tr>
+            </tbody></table>
+            <div class="signature" style="margin-top:12px">renderHistoryItem(props: HistoryItemProps) <span class="return">→ HTMLElement</span></div>
+          </section>
+          <section class="card wide">
+            <div class="card-head"><h4>无 Props 组件</h4><span class="badge ui">function</span></div>
+            <div class="signature">renderLockBanner() <span class="return">→ HTMLElement</span></div>
+          </section>
+        </div>
+      </article>
+
+      <article class="module searchable">
+        <div class="module-header">
+          <div><h3>窗口入口与 HUD</h3><p class="description">MainWindow 启动和状态到 HUD 灯光映射。</p></div>
+          <div class="source">ui/main-window/main.ts · ui/hud-window/main.ts</div>
+        </div>
+        <div class="cards">
+          <section class="card">
+            <div class="card-head"><h4>MainWindow bootstrap</h4><span class="badge ui">internal function</span></div>
+            <div class="signature">bootstrap() <span class="return">→ void</span></div>
+            <p class="description" style="margin-top:10px">负责创建 Router、注册四个页面并订阅状态变化。</p>
+          </section>
+          <section class="card">
+            <div class="card-head"><h4>HudWindow</h4><span class="badge ui">functions</span></div>
+            <div class="signatures">
+              <div class="signature">mapStateToHudLight(state: DmState) <span class="return">→ HudLight</span></div>
+              <div class="signature">applyHudLight(light: HudLight) <span class="return">→ void</span></div>
+              <div class="signature">bootstrap() <span class="return">→ void</span></div>
+            </div>
+          </section>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    生成依据：当前工作区 <code>runtime/src/**/*.rs</code> 与 <code>ui/**/*.ts</code>。
+    “private field” 表示字段对模块外不可直接访问；“Serialize / Serde camelCase” 表示类型参与 Runtime ↔ UI 边界传输。
+  </footer>
+
+  <script>
+    const tabs = [...document.querySelectorAll('[data-target]')];
+    const parts = [...document.querySelectorAll('.part')];
+    const search = document.querySelector('#search');
+    const empty = document.querySelector('#empty');
+    let activeTarget = 'all';
+
+    function applyFilters() {
+      const query = search.value.trim().toLocaleLowerCase();
+      let visibleCount = 0;
+
+      parts.forEach((part) => {
+        const partEnabled = activeTarget === 'all' || part.id === activeTarget;
+        let partMatches = 0;
+
+        part.querySelectorAll('.searchable').forEach((item) => {
+          const matches = !query || item.textContent.toLocaleLowerCase().includes(query);
+          item.hidden = !(partEnabled && matches);
+          if (!item.hidden) partMatches += 1;
+        });
+
+        part.hidden = !partEnabled || (query && partMatches === 0);
+        if (!part.hidden) visibleCount += partMatches || 1;
+      });
+
+      document.querySelector('.cross-layer').hidden =
+        activeTarget !== 'all' || (query && !document.querySelector('.cross-layer').textContent.toLocaleLowerCase().includes(query));
+
+      empty.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        activeTarget = tab.dataset.target;
+        tabs.forEach((item) => item.classList.toggle('active', item === tab));
+        applyFilters();
+      });
+    });
+
+    search.addEventListener('input', applyFilters);
+  </script>
+</body>
+</html>

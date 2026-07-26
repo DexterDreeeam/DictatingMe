@@ -9,10 +9,10 @@ pub enum StateEvent {
     MainWindowClosed,
     /// EvokeModel 检测到唤醒词（仅 Listening 态可能产生）。
     WakeWordDetected,
-    /// DictationModel 异步加载完成。
-    DictationModelLoaded,
+    /// DictationModel 异步加载完成。附带 session_id 用于丢弃过期加载。
+    DictationModelLoaded { session_id: u64 },
     /// Global Input Monitor 检测到任意键盘/鼠标事件（dismiss 信号）。
     DismissDetected,
-    /// Unloading 收尾流程（丢弃内容、卸载模型、写入 History）已完成。
-    CleanupFinished,
+    /// Unloading 收尾流程（丢弃内容、卸载模型、写入 History）已完成。附带 session_id。
+    CleanupFinished { session_id: u64 },
 }

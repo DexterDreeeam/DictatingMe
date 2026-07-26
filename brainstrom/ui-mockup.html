@@ -36,14 +36,13 @@
   header p { margin: 0; color: var(--text-muted); font-size: 13px; }
 
   .layout {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 40px;
+    display: block;
     padding: 40px 32px 60px;
-    max-width: 1300px;
+    max-width: 1120px;
     margin: 0 auto;
-    align-items: flex-start;
   }
+  .runtime-preview { margin-bottom: 28px; }
+  .desktop-preview { width: 100%; }
 
   /* ---------- 分区标题 ---------- */
   .section-title {
@@ -67,7 +66,7 @@
     overflow: hidden;
     flex-shrink: 0;
     position: relative;
-    transition: opacity .25s;
+    transition: height .22s cubic-bezier(.22,1,.36,1), opacity .25s;
   }
   .mutex-overlay {
     position: absolute; inset: 0; z-index: 50;
@@ -120,23 +119,25 @@
   }
   .titlebar-actions .win-play svg { width: 21px; height: 21px; }
   .titlebar-actions .win-power svg { width: 18px; height: 18px; }
-  .titlebar-actions .win-play:hover { background: rgba(88,101,242,0.3); color: #fff; }
+  .titlebar-actions .win-play:hover { background: var(--green); color: #fff; }
   .titlebar-actions .win-power:hover { background: #e5484d; color: #fff; }
-
-  .hero-title {
-    text-align: center;
-    padding: 10px 16px 22px;
-    font-size: 25px;
-    font-weight: 800;
-    font-style: italic;
-    letter-spacing: 0.5px;
-    background: linear-gradient(120deg, #8b93ff 0%, var(--accent) 45%, var(--green) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .window-frame.recording-locked .titlebar-home,
+  .window-frame.recording-locked .win-play,
+  .window-frame.model-required .win-play {
+    opacity: .3;
+    pointer-events: none;
+    cursor: default;
   }
 
-  .window-body { padding: 20px; min-height: 500px; }
+  .hero-wordmark {
+    display: block; width: min(238px, 76%); height: auto;
+    margin: 0 auto; padding: 3px 0 14px;
+    filter: drop-shadow(0 2px 8px rgba(255,255,255,.08));
+    opacity: .96; pointer-events: none; transform: translateY(-10px); user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .window-body { padding: 20px 20px 32px; min-height: 0; }
 
   .status-pill {
     display: inline-flex;
@@ -181,12 +182,20 @@
     font-size: 12.5px; color: var(--text-muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .nav-card.requires-setup {
+    border-color: #6f3a40;
+    background: rgba(112,38,46,.2);
+  }
+  .nav-card.requires-setup:hover { background: rgba(132,43,52,.28); }
+  .nav-card.requires-setup .icon { color: #d66a72; }
+  .nav-card.requires-setup .value { color: #e7898f; font-weight: 600; }
 
   /* InputDevice 页 */
   .device-item {
-    display: flex; align-items: center; gap: 12px;
+    display: flex; width: 100%; align-items: center; gap: 12px;
     background: var(--panel-alt); border: 1px solid var(--border); border-radius: 12px;
-    padding: 13px 14px; margin-bottom: 10px; cursor: pointer;
+    padding: 13px 14px; margin-bottom: 10px; color: inherit; font: inherit;
+    text-align: left; cursor: pointer;
   }
   .device-item.selected { border-color: var(--accent); background: rgba(88,101,242,0.1); }
   .radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--text-muted); flex-shrink: 0; position: relative; }
@@ -207,15 +216,401 @@
   /* EvokeWord 页：直接输入唤醒词 */
   .evoke-current {
     background: var(--panel-alt); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px; margin-bottom: 4px;
+    padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
+  .evoke-current .field-label { margin: 0; }
+  .evoke-word-setting {
+    display: flex; min-width: 0; align-items: center; gap: 9px;
+  }
+  .evoke-word-value {
+    min-width: 0; overflow: hidden;
+    color: #fff; font-size: 15px; font-weight: 650;
+    text-align: right; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .wake-mode-icon {
+    display: inline-flex; width: 32px; height: 32px; flex-shrink: 0;
+    align-items: center; justify-content: center;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: rgba(255,255,255,.025); color: #9ca3af;
+    transition: border-color .15s, background .15s, color .15s, transform .15s;
+  }
+  .wake-mode-icon svg {
+    width: 19px; height: 19px;
+    fill: none; stroke: currentColor; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .wake-mode-language .wake-mode-glyph {
+    fill: currentColor; stroke: none;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 15px; font-weight: 700;
+  }
+  .evoke-word-setting .wake-mode-icon {
+    width: 28px; height: 28px;
+    border-color: rgba(88,101,242,.42);
+    background: rgba(88,101,242,.13); color: #aeb5ff;
+  }
+  .evoke-word-setting .wake-mode-icon svg { width: 17px; height: 17px; }
   .field-label { font-size: 12px; color: var(--text-muted); margin: 14px 0 8px; }
-  .dm-input {
-    width: 100%; background: var(--panel-alt); border: 1px solid var(--border); color: var(--text);
-    border-radius: 10px; padding: 10px 12px; font-size: 15px; font-weight: 600;
+  .evoke-metrics {
+    margin-top: 12px; padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--panel-alt);
   }
-  .dm-input:focus { outline: none; border-color: var(--accent); }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .metric-group + .metric-group { margin-top: 16px; }
+  .metric-label-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0 0 7px;
+  }
+  .metric-label-row .field-label { margin: 0; }
+  .metric-value {
+    min-width: 42px; color: var(--text); font-size: 12px; font-weight: 600;
+    text-align: right; font-variant-numeric: tabular-nums;
+  }
+  .sensitivity-range {
+    --sensitivity-position: 65%;
+    appearance: none; -webkit-appearance: none;
+    display: block; width: 100%; height: 15px; margin: 0; padding: 0;
+    border: 1px solid var(--border); border-radius: 8px;
+    background:
+      linear-gradient(90deg,
+        var(--accent) 0%,
+        var(--accent) var(--sensitivity-position),
+        rgba(22,23,26,.78) var(--sensitivity-position),
+        rgba(22,23,26,.78) 100%);
+    box-shadow: inset 0 1px 4px rgba(0,0,0,.4);
+    cursor: pointer;
+  }
+  .sensitivity-range::-webkit-slider-runnable-track {
+    height: 13px; border: 0; background: transparent;
+  }
+  .sensitivity-range::-webkit-slider-thumb {
+    appearance: none; -webkit-appearance: none;
+    width: 15px; height: 15px; margin-top: -1px;
+    border: 2px solid #fff; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 7px rgba(88,101,242,.55);
+  }
+  .sensitivity-range::-moz-range-track {
+    height: 13px; border: 0; background: transparent;
+  }
+  .sensitivity-range::-moz-range-thumb {
+    width: 13px; height: 13px;
+    border: 2px solid #fff; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 7px rgba(88,101,242,.55);
+  }
+  .detection-meter {
+    position: relative; width: 100%; height: 15px; overflow: hidden;
+    border: 1px solid var(--border); border-radius: 8px;
+    background:
+      linear-gradient(90deg,
+        rgba(242,63,66,.24) 0%,
+        rgba(240,178,50,.22) 52%,
+        rgba(35,165,90,.25) 100%);
+    box-shadow: inset 0 1px 4px rgba(0,0,0,.4);
+  }
+  .detection-meter-fill {
+    position: absolute; inset: 0 auto 0 0; width: 70%;
+    border-radius: inherit;
+    background:
+      linear-gradient(90deg,
+        rgba(242,63,66,.76) 0%,
+        rgba(240,178,50,.8) 74%,
+        rgba(35,165,90,.9) 100%);
+    box-shadow: 0 0 12px rgba(88,101,242,.22);
+    transition: width .7s cubic-bezier(.22,1,.36,1);
+  }
+  .detection-meter-marker {
+    position: absolute; top: -2px; right: 0; width: 3px; height: 17px;
+    border-radius: 2px; background: #fff;
+    box-shadow: 0 0 7px rgba(255,255,255,.7);
+  }
+  .detection-device {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 8px; color: var(--text-muted); font-size: 10.5px;
+  }
+  .detection-device-dot {
+    width: 6px; height: 6px; flex-shrink: 0;
+    border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 6px rgba(35,165,90,.7);
+  }
+  .setup-wake-button {
+    width: 100%; height: 42px; margin-top: 12px;
+    border: 1px solid var(--accent); border-radius: 10px;
+    background: rgba(88,101,242,.16); color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, transform .15s;
+  }
+  .setup-wake-button:hover { background: rgba(88,101,242,.32); }
+  .setup-wake-button:active { transform: scale(.99); }
+
+  /* 设置唤醒词 · 步骤 1：唤醒模式 */
+  .wizard-heading {
+    margin-bottom: 12px;
+  }
+  .wizard-heading-title { color: #fff; font-size: 14px; font-weight: 650; }
+  .wake-mode-list { display: flex; flex-direction: column; gap: 8px; }
+  .wake-mode-option {
+    position: relative; display: flex; min-height: 60px;
+    align-items: center; gap: 12px;
+    padding: 11px 13px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--panel-alt); cursor: pointer;
+    transition: border-color .15s, background .15s, transform .15s;
+  }
+  .wake-mode-option:hover { background: var(--panel-hover); transform: translateY(-1px); }
+  .wake-mode-option.selected {
+    border-color: var(--accent);
+    background: rgba(88,101,242,.11);
+  }
+  .wake-mode-option:hover .wake-mode-icon {
+    border-color: #5a606d; color: #c9cdd4; transform: translateY(-1px);
+  }
+  .wake-mode-option.selected .wake-mode-icon {
+    border-color: rgba(88,101,242,.72);
+    background: rgba(88,101,242,.18); color: #b7bdff;
+  }
+  .wake-mode-option.asset-unavailable { cursor: default; }
+  .wake-mode-option.asset-unavailable:hover {
+    background: var(--panel-alt);
+    transform: none;
+  }
+  .wake-mode-option.asset-unavailable .wake-mode-radio,
+  .wake-mode-option.asset-unavailable .wake-mode-copy {
+    opacity: .42;
+  }
+  .wake-mode-option input {
+    position: absolute; width: 1px; height: 1px;
+    opacity: 0; pointer-events: none;
+  }
+  .wake-mode-radio {
+    position: relative; width: 17px; height: 17px; flex-shrink: 0;
+    border: 2px solid var(--text-muted); border-radius: 50%;
+  }
+  .wake-mode-option.selected .wake-mode-radio { border-color: var(--accent); }
+  .wake-mode-option.selected .wake-mode-radio::after {
+    content: ""; position: absolute; inset: 3px;
+    border-radius: 50%; background: var(--accent);
+  }
+  .wake-mode-copy {
+    display: flex; min-width: 0; flex: 1;
+    flex-direction: column; gap: 6px;
+  }
+  .wake-mode-title { color: #fff; font-size: 13px; font-weight: 600; }
+  .wake-mode-desc {
+    overflow: hidden;
+    color: var(--text-muted); font-size: 10.5px;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .asset-download-slot { margin-left: auto; flex-shrink: 0; }
+  .wake-mode-option .asset-download-slot + .wake-mode-icon { margin-left: 0; }
+  .wake-mode-option .wake-mode-icon { margin-left: auto; }
+  .asset-download-button {
+    --download-progress: 0%;
+    position: relative; display: flex;
+    width: 76px; height: 32px; overflow: hidden;
+    align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid #565a64; border-radius: 8px;
+    background: #2a2c31; color: #e3e5e8;
+    font-size: 11.5px; font-weight: 650;
+    cursor: pointer; isolation: isolate;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .asset-download-button:hover { border-color: #747985; background: #35383e; }
+  .asset-download-progress {
+    position: absolute; z-index: -1; inset: 0 auto 0 0;
+    width: var(--download-progress);
+    background: rgba(88,101,242,.62);
+    transition: width .12s linear;
+  }
+  .asset-download-spinner {
+    display: none; width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,.24);
+    border-top-color: #fff; border-radius: 50%;
+    animation: asset-download-spin .72s linear infinite !important;
+  }
+  .asset-download-button[hidden] { display: none; }
+  .asset-download-button[data-state="connecting"] .asset-download-spinner,
+  .asset-download-button[data-state="verifying"] .asset-download-spinner { display: block; }
+  .asset-download-button[data-state="connecting"],
+  .asset-download-button[data-state="verifying"] {
+    border-color: #606572; background: #383b42;
+    color: #fff; cursor: default;
+  }
+  .asset-download-button[data-state="downloading"] {
+    border-color: var(--accent); background: #30323a;
+    color: #fff; cursor: default;
+    font-variant-numeric: tabular-nums;
+  }
+  .asset-download-button[data-state="ready"] {
+    border-color: #2d8b57; background: #1f6f45;
+    color: #fff; cursor: default;
+  }
+  .asset-download-button[data-state="error"] {
+    border-color: #b84d52; background: rgba(184,77,82,.16);
+    color: #ffb7ba;
+  }
+  .wizard-actions {
+    display: flex; flex-direction: column;
+    gap: 8px; margin-top: 14px;
+  }
+  .wizard-back,
+  .wizard-next {
+    width: 100%;
+    height: 42px;
+    border-radius: 10px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, transform .15s;
+  }
+  .wizard-back {
+    border: 1px solid var(--border);
+    background: var(--panel-alt); color: var(--text);
+  }
+  .wizard-back:hover { background: var(--panel-hover); }
+  .wizard-back:disabled {
+    border-color: #383b42;
+    background: #303238;
+    color: #71757e;
+    opacity: .65;
+    cursor: default;
+  }
+  .wizard-back:disabled:hover { background: #303238; }
+  .wizard-next {
+    border: 1px solid var(--accent); border-radius: 10px;
+    background: var(--accent); color: #fff;
+  }
+  .wizard-next:hover { background: var(--accent-hover); }
+  .wizard-back:active,
+  .wizard-next:active { transform: scale(.99); }
+
+  /* 设置唤醒词 · 输入与录制 */
+  .wake-setup-stack { display: flex; flex-direction: column; gap: 12px; }
+  .wake-setup-stack[hidden],
+  .wake-setup-module[hidden],
+  .action-with-tip[hidden],
+  .action-tip[hidden] { display: none; }
+  .wake-setup-module {
+    padding: 14px 16px;
+    border: 1px solid var(--border); border-radius: 12px;
+    background: var(--panel-alt);
+  }
+  .wake-text-input {
+    width: 100%; height: 42px;
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 0 12px; background: #292b30; color: #fff;
+    font-size: 15px; font-weight: 600;
+  }
+  .wake-text-input:focus { outline: none; border-color: var(--accent); }
+  .recording-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .recording-title { color: #fff; font-size: 13px; font-weight: 600; }
+  .recording-progress {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .recording-progress-step {
+    width: 17px; height: 6px;
+    border: 1px solid #4d5058; border-radius: 4px;
+    background: #34363c;
+    transition: background .18s, border-color .18s, box-shadow .18s, transform .18s;
+  }
+  .recording-progress-step.completed {
+    border-color: var(--green);
+    background: var(--green);
+  }
+  .recording-progress-step.next {
+    border-color: rgba(140,150,255,.72);
+    background: rgba(88,101,242,.1);
+    box-shadow: 0 0 0 1px rgba(88,101,242,.1);
+  }
+  .recording-progress-step.current {
+    border-color: #8c96ff;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(88,101,242,.18), 0 0 9px rgba(88,101,242,.5);
+    transform: scaleY(1.35);
+    animation: recording-step-pulse 1s ease-in-out infinite;
+  }
+  .action-with-tip {
+    display: flex; width: 100%;
+    flex-direction: column; gap: 4px;
+  }
+  .recording-action { margin-top: 10px; }
+  .action-tip {
+    min-height: 18px;
+    color: var(--text-muted); font-size: 11px;
+    text-align: center;
+  }
+  .recording-prompt[hidden] { visibility: hidden; }
+  .recording-level {
+    display: flex; width: 100%; height: 22px;
+    align-items: flex-end; justify-content: center; gap: 4px;
+    padding: 3px 6px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: rgba(22,23,26,.72);
+  }
+  .recording-level span {
+    width: 5px; height: 3px;
+    border-radius: 3px; background: var(--green);
+    opacity: .25;
+    transition: height .08s linear, opacity .08s linear;
+  }
+  .recording-button {
+    width: 100%; height: 40px;
+    border: 1px solid var(--accent); border-radius: 9px;
+    background: rgba(88,101,242,.18); color: #fff;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+  }
+  .recording-button:hover:not(:disabled) { background: rgba(88,101,242,.34); }
+  .recording-button:disabled {
+    border-color: var(--border); background: #36383d;
+    color: var(--text-muted); cursor: default;
+  }
+  .processing-estimate {
+    font-size: 10.5px; line-height: 1.45;
+  }
+  .wake-processing {
+    display: flex; min-height: 300px;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 13px; color: var(--text-muted); font-size: 12px;
+  }
+  .wake-processing[hidden] { display: none; }
+  .wake-processing-spinner {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      rgba(88,101,242,0) 0deg,
+      rgba(88,101,242,.08) 100deg,
+      rgba(88,101,242,.46) 250deg,
+      #8c96ff 340deg,
+      #fff 360deg
+    );
+    filter: drop-shadow(0 0 5px rgba(88,101,242,.42));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
+    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 0);
+    animation: setup-spin .85s linear infinite !important;
+  }
+  .wake-processing.done .wake-processing-spinner {
+    display: grid; place-items: center;
+    border: 0; background: rgba(35,165,90,.18);
+    color: var(--green); animation: none !important;
+    filter: none; -webkit-mask: none; mask: none;
+  }
+  .wake-processing.done .wake-processing-spinner::after {
+    content: "✓"; font-size: 18px; font-weight: 700;
+  }
+  @keyframes setup-spin { to { transform: rotate(360deg); } }
+  @keyframes asset-download-spin { to { transform: rotate(360deg); } }
+  @keyframes recording-step-pulse {
+    50% {
+      opacity: .62;
+      box-shadow: 0 0 0 4px rgba(88,101,242,.1), 0 0 5px rgba(88,101,242,.28);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .recording-progress-step.current { animation: none; }
+    .asset-download-progress { transition: none; }
+  }
 
   /* History 页 */
   .history-item {
@@ -236,8 +631,8 @@
   .history-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* ---------- HUD 预览 ---------- */
-  .screen-mock {
-    width: 560px; height: 340px; background: #0b0c0e;
+  .desktop-stage {
+    width: 100%; min-height: 740px; background: #0b0c0e;
     border-radius: 14px; border: 1px solid var(--border);
     position: relative; overflow: hidden;
     background-image:
@@ -245,25 +640,100 @@
       linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
     background-size: 24px 24px;
   }
-  .screen-mock::before {
+  .desktop-stage::before {
     content: "桌面（模拟）"; position: absolute; bottom: 10px; left: 14px;
     font-size: 11px; color: #454850;
   }
+  .desktop-stage .window-frame {
+    z-index: 2;
+    margin: 32px auto;
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .22s, transform .22s, visibility 0s;
+  }
+  .desktop-stage .hud {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s, border-color .22s, background .22s, visibility 0s .2s;
+  }
+  .desktop-stage[data-state="listening"] .window-frame,
+  .desktop-stage[data-state="dictating"] .window-frame {
+    transform: translateY(8px) scale(.985);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .desktop-stage[data-state="listening"] .hud,
+  .desktop-stage[data-state="dictating"] .hud {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
   .hud {
+    --hud-ray-length: 0px;
+    --hud-ray-opacity: 0;
     position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
     display: flex; align-items: center; gap: 8px;
-    background: rgba(30,31,34,0.85); backdrop-filter: blur(4px);
+    min-height: 30px;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(8px);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 20px; padding: 8px 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    transition: opacity .2s;
+    border-radius: 10px; padding: 4px 13px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    transition: opacity .2s, border-color .22s, background .22s;
   }
-  .hud .light { width: 10px; height: 10px; border-radius: 50%; transition: background .2s, box-shadow .2s; }
-  .hud .label { font-size: 12px; color: var(--text); }
-  .hud.state-listening .light { background: var(--yellow); box-shadow: 0 0 10px var(--yellow); }
-  .hud.state-dictating .light { background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 1s ease-in-out infinite; }
+  .hud .light {
+    position: relative; z-index: 2;
+    width: 8px; height: 8px; border-radius: 50%;
+    transition: background .2s, box-shadow .2s;
+  }
+  .hud .label { position: relative; z-index: 2; font-size: 11.5px; color: #f2f3f5; }
+  .hud.state-listening {
+    border-color: rgba(240,178,50,.35);
+  }
+  .hud.state-listening .light {
+    background: var(--yellow);
+    box-shadow: 0 0 5px #fff2a3, 0 0 12px rgba(240,178,50,.78);
+  }
+  .hud.state-dictating {
+    border-color: rgba(35,165,90,.34);
+    background: rgba(0,0,0,.5);
+  }
+  .hud.state-dictating .light {
+    background: #46e58a;
+    box-shadow: none;
+  }
+  .hud-ray {
+    position: absolute; z-index: 0; top: 50%;
+    width: var(--hud-ray-length); height: 2px;
+    opacity: 0; pointer-events: none;
+    transform: translateY(-50%);
+    filter: none;
+    will-change: width, opacity;
+  }
+  .hud-ray::after {
+    content: ""; position: absolute; inset: .5px 0;
+    box-shadow: none;
+  }
+  .hud-ray--left {
+    right: calc(100% + 5px);
+    border-radius: 3px 0 0 3px;
+    background: linear-gradient(to left, rgba(69,255,145,.98), rgba(35,210,105,.72) 70%, transparent);
+  }
+  .hud-ray--left::after {
+    background: linear-gradient(to left, #effff5, rgba(128,255,179,.78) 70%, transparent);
+  }
+  .hud-ray--right {
+    left: calc(100% + 5px);
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(to right, rgba(69,255,145,.98), rgba(35,210,105,.72) 70%, transparent);
+  }
+  .hud-ray--right::after {
+    background: linear-gradient(to right, #effff5, rgba(128,255,179,.78) 70%, transparent);
+  }
+  .hud.state-dictating .hud-ray { opacity: var(--hud-ray-opacity); }
+  .hud.state-releasing .hud-ray { opacity: var(--hud-ray-opacity); }
   .hud.state-hidden { opacity: 0; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
   .hud-controls { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
   .hud-btn, .runtime-btn {
@@ -272,6 +742,13 @@
   }
   .hud-btn:hover, .runtime-btn:hover { background: var(--panel-hover); }
   .hud-btn.active, .runtime-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .hud-volume-control {
+    display: flex; width: 100%; max-width: 420px;
+    align-items: center; gap: 10px; margin-top: 12px;
+    color: var(--text-muted); font-size: 11.5px;
+  }
+  .hud-volume-control input { flex: 1; accent-color: var(--green); }
+  .hud-volume-value { width: 34px; color: var(--text); text-align: right; }
   .runtime-controls { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 
   .note-box {
@@ -294,7 +771,7 @@
 <div class="layout">
 
   <!-- ============ 互斥状态模拟器 ============ -->
-  <div style="width:100%;">
+  <div class="runtime-preview" style="width:100%;">
     <div class="section-title">🔀 模拟当前运行状态（主窗口 ⇄ 悬浮窗互斥）</div>
     <div class="section-desc">同一时刻只会显示其中一个窗口：切到配置模式时主窗口出现、悬浮窗隐藏；切到其余任意状态时则相反。</div>
     <div class="runtime-controls" id="runtime-controls">
@@ -304,15 +781,18 @@
     </div>
   </div>
 
-  <!-- ============ MainWindow ============ -->
-  <div style="flex:1; min-width:380px;">
-    <div class="section-title">🪟 主窗口</div>
-    <div class="section-desc">首页三卡片导航；<b>只要主窗口打开（含首页/历史记录），即进入配置模式</b>，不再区分二级编辑页。</div>
-
-    <div class="window-frame" id="mainwindow-frame">
-      <div class="mutex-overlay" id="mainwindow-overlay">
-        <div class="mutex-overlay-text">⬛ 主窗口已关闭<br/>当前处于待唤醒/听写状态<br/>实际显示的是悬浮窗</div>
-      </div>
+  <!-- ============ 统一桌面预览 ============ -->
+  <div class="desktop-preview">
+    <div class="section-title">🖥️ 桌面状态预览</div>
+    <div class="section-desc">同一个桌面舞台根据 Runtime 状态只显示 MainWindow 或 HUD；使用上方状态按钮切换。</div>
+    <div class="desktop-stage" id="hud-screen" data-state="configure">
+    <div class="hud state-listening" id="hud-el">
+      <span class="hud-ray hud-ray--left"></span>
+      <span class="hud-ray hud-ray--right"></span>
+      <span class="light"></span>
+      <span class="label" id="hud-label">待唤醒</span>
+    </div>
+    <div class="window-frame model-required" id="mainwindow-frame">
       <div class="mutex-overlay" id="poweroff-overlay" style="z-index:60;">
         <div class="mutex-overlay-text">⏻ Runtime 已退出<br/><span style="font-size:11px;opacity:.7;">（演示效果，2 秒后恢复预览）</span></div>
       </div>
@@ -326,7 +806,13 @@
         <div class="titlebar-page-title" id="titlebar-page-title"></div>
         <div class="titlebar-spacer"></div>
         <div class="titlebar-actions">
-          <div class="win-play" onclick="simulateGoBackground()" title="进入后台运行">
+          <div
+            class="win-play"
+            id="titlebar-play"
+            onclick="simulateGoBackground()"
+            title="请先设置语音模型"
+            aria-disabled="true"
+          >
             <svg viewBox="0 0 24 24" fill="currentColor">
               <path d="M5 5.5 L5 18.5 Q5 21 7.18 19.78 L18.82 13.23 Q21 12 18.82 10.78 L7.18 4.23 Q5 3 5 5.5 Z"/>
             </svg>
@@ -344,7 +830,7 @@
 
         <!-- 首页 -->
         <div class="view" id="view-home">
-          <div class="hero-title">Dictating Me</div>
+          <img class="hero-wordmark" src="../ui/assets/dictating-me-wordmark.png" alt="Dictating Me" draggable="false" />
           <div class="card-list">
             <div class="nav-card" onclick="showView('device')">
               <div class="icon">
@@ -366,7 +852,24 @@
                 </svg>
               </div>
               <div class="title">唤醒词</div>
-              <div class="value">小助手</div>
+              <div class="value" id="home-wake-word">你好</div>
+            </div>
+            <div
+              class="nav-card requires-setup"
+              id="home-speech-model-card"
+              onclick="showView('speech-model')"
+            >
+              <div class="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 8v8"/>
+                  <path d="M8 5v14"/>
+                  <path d="M12 9v6"/>
+                  <path d="M16 3v18"/>
+                  <path d="M20 7v10"/>
+                </svg>
+              </div>
+              <div class="title">语音模型</div>
+              <div class="value" id="home-speech-model">需要设置</div>
             </div>
             <div class="nav-card" onclick="showView('history')">
               <div class="icon">
@@ -383,38 +886,283 @@
 
         <!-- InputDevice 二级页 -->
         <div class="view" id="view-device" style="display:none">
-          <div class="device-item selected">
+          <button class="device-item selected" type="button" role="radio" aria-checked="true" onclick="selectMockDevice(this)">
             <div class="radio-dot"></div>
             <div>
               <div class="device-name">麦克风阵列</div>
               <div class="device-sub">Realtek Audio · 内置</div>
             </div>
             <div class="wave-bars"><span></span><span></span><span></span><span></span></div>
-          </div>
-          <div class="device-item">
+          </button>
+          <button class="device-item" type="button" role="radio" aria-checked="false" onclick="selectMockDevice(this)">
             <div class="radio-dot"></div>
             <div>
               <div class="device-name">耳机麦克风</div>
               <div class="device-sub">蓝牙耳机</div>
             </div>
-          </div>
-          <div class="device-item">
+          </button>
+          <button class="device-item" type="button" role="radio" aria-checked="false" onclick="selectMockDevice(this)">
             <div class="radio-dot"></div>
             <div>
               <div class="device-name">USB 外接麦克风</div>
               <div class="device-sub">Blue Yeti</div>
-            </div>
+            </button>
           </div>
         </div>
 
         <!-- EvokeWord 二级页 -->
         <div class="view" id="view-evoke" style="display:none">
           <div class="evoke-current">
-            <div class="field-label" style="margin-top:0;">唤醒词</div>
-            <input type="text" class="dm-input" value="小助手" />
+            <div class="field-label">唤醒词</div>
+            <div class="evoke-word-setting">
+              <span class="wake-mode-icon" id="current-wake-mode-icon" title="通用文字" aria-hidden="true">
+                <svg class="wake-mode-language" viewBox="0 0 24 24">
+                  <text class="wake-mode-glyph" x="12" y="17" text-anchor="middle">A</text>
+                </svg>
+              </span>
+              <div class="evoke-word-value" id="current-wake-word">你好</div>
+            </div>
           </div>
-          <div class="field-label">灵敏度</div>
-          <input type="range" min="0" max="100" value="65" />
+
+          <div class="evoke-metrics">
+            <div class="metric-group">
+              <div class="metric-label-row">
+                <div class="field-label">灵敏度</div>
+                <output class="metric-value" id="sensitivity-value">65%</output>
+              </div>
+              <input
+                class="sensitivity-range"
+                id="sensitivity-range"
+                data-window-drag-exclude
+                type="range"
+                min="0"
+                max="100"
+                value="65"
+                oninput="setSensitivityPreview(this.value)"
+              />
+            </div>
+
+            <div class="metric-group">
+              <div class="metric-label-row">
+                <div class="field-label">识别检测</div>
+                <output class="metric-value" id="detection-score">70%</output>
+              </div>
+              <div
+                class="detection-meter"
+                id="detection-meter"
+                role="meter"
+                aria-label="当前唤醒词识别分数"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="70"
+              >
+                <div class="detection-meter-fill" id="detection-meter-fill" style="width:70%;">
+                  <span class="detection-meter-marker"></span>
+                </div>
+              </div>
+              <div class="detection-device">
+                <span class="detection-device-dot"></span>
+                <span>输入设备：麦克风阵列（Realtek Audio）</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="setup-wake-button" type="button" onclick="showView('wake-mode')">
+            设置唤醒词
+          </button>
+        </div>
+
+        <!-- 设置唤醒词 · 第一步：唤醒模式 -->
+        <div class="view" id="view-wake-mode" style="display:none">
+          <div class="wizard-heading">
+            <div class="wizard-heading-title">选择唤醒模式</div>
+          </div>
+
+          <div class="wake-mode-list" id="wake-mode-list">
+            <label class="wake-mode-option selected" data-wake-mode="text">
+              <input
+                type="radio"
+                name="wake-mode"
+                value="text"
+                checked
+                onchange="setWakeModePreview(this.value)"
+              />
+              <span class="wake-mode-radio"></span>
+              <span class="wake-mode-copy">
+                <span class="wake-mode-title">通用文字</span>
+                <span class="wake-mode-desc">输入唤醒文字</span>
+              </span>
+              <span class="wake-mode-icon" title="通用文字" aria-hidden="true">
+                <svg class="wake-mode-language" viewBox="0 0 24 24">
+                  <text class="wake-mode-glyph" x="12" y="17" text-anchor="middle">A</text>
+                </svg>
+              </span>
+            </label>
+
+            <label class="wake-mode-option" data-wake-mode="voice">
+              <input
+                type="radio"
+                name="wake-mode"
+                value="voice"
+                onchange="setWakeModePreview(this.value)"
+              />
+              <span class="wake-mode-radio"></span>
+              <span class="wake-mode-copy">
+                <span class="wake-mode-title">语音匹配</span>
+                <span class="wake-mode-desc">录制唤醒词，使用语音比对匹配</span>
+              </span>
+              <span class="wake-mode-icon" title="语音匹配" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 12h2l1.5-4 2.5 8 2-11 2.5 14 2-9 1.5 4h4"></path>
+                </svg>
+              </span>
+            </label>
+
+            <label class="wake-mode-option" data-wake-mode="speaker">
+              <input
+                type="radio"
+                name="wake-mode"
+                value="speaker"
+                onchange="setWakeModePreview(this.value)"
+              />
+              <span class="wake-mode-radio"></span>
+              <span class="wake-mode-copy">
+                <span class="wake-mode-title">声纹验证</span>
+                <span class="wake-mode-desc">录制唤醒词，验证说话人身份</span>
+              </span>
+              <span class="asset-download-slot" id="speaker-download-slot"></span>
+              <span class="wake-mode-icon" title="声纹验证" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="9" cy="8" r="3"></circle>
+                  <path d="M3.5 18c.8-3.1 2.6-4.7 5.5-4.7 2.1 0 3.7.8 4.7 2.4M16 7.5c1.5 1 2.3 2.5 2.3 4.5s-.8 3.5-2.3 4.5M18.7 5c2.1 1.7 3.1 4 3.1 7s-1 5.3-3.1 7"></path>
+                </svg>
+              </span>
+            </label>
+
+            <label class="wake-mode-option" data-wake-mode="classifier">
+              <input
+                type="radio"
+                name="wake-mode"
+                value="classifier"
+                onchange="setWakeModePreview(this.value)"
+              />
+              <span class="wake-mode-radio"></span>
+              <span class="wake-mode-copy">
+                <span class="wake-mode-title">分类训练</span>
+                <span class="wake-mode-desc">录制唤醒词，训练小型分类模型</span>
+              </span>
+              <span class="asset-download-slot" id="classifier-download-slot"></span>
+              <span class="wake-mode-icon" title="分类训练" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 12h5c3 0 3-6 7-6h1M9 12c3 0 3 6 7 6h1"></path>
+                  <circle cx="19" cy="6" r="2"></circle>
+                  <circle cx="19" cy="18" r="2"></circle>
+                </svg>
+              </span>
+            </label>
+          </div>
+
+          <div class="wizard-actions">
+            <button class="wizard-next" type="button" onclick="simulateWakeModeNext()">
+              下一步
+            </button>
+            <button class="wizard-back" type="button" onclick="showView('evoke')">
+              返回
+            </button>
+          </div>
+        </div>
+
+        <!-- 设置唤醒词 · 输入与录制 -->
+        <div class="view" id="view-wake-setup" style="display:none">
+          <div class="wake-setup-stack" id="wake-setup-content">
+            <div class="wake-setup-module">
+              <input
+                class="wake-text-input"
+                id="wake-setup-text"
+                type="text"
+                value="你好"
+                maxlength="20"
+                aria-label="唤醒文字"
+                placeholder="输入唤醒文字"
+              />
+            </div>
+
+            <div class="wake-setup-module" id="wake-recording-module">
+              <div class="recording-head">
+                <span class="recording-title">录制唤醒词</span>
+                <span class="recording-progress" id="recording-progress" aria-label="录制进度"></span>
+              </div>
+              <div class="recording-level" id="recording-level" aria-label="录音音量">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="action-with-tip recording-action">
+                <button
+                  class="recording-button"
+                  id="recording-button"
+                  type="button"
+                  onclick="simulateWakeRecording()"
+                >
+                  开始录制
+                </button>
+                <div class="action-tip recording-prompt" id="recording-prompt">正常音量说出唤醒词</div>
+              </div>
+            </div>
+
+            <div class="wizard-actions" id="wake-setup-actions">
+              <div class="action-with-tip" id="wake-complete-action" hidden>
+                <button
+                  class="wizard-next"
+                  id="wake-complete-button"
+                  type="button"
+                  onclick="beginWakeSetupProcessing()"
+                >
+                  完成设置
+                </button>
+                <div class="action-tip processing-estimate" id="processing-estimate"></div>
+              </div>
+              <button class="wizard-back" type="button" onclick="showView('wake-mode')">
+                返回
+              </button>
+            </div>
+          </div>
+
+          <div class="wake-processing" id="wake-processing" hidden>
+            <div class="wake-processing-spinner"></div>
+            <div id="wake-processing-label">正在设置唤醒词…</div>
+          </div>
+        </div>
+
+        <!-- SpeechModel 二级页 -->
+        <div class="view" id="view-speech-model" style="display:none">
+          <div class="wizard-heading">
+            <div class="wizard-heading-title">选择语音模型</div>
+          </div>
+
+          <div class="wake-mode-list">
+            <label class="wake-mode-option asset-unavailable" data-speech-model="bilingual-streaming">
+              <input
+                type="radio"
+                name="speech-model"
+                value="bilingual-streaming"
+                disabled
+                onchange="selectSpeechModel(this.value)"
+              />
+              <span class="wake-mode-radio"></span>
+              <span class="wake-mode-copy">
+                <span class="wake-mode-title">sherpa-zipformer-zh-en</span>
+                <span class="wake-mode-desc">中文, English</span>
+              </span>
+              <span class="asset-download-slot" id="speech-model-download-slot"></span>
+            </label>
+          </div>
+
+          <div class="wizard-actions">
+            <button class="wizard-back" type="button" onclick="showView('home')">
+              返回
+            </button>
+          </div>
         </div>
 
         <!-- History 二级页 -->
@@ -450,54 +1198,293 @@
             </div>
           </div>
         </div>
-
+      </div>
       </div>
     </div>
-  </div>
-
-  <!-- ============ HudWindow ============ -->
-  <div style="flex:1; min-width:560px;">
-    <div class="section-title">🟡🟢 悬浮窗</div>
-    <div class="section-desc">固定在主屏幕顶部居中，距屏幕顶部约 80px；黄=待唤醒，绿=正在录音/听写（含模型加载阶段，视觉上不做区分）。与主窗口互斥，上方模拟器可切换查看。</div>
-
-    <div class="screen-mock" id="hud-screen" style="position:relative;">
-      <div class="hud state-listening" id="hud-el">
-        <span class="light"></span>
-        <span class="label" id="hud-label">待唤醒</span>
-      </div>
-      <div class="mutex-overlay show" id="hud-overlay">
-        <div class="mutex-overlay-text">🔒 主窗口打开中<br/>悬浮窗实际隐藏</div>
-      </div>
-    </div>
-
-    <div class="hud-controls">
-      <button class="hud-btn active" id="hudbtn-listening" onclick="setHud('listening', this)">🟡 待唤醒</button>
-      <button class="hud-btn" id="hudbtn-dictating" onclick="setHud('dictating', this)">🟢 听写中</button>
-    </div>
+    <label class="hud-volume-control">
+      <span>模拟麦克风音量</span>
+      <input id="hud-volume" type="range" min="0" max="100" value="42" oninput="setHudMockVolume(this.value)" />
+      <output class="hud-volume-value" id="hud-volume-value">42%</output>
+    </label>
 
     <div class="note-box">
-      注：颜色语义 —— 黄=待唤醒（可被唤醒词唤醒），绿=正在录音/听写。唤醒词识别到之后、模型加载期间就已经在录音，因此不单独区分"加载中"状态，统一显示为听写中（绿灯）。收尾清理阶段的过渡视觉（是否闪烁、渐隐时长等）留待下一轮细化。上方按钮仅切换灯光颜色；要同时查看"是否显示"的效果，请使用页面顶部的状态模拟器。
-    </div>
-
-    <div class="section-title" style="margin-top:36px;">📌 说明</div>
-    <div class="note-box" style="max-width:560px;">
-      主窗口与悬浮窗由后台统一控制、<b>互斥显示</b>：配置模式下只显示主窗口，其余状态只显示悬浮窗。标题栏 ▶ 播放按钮 = 进入后台运行（回到待唤醒，不终止程序）；⏻ 电源按钮与系统托盘"退出"一样，会直接终止整个程序，无需二次确认。
+      注：HUD 使用 50% 黑色透明背景。待唤醒进入听写时，中心短光束先淡入，再扩展到左右合计屏宽 1/4，之后由 gamma 0.38 音量驱动；音量增大快速追随，降低时保持峰值 180ms 后按约 520ms 缓释。返回待唤醒时，光束从当前长度收缩并淡出。
     </div>
   </div>
 
 </div>
 
-<footer>DictatingMe Brainstorm v1.4 · 配套 <a href="./plan.md">plan.md</a> · <a href="./architecture.html">architecture.html</a></footer>
+<template id="download-button-template">
+  <button class="asset-download-button" type="button" data-state="download" aria-live="polite">
+    <span class="asset-download-progress" aria-hidden="true"></span>
+    <span class="asset-download-spinner" aria-hidden="true"></span>
+    <span class="asset-download-label">下载</span>
+  </button>
+</template>
+
+<footer>DictatingMe Brainstorm v1.15 · 已审核 UI 事实来源 · 配套 <a href="./plan.md">plan.md</a> · <a href="./architecture.html">architecture.html</a></footer>
 
 <script>
   // 二级页标题文案（标题栏统一渲染，与 Home 图标同行、垂直居中）
   const PAGE_TITLES = {
     device: '输入设备',
     evoke: '唤醒词',
+    'speech-model': '语音模型',
+    'wake-mode': '设置唤醒词',
+    'wake-setup': '设置唤醒词',
     history: '历史记录 <span class="count-badge">18 / 20</span>',
   };
+  const MOCK_SHA_JSON = {
+    assets: [
+      {
+        asset_path: 'C:\\r\\DictatingMe\\assets\\dictation\\sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20',
+        files: [
+          {
+            path: 'encoder-epoch-99-avg-1.int8.onnx',
+            sha256: '8fa764187a261844f859d7143ebaa563af5d10adfece4c18a8f414c88cba2a9b',
+          },
+          {
+            path: 'decoder-epoch-99-avg-1.onnx',
+            sha256: '2e3b5ec371f8899ee6acd829fd753ba45772df57a91bdf37cde3136354e7db7d',
+          },
+          {
+            path: 'joiner-epoch-99-avg-1.int8.onnx',
+            sha256: '1ed689c5ed19dbaa725d9d191bb4822b5f4855a39e1ffd28cbc1f340d25b2ee0',
+          },
+          {
+            path: 'tokens.txt',
+            sha256: 'a8e0e4ec53810e433789b54a5c0134a7eaa2ffca595a6334d54c00da858841d3',
+          },
+        ],
+      },
+      {
+        asset_path: 'C:\\r\\DictatingMe\\assets\\speaker',
+        files: [
+          {
+            path: '3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx',
+            sha256: 'f682b514c05d947ee3fa91cd6ec6c5c7543479a128373fa29b1faedccd21fd11',
+          },
+        ],
+      },
+      {
+        asset_path: 'C:\\r\\DictatingMe\\assets\\classifier',
+        files: [
+          {
+            path: 'keyword-embedding.onnx',
+            sha256: '5e90934fe798291dac97de6a356e326652c50f25e96b32ec0af1c12b5365f22d',
+          },
+          {
+            path: 'negative-embeddings.bin',
+            sha256: 'ba2bb78af1ed9ee68e60a3bc005450fadd1e47908896aa51855b3e82160a9f5c',
+          },
+        ],
+      },
+    ],
+  };
+  const mockAssetFolders = new Map();
+  const MOCK_DETECTION_SCORES = [12, 28, 46, 70, 38, 82, 57, 19];
+  let detectionScoreIndex = 3;
+  let detectionTimer = null;
+  const WAKE_MODE_RECORDINGS = { text: 0, voice: 3, speaker: 3, classifier: 6 };
+  const WAKE_MODE_PROCESSING_TIPS = {
+    classifier: '预计需要约 1–5 分钟处理数据',
+  };
+  const RECORDING_DURATION_MS = 5000;
+  const RECORDING_PROMPTS = [
+    '正常音量说出唤醒词',
+    '提高音量再次录制',
+    '降低音量再次录制',
+    '语速较快地说出唤醒词',
+    '语速较慢地说出唤醒词',
+    '稍远距离再次录制',
+    '稍近距离再次录制',
+    '自然地再说一次',
+  ];
+  let selectedSpeechModel = null;
+  let selectedWakeMode = 'text';
+  let remainingRecordings = 0;
+  let completedRecordings = 0;
+  let recordingTimer = null;
+  let levelTimer = null;
+  let wakeProcessingTimer = null;
+  let hudState = 'listening';
+  let hudRawVolume = .42;
+  let hudRayLength = 0;
+  let hudRayOpacity = 0;
+  let hudRayHoldUntil = 0;
+  let hudRayEnterStartedAt = null;
+  let hudRayFadeStartedAt = null;
+  let hudRayFadeStartOpacity = 1;
+  let hudRayFrame = null;
+  let hudRayFrameTime = 0;
+
+  function createDownloadButton(asset_link_list, asset_path) {
+    if (!Array.isArray(asset_link_list) || asset_link_list.length === 0) {
+      throw new Error('asset_link_list must contain at least one source');
+    }
+    if (typeof asset_path !== 'string' || asset_path.trim() === '') {
+      throw new Error('asset_path must be a folder path');
+    }
+
+    const template = document.getElementById('download-button-template');
+    if (!(template instanceof HTMLTemplateElement)) {
+      throw new Error('download-button-template is missing');
+    }
+    const button = template.content.firstElementChild.cloneNode(true);
+    button.dataset.assetPath = asset_path;
+    button.title = `资源目录：${asset_path}`;
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      simulateAssetDownload(button, asset_link_list, asset_path);
+    });
+    setAssetDownloadState(button, verifyMockAssetFolder(asset_path) ? 'ready' : 'download');
+    return button;
+  }
+
+  function setAssetDownloadState(button, state, progress = 0) {
+    const labels = {
+      download: '下载',
+      connecting: '连接中',
+      downloading: `${Math.round(progress)}%`,
+      verifying: '验证中',
+      ready: '就绪',
+      error: '重试',
+    };
+    button.dataset.state = state;
+    button.hidden = state === 'ready';
+    button.disabled = !['download', 'error'].includes(state);
+    button.style.setProperty('--download-progress', `${progress}%`);
+    button.querySelector('.asset-download-label').textContent = labels[state];
+    button.setAttribute('aria-busy', String(['connecting', 'downloading', 'verifying'].includes(state)));
+    syncAssetOptionAvailability(button, state === 'ready');
+    resizeMockWindow();
+  }
+
+  function syncAssetOptionAvailability(button, isReady) {
+    const option = button.closest('.wake-mode-option');
+    if (!option) return;
+    const input = option.querySelector('input[type="radio"]');
+    if (!input) return;
+
+    input.disabled = !isReady;
+    option.classList.toggle('asset-unavailable', !isReady);
+    option.setAttribute('aria-disabled', String(!isReady));
+    if (!isReady && input.checked) {
+      input.checked = false;
+      option.classList.remove('selected');
+      if (input.name === 'wake-mode') {
+        const fallback = document.querySelector('input[name="wake-mode"][value="text"]');
+        if (fallback) {
+          fallback.checked = true;
+          setWakeModePreview('text');
+        }
+      }
+    }
+  }
+
+  function verifyMockAssetFolder(asset_path) {
+    const expected = MOCK_SHA_JSON.assets.find(asset => asset.asset_path === asset_path);
+    const actual = mockAssetFolders.get(asset_path);
+    if (!expected || !actual) return false;
+    return expected.files.every(file => actual.get(file.path) === file.sha256);
+  }
+
+  function installMockAssetFolder(asset_path) {
+    const expected = MOCK_SHA_JSON.assets.find(asset => asset.asset_path === asset_path);
+    if (!expected) throw new Error(`No SHA manifest entry for ${asset_path}`);
+    mockAssetFolders.set(
+      asset_path,
+      new Map(expected.files.map(file => [file.path, file.sha256])),
+    );
+  }
+
+  async function simulateAssetDownload(button, asset_link_list, asset_path) {
+    if (button.disabled) return;
+    try {
+      setAssetDownloadState(button, 'connecting');
+      const source = await findReachableMockSource(asset_link_list);
+      button.dataset.activeSource = source;
+      await runMockAssetTransfer(button);
+      setAssetDownloadState(button, 'verifying', 100);
+      await delay(480);
+      installMockAssetFolder(asset_path);
+      if (!verifyMockAssetFolder(asset_path)) {
+        throw new Error(`SHA verification failed for ${asset_path}`);
+      }
+      setAssetDownloadState(button, 'ready', 100);
+    } catch (error) {
+      console.error(error);
+      setAssetDownloadState(button, 'error');
+    }
+  }
+
+  async function findReachableMockSource(asset_link_list) {
+    for (const source of asset_link_list) {
+      await delay(360);
+      if (typeof source === 'string' && source.trim() !== '') return source;
+    }
+    throw new Error('No reachable asset source');
+  }
+
+  function runMockAssetTransfer(button) {
+    return new Promise(resolve => {
+      let progress = 0;
+      const timer = setInterval(() => {
+        progress = Math.min(100, progress + 4 + Math.random() * 9);
+        setAssetDownloadState(button, 'downloading', progress);
+        if (progress < 100) return;
+        clearInterval(timer);
+        resolve();
+      }, 110);
+    });
+  }
+
+  function delay(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+  }
+
+  function mountAssetDownloadButtons() {
+    const controls = [
+      {
+        host: 'speech-model-download-slot',
+        asset_link_list: [
+          'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2',
+          'https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20/resolve/main/model.tar.bz2',
+        ],
+        asset_path: 'C:\\r\\DictatingMe\\assets\\dictation\\sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20',
+      },
+      {
+        host: 'speaker-download-slot',
+        asset_link_list: [
+          'https://huggingface.co/csukuangfj/speaker-embedding-models/resolve/main/3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx',
+          'https://www.modelscope.cn/models/iic/speech_campplus_sv_zh-cn_16k-common',
+        ],
+        asset_path: 'C:\\r\\DictatingMe\\assets\\speaker',
+      },
+      {
+        host: 'classifier-download-slot',
+        asset_link_list: [
+          'https://assets.dictatingme.example/classifier/classifier-assets.zip',
+          'https://mirror.dictatingme.example/classifier/classifier-assets.zip',
+        ],
+        asset_path: 'C:\\r\\DictatingMe\\assets\\classifier',
+      },
+    ];
+
+    controls.forEach(config => {
+      const host = document.getElementById(config.host);
+      if (!host) throw new Error(`Download button host is missing: ${config.host}`);
+      const button = createDownloadButton(config.asset_link_list, config.asset_path);
+      host.replaceChildren(button);
+      syncAssetOptionAvailability(button, button.dataset.state === 'ready');
+      host.addEventListener('pointerdown', event => event.stopPropagation());
+      host.addEventListener('click', event => event.stopPropagation());
+    });
+  }
 
   function showView(name) {
+    if (recordingTimer !== null) return;
     document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
     document.getElementById('view-' + name).style.display = 'block';
 
@@ -513,17 +1500,416 @@
       title.style.display = 'block';
       title.innerHTML = PAGE_TITLES[name] || '';
     }
+
+    if (name === 'evoke') startDetectionPreview();
+    else stopDetectionPreview();
+    if (name !== 'wake-setup') stopWakeSetupFlow();
+    resizeMockWindow();
   }
 
-  function setHud(state, btn) {
+  function resizeMockWindow() {
+    const frame = document.getElementById('mainwindow-frame');
+    const titlebar = frame?.querySelector('.titlebar');
+    const visible = Array.from(document.querySelectorAll('#mainwindow-frame .view'))
+      .find(view => getComputedStyle(view).display !== 'none');
+    if (!frame || !titlebar || !visible) return;
+    const target = Math.ceil(titlebar.getBoundingClientRect().height + visible.scrollHeight + 52);
+    frame.style.height = Math.max(220, target) + 'px';
+  }
+
+  function setSensitivityPreview(value) {
+    const score = Math.max(0, Math.min(100, Math.round(Number(value))));
+    const range = document.getElementById('sensitivity-range');
+    document.getElementById('sensitivity-value').textContent = score + '%';
+    if (range) range.style.setProperty('--sensitivity-position', score + '%');
+  }
+
+  function selectMockDevice(selected) {
+    document.querySelectorAll('#view-device .device-item').forEach(item => {
+      const active = item === selected;
+      item.classList.toggle('selected', active);
+      item.setAttribute('aria-checked', String(active));
+    });
+  }
+
+  document.getElementById('sensitivity-range')?.addEventListener('pointerdown', event => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  });
+
+  function setDetectionScore(value) {
+    const score = Math.max(0, Math.min(100, Math.round(Number(value))));
+    const output = document.getElementById('detection-score');
+    const meter = document.getElementById('detection-meter');
+    const fill = document.getElementById('detection-meter-fill');
+    if (!output || !meter || !fill) return;
+    output.textContent = score + '%';
+    meter.setAttribute('aria-valuenow', String(score));
+    fill.style.width = score + '%';
+  }
+
+  function startDetectionPreview() {
+    stopDetectionPreview();
+    setDetectionScore(MOCK_DETECTION_SCORES[detectionScoreIndex]);
+    detectionTimer = setInterval(() => {
+      detectionScoreIndex = (detectionScoreIndex + 1) % MOCK_DETECTION_SCORES.length;
+      setDetectionScore(MOCK_DETECTION_SCORES[detectionScoreIndex]);
+    }, 900);
+  }
+
+  function stopDetectionPreview() {
+    if (detectionTimer !== null) {
+      clearInterval(detectionTimer);
+      detectionTimer = null;
+    }
+  }
+
+  function setWakeModePreview(mode) {
+    const input = document.querySelector(`input[name="wake-mode"][value="${mode}"]`);
+    if (input?.disabled) return;
+    selectedWakeMode = mode;
+    document.querySelectorAll('[data-wake-mode]').forEach(option => {
+      option.classList.toggle('selected', option.dataset.wakeMode === mode);
+    });
+  }
+
+  function syncCurrentWakeModeIcon() {
+    const source = document.querySelector(
+      `[data-wake-mode="${selectedWakeMode}"] .wake-mode-icon svg`
+    );
+    const target = document.getElementById('current-wake-mode-icon');
+    const label = document.querySelector(
+      `[data-wake-mode="${selectedWakeMode}"] .wake-mode-title`
+    )?.textContent?.trim();
+    if (!source || !target) return;
+    target.replaceChildren(source.cloneNode(true));
+    target.title = label || '';
+  }
+
+  function selectSpeechModel(model) {
+    const input = document.querySelector(`input[name="speech-model"][value="${model}"]`);
+    if (!input || input.disabled) return;
+
+    selectedSpeechModel = model;
+    document.querySelectorAll('[data-speech-model]').forEach(option => {
+      option.classList.toggle('selected', option.dataset.speechModel === model);
+    });
+
+    const homeCard = document.getElementById('home-speech-model-card');
+    const homeValue = document.getElementById('home-speech-model');
+    const frame = document.getElementById('mainwindow-frame');
+    const play = document.getElementById('titlebar-play');
+    homeCard?.classList.remove('requires-setup');
+    if (homeValue) homeValue.textContent = 'sherpa-zipformer-zh-en';
+    frame?.classList.remove('model-required');
+    if (play) {
+      play.setAttribute('aria-disabled', 'false');
+      play.title = '进入后台运行';
+    }
+  }
+
+  function simulateWakeModeNext() {
+    const selected = document.querySelector('input[name="wake-mode"]:checked');
+    selectedWakeMode = selected?.value || 'text';
+    prepareWakeSetup();
+    showView('wake-setup');
+  }
+
+  function prepareWakeSetup() {
+    stopWakeRecordingPreview();
+    setWakeRecordingLock(true);
+    if (wakeProcessingTimer !== null) {
+      clearTimeout(wakeProcessingTimer);
+      wakeProcessingTimer = null;
+    }
+    const current = document.getElementById('current-wake-word')?.textContent || '你好';
+    const input = document.getElementById('wake-setup-text');
+    const content = document.getElementById('wake-setup-content');
+    const processing = document.getElementById('wake-processing');
+    const recordingModule = document.getElementById('wake-recording-module');
+    if (input) input.value = current;
+    if (content) content.hidden = false;
+    if (processing) {
+      processing.hidden = true;
+      processing.classList.remove('done');
+    }
+    remainingRecordings = WAKE_MODE_RECORDINGS[selectedWakeMode] || 0;
+    completedRecordings = 0;
+    if (recordingModule) recordingModule.hidden = remainingRecordings === 0;
+    updateRecordingUi();
+  }
+
+  function updateRecordingUi() {
+    const prompt = document.getElementById('recording-prompt');
+    const button = document.getElementById('recording-button');
+    const completeAction = document.getElementById('wake-complete-action');
+    const estimate = document.getElementById('processing-estimate');
+    renderRecordingProgress();
+    if (prompt) {
+      prompt.hidden = false;
+      prompt.textContent = remainingRecordings > 0
+        ? RECORDING_PROMPTS[Math.min(completedRecordings, RECORDING_PROMPTS.length - 1)]
+        : '';
+    }
+    if (button) {
+      button.disabled = remainingRecordings === 0;
+      button.textContent = remainingRecordings > 0 ? '开始录制' : '录制完成';
+    }
+    const ready = remainingRecordings === 0;
+    if (completeAction) completeAction.hidden = !ready;
+    if (estimate) {
+      const tip = WAKE_MODE_PROCESSING_TIPS[selectedWakeMode] || '';
+      estimate.hidden = !tip;
+      estimate.textContent = tip;
+    }
+    requestAnimationFrame(resizeMockWindow);
+  }
+
+  function renderRecordingProgress(isRecording = recordingTimer !== null) {
+    const progress = document.getElementById('recording-progress');
+    if (!progress) return;
+    const total = WAKE_MODE_RECORDINGS[selectedWakeMode] || 0;
+    progress.replaceChildren();
+    for (let index = 0; index < total; index += 1) {
+      const step = document.createElement('span');
+      step.className = 'recording-progress-step';
+      if (index < completedRecordings) step.classList.add('completed');
+      else if (isRecording && index === completedRecordings) step.classList.add('current');
+      else if (!isRecording && index === completedRecordings) step.classList.add('next');
+      progress.appendChild(step);
+    }
+    progress.setAttribute('aria-label', `已完成 ${completedRecordings} 次，共 ${total} 次`);
+  }
+
+  function setWakeRecordingLock(locked) {
+    const frame = document.getElementById('mainwindow-frame');
+    const body = frame?.querySelector('.window-body');
+    const home = document.getElementById('titlebar-home');
+    const play = document.getElementById('titlebar-play');
+    frame?.classList.toggle('recording-locked', locked);
+    if (body) body.inert = locked;
+    [home, play].forEach(control => {
+      if (control) control.setAttribute('aria-disabled', String(locked));
+    });
+    document.querySelectorAll('.wizard-back').forEach(button => {
+      button.disabled = locked;
+    });
+  }
+
+  function simulateWakeRecording() {
+    if (remainingRecordings <= 0 || recordingTimer !== null) return;
+    const button = document.getElementById('recording-button');
+    const prompt = document.getElementById('recording-prompt');
+    if (button) {
+      button.disabled = true;
+    }
+    if (prompt) prompt.hidden = true;
+    setWakeRecordingLock(true);
+    renderRecordingProgress(true);
+    startRecordingLevelPreview();
+    const startedAt = performance.now();
+    const updateCountdown = () => {
+      const elapsed = performance.now() - startedAt;
+      const remainingMs = Math.max(0, RECORDING_DURATION_MS - elapsed);
+      if (button) button.textContent = (remainingMs / 1000).toFixed(1) + ' 秒';
+      if (remainingMs > 0) return;
+
+      clearInterval(recordingTimer);
+      recordingTimer = null;
+      stopRecordingLevelPreview();
+      setWakeRecordingLock(false);
+      remainingRecordings -= 1;
+      completedRecordings += 1;
+      updateRecordingUi();
+    };
+    updateCountdown();
+    recordingTimer = setInterval(updateCountdown, 50);
+  }
+
+  function startRecordingLevelPreview() {
+    stopRecordingLevelPreview();
+    const bars = Array.from(document.querySelectorAll('#recording-level span'));
+    levelTimer = setInterval(() => {
+      const rawLevel = .004 + Math.random() * .055;
+      const visibleLevel = Math.max(0, (rawLevel - .003) / .997) ** .22;
+      const center = (bars.length - 1) / 2;
+      bars.forEach((bar, index) => {
+        const distance = Math.abs(index - center) / Math.max(1, center);
+        const shape = .4 + (1 - distance) * .6;
+        bar.style.height = (3 + visibleLevel * shape * 14) + 'px';
+        bar.style.opacity = String(.25 + visibleLevel * .75);
+      });
+    }, 80);
+  }
+
+  function stopRecordingLevelPreview() {
+    if (levelTimer !== null) {
+      clearInterval(levelTimer);
+      levelTimer = null;
+    }
+    document.querySelectorAll('#recording-level span').forEach(bar => {
+      bar.style.height = '3px';
+      bar.style.opacity = '.25';
+    });
+  }
+
+  function stopWakeRecordingPreview() {
+    if (recordingTimer !== null) {
+      clearInterval(recordingTimer);
+      recordingTimer = null;
+    }
+    stopRecordingLevelPreview();
+    setWakeRecordingLock(false);
+  }
+
+  function stopWakeSetupFlow() {
+    stopWakeRecordingPreview();
+    if (wakeProcessingTimer !== null) {
+      clearTimeout(wakeProcessingTimer);
+      wakeProcessingTimer = null;
+    }
+  }
+
+  function beginWakeSetupProcessing() {
+    const input = document.getElementById('wake-setup-text');
+    const word = input?.value.trim();
+    if (!word) {
+      input?.focus();
+      return;
+    }
+    stopWakeRecordingPreview();
+    const content = document.getElementById('wake-setup-content');
+    const processing = document.getElementById('wake-processing');
+    const label = document.getElementById('wake-processing-label');
+    if (content) content.hidden = true;
+    if (processing) {
+      processing.hidden = false;
+      processing.classList.remove('done');
+    }
+    if (label) label.textContent = '正在设置唤醒词…';
+    requestAnimationFrame(resizeMockWindow);
+
+    wakeProcessingTimer = setTimeout(() => {
+      document.getElementById('current-wake-word').textContent = word;
+      document.getElementById('home-wake-word').textContent = word;
+      syncCurrentWakeModeIcon();
+      processing?.classList.add('done');
+      if (label) label.textContent = '设置完成';
+      requestAnimationFrame(resizeMockWindow);
+      wakeProcessingTimer = setTimeout(() => {
+        wakeProcessingTimer = null;
+        showView('evoke');
+      }, 650);
+    }, 1600);
+  }
+
+  function setHud(state, btn, enteringFromMain = false) {
     const hud = document.getElementById('hud-el');
     const label = document.getElementById('hud-label');
-    hud.className = 'hud';
+    const previousHudState = hudState;
+    hudState = state;
     document.querySelectorAll('.hud-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
-    if (state === 'listening') { hud.classList.add('state-listening'); label.textContent = '待唤醒'; }
-    else if (state === 'dictating') { hud.classList.add('state-dictating'); label.textContent = '听写中'; }
+    if (state === 'listening') {
+      hudRayEnterStartedAt = null;
+      hudRayFadeStartedAt = null;
+      if (enteringFromMain) {
+        const screen = document.getElementById('hud-screen');
+        hudRayLength = (screen?.clientWidth ?? 560) * .25;
+        hudRayOpacity = 1;
+      }
+      hud.className = 'hud state-listening';
+      if (hudRayLength > .5) hud.classList.add('state-releasing');
+      label.textContent = '待唤醒';
+    } else if (state === 'dictating') {
+      if (previousHudState !== 'dictating') {
+        hudRayLength = 4;
+        hudRayOpacity = 0;
+        hudRayEnterStartedAt = performance.now();
+      }
+      hudRayFadeStartedAt = null;
+      hud.className = 'hud state-dictating';
+      label.textContent = '听写中';
+    }
+    startHudRayAnimation();
+  }
+
+  function setHudMockVolume(value) {
+    hudRawVolume = Math.max(0, Math.min(1, Number(value) / 100));
+    const output = document.getElementById('hud-volume-value');
+    if (output) output.textContent = Math.round(hudRawVolume * 100) + '%';
+    if (hudState === 'dictating') startHudRayAnimation();
+  }
+
+  function startHudRayAnimation() {
+    if (hudRayFrame !== null) return;
+    hudRayFrameTime = performance.now();
+    hudRayFrame = requestAnimationFrame(animateHudRays);
+  }
+
+  function animateHudRays(now) {
+    const hud = document.getElementById('hud-el');
+    const screen = document.getElementById('hud-screen');
+    if (!hud || !screen) {
+      hudRayFrame = null;
+      return;
+    }
+    const elapsed = Math.min(50, Math.max(0, now - hudRayFrameTime));
+    hudRayFrameTime = now;
+    const minimum = screen.clientWidth * .125;
+    const maximum = Math.max(minimum, (screen.clientWidth - hud.offsetWidth) * .5 - 20);
+    const visibleVolume = hudRawVolume ** .38;
+    const target = hudState === 'dictating'
+      ? minimum + visibleVolume * (maximum - minimum)
+      : 0;
+
+    const fadeThreshold = screen.clientWidth * .055;
+    if (hudState === 'dictating' && hudRayEnterStartedAt !== null) {
+      const enterElapsed = now - hudRayEnterStartedAt;
+      if (enterElapsed < 160) {
+        const fadeIn = Math.max(0, enterElapsed / 160);
+        hudRayLength = 4;
+        hudRayOpacity = fadeIn * fadeIn * (3 - 2 * fadeIn);
+      } else if (enterElapsed < 400) {
+        const expand = (enterElapsed - 160) / 240;
+        const easedExpand = 1 - (1 - expand) ** 3;
+        hudRayLength = 4 + (minimum - 4) * easedExpand;
+        hudRayOpacity = 1;
+      } else {
+        hudRayLength = minimum;
+        hudRayOpacity = 1;
+        hudRayEnterStartedAt = null;
+        hudRayHoldUntil = now + 180;
+      }
+    } else if (target > hudRayLength) {
+      hudRayLength = target;
+      hudRayOpacity = 1;
+      hudRayFadeStartedAt = null;
+      hudRayHoldUntil = now + 180;
+    } else if (hudState === 'listening' && hudRayLength <= fadeThreshold) {
+      if (hudRayFadeStartedAt === null) {
+        hudRayFadeStartedAt = now;
+        hudRayFadeStartOpacity = hudRayOpacity;
+      }
+      const fadeProgress = Math.min(1, (now - hudRayFadeStartedAt) / 320);
+      const easedFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+      hudRayOpacity = hudRayFadeStartOpacity * (1 - easedFade);
+      if (fadeProgress === 1) hudRayLength = 0;
+    } else if (now >= hudRayHoldUntil || hudState !== 'dictating') {
+      const releaseMs = hudState === 'dictating' ? 520 : 165;
+      const alpha = 1 - Math.exp(-elapsed / releaseMs);
+      hudRayLength += (target - hudRayLength) * alpha;
+    }
+    if (Math.abs(target - hudRayLength) < .35) hudRayLength = target;
+    hud.style.setProperty('--hud-ray-length', hudRayLength.toFixed(1) + 'px');
+    hud.style.setProperty('--hud-ray-opacity', hudRayOpacity.toFixed(3));
+
+    if (hudState === 'listening' && hudRayLength === 0) {
+      hud.classList.remove('state-releasing');
+      hudRayFrame = null;
+      return;
+    }
+    hudRayFrame = requestAnimationFrame(animateHudRays);
   }
 
   // 模拟当前运行状态，驱动主窗口 ⇄ 悬浮窗互斥显示
@@ -531,31 +1917,44 @@
     document.querySelectorAll('.runtime-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 
-    const mainOverlay = document.getElementById('mainwindow-overlay');
-    const hudOverlay = document.getElementById('hud-overlay');
+    const stage = document.getElementById('hud-screen');
+    const previousState = stage.dataset.state;
+    stage.dataset.state = state;
 
     if (state === 'configure') {
-      mainOverlay.classList.remove('show');  // 主窗口正常显示
-      hudOverlay.classList.add('show');      // 悬浮窗被遮罩，代表实际隐藏
+      hudState = 'listening';
+      hudRayEnterStartedAt = null;
+      hudRayLength = 0;
+      hudRayOpacity = 0;
+      const hud = document.getElementById('hud-el');
+      hud.className = 'hud state-listening';
+      hud.style.setProperty('--hud-ray-length', '0px');
+      hud.style.setProperty('--hud-ray-opacity', '0');
+      document.getElementById('hud-label').textContent = '待唤醒';
     } else {
-      mainOverlay.classList.add('show');     // 主窗口被遮罩，代表实际隐藏
-      hudOverlay.classList.remove('show');   // 悬浮窗正常显示
-      setHud(state, document.getElementById('hudbtn-' + state)); // 同步悬浮窗灯光颜色
+      setHud(state, null, previousState === 'configure');
     }
+
   }
 
   // 标题栏 ▶ 播放：进入后台运行，等价于点击运行状态模拟器的"待唤醒"
   function simulateGoBackground() {
+    if (recordingTimer !== null || selectedSpeechModel === null) return;
     const listeningBtn = document.querySelectorAll('.runtime-btn')[1];
     setRuntimeState('listening', listeningBtn);
   }
 
   // 标题栏 ⏻ 电源：模拟直接退出整个程序（无需确认），演示后自动恢复预览
   function simulatePowerOff() {
+    stopWakeSetupFlow();
+    updateRecordingUi();
     const overlay = document.getElementById('poweroff-overlay');
     overlay.classList.add('show');
     setTimeout(() => overlay.classList.remove('show'), 2000);
   }
+
+  mountAssetDownloadButtons();
+  requestAnimationFrame(resizeMockWindow);
 </script>
 
 </body>

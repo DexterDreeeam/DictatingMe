@@ -2,4 +2,5 @@
 
 pub mod tray_manager;
 
+pub(crate) use tray_manager::create_tauri_tray_manager;
 pub use tray_manager::{ExitCallback, OpenMainWindowCallback, TrayError, TrayManager};

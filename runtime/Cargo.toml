@@ -1,6 +1,6 @@
 [package]
 name = "dictatingme-runtime"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "DictatingMe Runtime：状态机 + 音频 + 模型 + 存储 + 窗口/托盘编排（见 brainstrom/plan.md）"
 publish = false
@@ -15,18 +15,43 @@ path = "src/main.rs"
 
 [dependencies]
 # --- Tauri（UI 壳、多窗口、托盘、IPC） ---
-tauri = { version = "2", features = [] }
+tauri = { version = "=2.11.5", features = ["tray-icon"] }
 
 # --- 序列化 / 异步运行时 ---
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "fs"] }
+async-trait = "0.1"
+futures-util = "0.3"
+tracing = "=0.1.44"
+tracing-subscriber = "=0.3.23"
+tracing-appender = "=0.2.5"
 
-# --- 以下依赖版本待确认，先占位标注用途，不保证可编译通过 ---
-# ort = "2"                                   # ONNX Runtime 绑定，EvokeModel / DictationModel 共用
-# cpal = "0.15"                                # 跨平台音频采集（Audio Capture）
-# enigo = "0.2"                                # 模拟键盘输入（Text Injector 默认跨平台实现）
-# rusqlite = { version = "0.31", features = ["bundled"] }  # History / Config 持久化
+# --- 音频 / 模型 ---
+cpal = "=0.18.1"
+hound = "=3.5.1"
+rodio = { version = "=0.22.2", default-features = false, features = ["playback", "wav"] }
+sherpa-onnx = { version = "=1.13.4", default-features = false, features = ["static"] }
+rustfft = "6"
+pinyin = "0.11"
+
+# --- 本地持久化 / 系统集成 ---
+rusqlite = { version = "=0.40.1", features = ["bundled"] }
+arboard = { version = "=3.6.1", default-features = false }
+uuid = { version = "1", features = ["v4"] }
+sha2 = "0.10"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+bzip2 = "0.6"
+tar = "0.4"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.61.3", features = [
+  "Win32_Foundation",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
+windows-core = "=0.61.2"
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "=2.6.3", features = [] }

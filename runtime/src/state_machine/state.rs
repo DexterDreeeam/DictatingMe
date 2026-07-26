@@ -6,7 +6,7 @@
 //!   - 灰 = 无响应状态（不监听也不记录）
 
 /// DictatingMe Runtime 的状态机状态。
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub enum State {
     /// MainWindow 已打开（首页三卡片或任意二级页），全局锁定。EvokeModel 停止，显示窗口=MainWindow。
     Configure,
@@ -28,7 +28,7 @@ pub enum WindowKind {
 }
 
 /// HUD 灯光颜色（Configure 态无 HUD，故不含灰色的“显示态”，灰色用 `None` 表达瞬时/隐藏）。
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum HudLight {
     Yellow,
     Green,
@@ -39,21 +39,47 @@ pub enum HudLight {
 impl State {
     /// 该状态下 EvokeModel 是否应运行（仅 `Listening` 为 true，见 plan.md §3.1 互斥运行）。
     pub fn evoke_model_active(&self) -> bool {
-        todo!("仅 State::Listening 返回 true，其余状态返回 false")
+        matches!(self, Self::Listening)
     }
 
     /// 该状态下 DictationModel 是否应处于加载/运行状态（Loading/Dictating 为 true）。
     pub fn dictation_model_active(&self) -> bool {
-        todo!("Loading 和 Dictating 返回 true，其余返回 false")
+        matches!(self, Self::Loading | Self::Dictating)
     }
 
     /// 该状态应显示哪个窗口（Configure -> MainWindow，其余 -> HudWindow）。
     pub fn visible_window(&self) -> WindowKind {
-        todo!("见 plan.md §4.1 显示窗口列")
+        match self {
+            Self::Configure => WindowKind::MainWindow,
+            _ => WindowKind::HudWindow,
+        }
     }
 
     /// 该状态下 HUD 应显示的灯光颜色（仅在 visible_window() == HudWindow 时有意义）。
     pub fn hud_light(&self) -> HudLight {
-        todo!("Listening=Yellow, Loading/Dictating=Green, Unloading=Off")
+        match self {
+            Self::Listening => HudLight::Yellow,
+            Self::Loading | Self::Dictating => HudLight::Green,
+            Self::Configure | Self::Unloading => HudLight::Off,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn state_properties_match_the_runtime_contract() {
+        assert!(State::Listening.evoke_model_active());
+        assert!(!State::Loading.evoke_model_active());
+        assert!(State::Loading.dictation_model_active());
+        assert!(State::Dictating.dictation_model_active());
+        assert!(!State::Unloading.dictation_model_active());
+        assert_eq!(State::Configure.visible_window(), WindowKind::MainWindow);
+        assert_eq!(State::Listening.visible_window(), WindowKind::HudWindow);
+        assert_eq!(State::Listening.hud_light(), HudLight::Yellow);
+        assert_eq!(State::Loading.hud_light(), HudLight::Green);
+        assert_eq!(State::Unloading.hud_light(), HudLight::Off);
     }
 }

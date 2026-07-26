@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
 // DictatingMe 前端构建配置：MainWindow / HudWindow 两个独立入口
-// 对应 runtime/tauri.conf.json 中的 build.frontendDist = "../ui"
+// 对应 runtime/tauri.conf.json 中的 build.frontendDist = "../dist"
 export default defineConfig({
   root: 'ui',
   build: {

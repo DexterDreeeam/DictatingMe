@@ -163,7 +163,7 @@
           <div class="combo-body">
             <div class="combo-mini node-ui"><div class="node-title" style="font-size:11.5px;">MainWindow</div><div class="node-sub">Configure 态</div></div>
             <div class="combo-xor">⇄</div>
-            <div class="combo-mini node-ui"><div class="node-title" style="font-size:11.5px;">🟡HudWindow</div><div class="node-sub">其余 4 态</div></div>
+            <div class="combo-mini node-ui"><div class="node-title" style="font-size:11.5px;">🟡HudWindow</div><div class="node-sub">全屏透明层 · 音量光束</div></div>
           </div>
           <div class="combo-note">同一时刻有且只有一个可见，由 Runtime 统一切换</div>
         </div>
@@ -221,12 +221,14 @@
     <div class="card">
       <h3>🧩 关键约束</h3>
       <ul>
+        <li><b>Windows 完整性级别</b>：DictatingMe 整体以管理员权限运行，使 Ctrl+V 文本注入和全局 dismiss 监听可覆盖管理员前台窗口</li>
+        <li><b>启动初态</b>：Runtime 启动后进入 Configure 并首先显示 MainWindow；用户点击播放后进入后台 Listening</li>
         <li><b>MainWindow ⇄ HudWindow 互斥</b>：由 Window Manager 依据 State Machine 广播的状态切换，同一时刻只有一个可见</li>
         <li><b>因果链</b>：EvokeModel 检测到唤醒词 → State Machine → 才触发 DictationModel 加载（① → ②）→ 同时才允许 Audio Ring Buffer 开始缓冲（③）。三者都不会在唤醒词检测之前发生，Audio Capture 本身持续采集麦克风音频，但只有 State Machine 授权后音频才会被写入缓冲区</li>
         <li>点击托盘图标 = 向 State Machine 发出"打开 MainWindow 请求"，效果等价于一次 dismiss</li>
         <li>MainWindow 标题栏播放按钮（进入后台运行）= 向 State Machine 发出"关闭 MainWindow"，回到 Listening；电源按钮 = 直接终止 Runtime 进程，不经过 State Machine，与托盘"退出"走同一路径</li>
         <li>EvokeModel 与 DictationModel 互斥运行：前者仅 Listening 态激活，后者仅 Loading/Dictating 态激活</li>
-        <li>Streaming Output 不使用剪贴板，直接模拟键盘输入，只追加不回退</li>
+        <li>Streaming Output 把新增后缀写入剪贴板，再发送 Ctrl+V 粘贴；只追加不回退</li>
         <li>Runtime 与 UI 同进程（Tauri），无需跨进程 IPC</li>
       </ul>
     </div>
@@ -260,7 +262,7 @@
       <h3>🔄 状态一览</h3>
       <ul>
         <li><b>Configure</b>：MainWindow 打开中，全局锁定（灰，不分首页/二级页）</li>
-        <li><b>Listening</b>：默认待机监听唤醒词（黄灯）</li>
+        <li><b>Listening</b>：进入后台后的待机监听状态（黄灯）</li>
         <li><b>Loading</b>：加载ASR模型 + 无缝缓冲录音（绿灯，录音已开始）</li>
         <li><b>Dictating</b>：流式转写 + 打字（绿灯）</li>
         <li><b>Unloading</b>：收尾清理，不再记录（灰），回到 Listening</li>
@@ -299,7 +301,7 @@
         <div class="tl-content">
           <span class="tl-tag tag-voice-wake">Listening → Loading</span>
           <div class="tl-title">EvokeModel 检测到唤醒词</div>
-          <div class="tl-desc">State Machine 切换到 Loading；HUD 沿用黄灯（过渡态）</div>
+          <div class="tl-desc">State Machine 切换到 Loading；播放内嵌 wake.wav（约 1040Hz/90ms）；录音已开始，HUD 切换为绿灯</div>
         </div>
       </div>
 
@@ -317,7 +319,7 @@
         <div class="tl-content">
           <span class="tl-tag tag-voice-on">Loading → Dictating</span>
           <div class="tl-title">DictationModel 加载完成</div>
-          <div class="tl-desc">State Machine 切换到 Dictating；HUD 变绿灯</div>
+          <div class="tl-desc">State Machine 切换到 Dictating；HUD 保持绿灯</div>
         </div>
       </div>
 
@@ -335,7 +337,7 @@
         <div class="tl-content">
           <span class="tl-tag tag-voice-on">Dictating · 循环</span>
           <div class="tl-title">流式识别 → 增量打字</div>
-          <div class="tl-desc">DictationModel 产出当前完整识别文本 → Text Diff 对比上一次结果，仅取新增后缀 → Text Injector 模拟键盘打字到当前系统焦点（不用剪贴板，不做回退修正）</div>
+          <div class="tl-desc">DictationModel 产出当前完整识别文本 → Text Diff 对比上一次结果，仅取新增后缀 → Text Injector 写入剪贴板并发送 Ctrl+V 到当前系统焦点（不做回退修正）</div>
         </div>
       </div>
 
@@ -344,7 +346,7 @@
         <div class="tl-content">
           <span class="tl-tag tag-voice-off">Dictating → Unloading</span>
           <div class="tl-title">用户任意键盘/鼠标操作（dismiss）</div>
-          <div class="tl-desc">全局键鼠监听捕获事件 → State Machine 立即切换到 Unloading</div>
+          <div class="tl-desc">全局键鼠监听捕获事件 → State Machine 立即切换到 Unloading，并播放内嵌 end.wav（约 620Hz/100ms）</div>
         </div>
       </div>
 
@@ -402,7 +404,7 @@
   </div>
 </div>
 
-<footer>DictatingMe Brainstorm v1.1 · 生成于头脑风暴会话，尚未进入开发排期</footer>
+<footer>DictatingMe Brainstorm v1.13 · 已审核架构事实来源</footer>
 
 <script>
   // ---------- 通用连线画布 ----------
@@ -560,7 +562,7 @@
     // OS 边界
     cc.connect('n-kbd', 'top', 'n-mon', 'bottom', {});
     cc.connect('n-mic', 'top', 'n-ac', 'bottom', {});
-    cc.connect('n-out', 'bottom', 'n-focus', 'top', { label: '模拟键盘输入' });
+    cc.connect('n-out', 'bottom', 'n-focus', 'top', { label: '剪贴板粘贴' });
   }
 
   function renderStateDiagram() {

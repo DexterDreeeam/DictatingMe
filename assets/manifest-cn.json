@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "locale": "zh-CN",
+  "speakerRecognition": {
+    "assets": [
+      {
+        "id": "speaker.campplus-zh",
+        "name": "sherpa-campplus 中文声纹模型",
+        "primary": true,
+        "sources": [
+          "https://hf-mirror.com/csukuangfj/speaker-embedding-models/resolve/main/3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx",
+          "https://huggingface.co/csukuangfj/speaker-embedding-models/resolve/main/3dspeaker_speech_campplus_sv_zh-cn_16k-common.onnx"
+        ]
+      }
+    ]
+  },
+  "classifierRecognition": {
+    "assets": [
+      {
+        "id": "classifier.ms-snsd-babble",
+        "name": "MS-SNSD 人声环境负样本",
+        "primary": true,
+        "sources": [
+          "https://cdn.jsdelivr.net/gh/microsoft/MS-SNSD@fe61c4ba0d9ac8dd7e23d719cc79f8947e1dc742/noise_train/Babble_1.wav",
+          "https://ghproxy.net/https://raw.githubusercontent.com/microsoft/MS-SNSD/fe61c4ba0d9ac8dd7e23d719cc79f8947e1dc742/noise_train/Babble_1.wav",
+          "https://raw.githubusercontent.com/microsoft/MS-SNSD/fe61c4ba0d9ac8dd7e23d719cc79f8947e1dc742/noise_train/Babble_1.wav"
+        ]
+      }
+    ]
+  },
+  "speechModels": {
+    "models": [
+      {
+        "id": "dictation.sherpa-zipformer-zh-en",
+        "name": "sherpa-zipformer 中英双语模型",
+        "sources": [
+          "https://modelscope.cn/api/v1/models/pkufool/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20/repo?Revision=master&FilePath={file}",
+          "https://hf-mirror.com/csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20/resolve/main/{file}",
+          "https://ghproxy.net/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2",
+          "https://gh-proxy.com/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2",
+          "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2"
+        ]
+      }
+    ]
+  }
+}
