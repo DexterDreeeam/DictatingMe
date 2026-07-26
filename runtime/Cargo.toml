@@ -15,7 +15,7 @@ path = "src/main.rs"
 
 [dependencies]
 # --- Tauri（UI 壳、多窗口、托盘、IPC） ---
-tauri = { version = "=2.11.5", features = ["tray-icon"] }
+tauri = { version = "=2.11.5", features = ["image-png", "tray-icon"] }
 
 # --- 序列化 / 异步运行时 ---
 serde = { version = "1", features = ["derive"] }

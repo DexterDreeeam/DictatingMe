@@ -1,6 +1,6 @@
 //! Tray Manager（见 brainstrom/plan.md §3.3、§5、§7）。
 //!
-//! 创建/持有系统托盘图标（固定不变，不随状态改变）；
+//! 创建/持有系统托盘图标（跟随系统明暗主题，但不随听写状态改变）；
 //! 左键点击 = 向 State Machine 发出"打开 MainWindow 请求"；右键菜单提供"退出"。
 //! Tray、Runtime、SystemTray 三者共生共灭（见 plan.md §3.3 关键生命周期事实）。
 
@@ -21,7 +21,7 @@ pub type ExitCallback = Box<dyn Fn() + Send>;
 
 /// Tray Manager 接口。
 pub trait TrayManager {
-    /// 创建托盘图标（图标固定，不随状态变化，见 plan.md §7）。
+    /// 创建托盘图标（不随听写状态变化，见 plan.md §7）。
     fn create(
         &mut self,
         on_open_main_window: OpenMainWindowCallback,
@@ -58,16 +58,13 @@ impl TrayManager for TauriTrayManager {
             .map_err(|error| TrayError(format!("failed to create tray quit item: {error}")))?;
         let menu = Menu::with_items(&self.app, &[&quit])
             .map_err(|error| TrayError(format!("failed to create tray menu: {error}")))?;
-        let icon = self
-            .app
-            .default_window_icon()
-            .cloned()
-            .ok_or_else(|| TrayError("application has no default tray icon".to_owned()))?;
+        let theme = crate::app_icon::current_theme(&self.app).map_err(TrayError)?;
+        let icon = crate::app_icon::tray_icon(theme).map_err(TrayError)?;
 
         let open_callback = Arc::new(Mutex::new(on_open_main_window));
         let exit_callback = Arc::new(Mutex::new(on_exit));
         let quit_id = quit.id().clone();
-        let tray = TrayIconBuilder::with_id("dictatingme-runtime")
+        let tray = TrayIconBuilder::with_id(crate::app_icon::TRAY_ID)
             .icon(icon)
             .tooltip("DictatingMe")
             .menu(&menu)

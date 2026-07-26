@@ -28,6 +28,7 @@ $CatalogPath = Join-Path $AssetsDir 'sha.json'
 $ManifestPath = Join-Path $AssetsDir 'manifest-cn.json'
 $BuildProfile = if ($DebugBuild) { 'debug' } else { 'release' }
 $InstallerDir = Join-Path $ProjectDir "target\$BuildProfile\bundle\nsis"
+$BuiltExe = Join-Path $ProjectDir "target\$BuildProfile\dictatingme.exe"
 $InstallDir = Join-Path $env:ProgramFiles 'DictatingMe'
 $InstalledExe = Join-Path $InstallDir 'dictatingme.exe'
 $InstalledManifest = Join-Path $InstallDir 'manifest-cn.json'
@@ -76,6 +77,43 @@ function Get-Sha256 {
     finally {
         $hasher.Dispose()
         $stream.Dispose()
+    }
+}
+
+function Get-TauriExecutablePayloadSha256 {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $marker = '__TAURI_BUNDLE_TYPE_VAR_'
+    $content = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $markerOffset = $content.IndexOf($marker, [System.StringComparison]::Ordinal)
+    if ($markerOffset -lt 0) {
+        throw "Tauri bundle marker is missing: $Path"
+    }
+
+    while ($markerOffset -ge 0) {
+        $bundleTypeOffset = $markerOffset + $marker.Length
+        if ($bundleTypeOffset + 3 -gt $bytes.Length) {
+            throw "Tauri bundle marker is truncated: $Path"
+        }
+        [System.Array]::Clear($bytes, $bundleTypeOffset, 3)
+        $markerOffset = $content.IndexOf(
+            $marker,
+            $markerOffset + $marker.Length,
+            [System.StringComparison]::Ordinal
+        )
+    }
+
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hash = $hasher.ComputeHash($bytes)
+        return [System.BitConverter]::ToString($hash).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $hasher.Dispose()
     }
 }
 
@@ -246,6 +284,8 @@ $installers = @(
 if ($installers.Count -eq 0) {
     throw "The build completed but no NSIS installer was found in $InstallerDir"
 }
+Assert-File -Path $BuiltExe -Description 'Built DictatingMe executable'
+$builtExecutableHash = Get-TauriExecutablePayloadSha256 -Path $BuiltExe
 
 Write-Host ''
 Write-Host '[DictatingMe] Package build completed successfully.' -ForegroundColor Green
@@ -288,7 +328,7 @@ if ($DebugBuild) {
 $installStartedAt = [System.DateTime]::UtcNow
 $installerProcess = Start-Process `
     -FilePath $installers[0].FullName `
-    -ArgumentList '/S' `
+    -ArgumentList @('/S', '/UPDATE') `
     -PassThru `
     -Wait `
     -WindowStyle Hidden
@@ -298,9 +338,9 @@ if ($installerProcess.ExitCode -ne 0) {
 
 Assert-File -Path $InstalledExe -Description 'Installed DictatingMe executable'
 Assert-File -Path $InstalledManifest -Description 'Installed plaintext manifest'
-$installedItem = Get-Item -LiteralPath $InstalledExe
-if ($installedItem.LastWriteTimeUtc -lt $installers[0].LastWriteTimeUtc.AddMinutes(-5)) {
-    throw "Installed executable timestamp was not updated: $InstalledExe"
+$installedExecutableHash = Get-TauriExecutablePayloadSha256 -Path $InstalledExe
+if ($installedExecutableHash -ne $builtExecutableHash) {
+    throw "Installed executable does not match the packaged build: $InstalledExe"
 }
 
 Write-Host '[DictatingMe] Silent overwrite completed successfully.' -ForegroundColor Green

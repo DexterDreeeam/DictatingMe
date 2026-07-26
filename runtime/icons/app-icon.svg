@@ -1,16 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#181d2a"/>
-      <stop offset="1" stop-color="#0b0e15"/>
-    </linearGradient>
-    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#f0c36a"/>
-      <stop offset="1" stop-color="#71d9a7"/>
-    </linearGradient>
+    <filter id="bold-d" x="-2%" y="-2%" width="104%" height="104%">
+      <feMorphology operator="dilate" radius="1.024"/>
+    </filter>
+    <mask id="wordmark-d" maskUnits="userSpaceOnUse" x="166" y="146" width="180" height="220">
+      <image
+        href="wordmark-d.png"
+        x="169"
+        y="149"
+        width="174"
+        height="215"
+        preserveAspectRatio="xMidYMid meet"
+        filter="url(#bold-d)"
+      />
+    </mask>
   </defs>
-  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
-  <path d="M96 256h40l24-86 44 172 40-220 48 268 40-220 32 86h52"
-        fill="none" stroke="url(#wave)" stroke-width="28"
-        stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(256 256) scale(1.16) translate(-256 -256)">
+    <g fill="none" stroke="#7a7e86" stroke-linecap="round">
+      <circle cx="256" cy="256" r="154" stroke-width="22" opacity=".92"/>
+      <path d="M256 72A184 184 0 0 1 440 256" stroke-width="14" opacity=".62"/>
+      <path d="M256 440A184 184 0 0 1 72 256" stroke-width="14" opacity=".62"/>
+    </g>
+    <rect width="512" height="512" fill="#7a7e86" mask="url(#wordmark-d)"/>
+  </g>
 </svg>

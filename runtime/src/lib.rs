@@ -5,6 +5,7 @@ use std::path::Path;
 
 use tauri::{path::BaseDirectory, Manager};
 
+mod app_icon;
 pub mod audio;
 pub mod commands;
 pub mod events;
@@ -80,6 +81,11 @@ pub fn run() {
             if window.label() != "main" {
                 return;
             }
+            if let tauri::WindowEvent::ThemeChanged(theme) = event {
+                if let Err(error) = app_icon::apply_theme(window.app_handle(), *theme) {
+                    tracing::error!(%error, "failed to apply system-themed application icon");
+                }
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 if let Some(runtime) = window.app_handle().try_state::<RuntimeHandle>() {
@@ -126,6 +132,8 @@ pub fn run() {
 fn setup_runtime(app: &mut tauri::App) -> Result<(), RuntimeError> {
     tracing::debug!("setup phase: remove configured tray");
     drop(app.remove_tray_by_id("main"));
+    let initial_theme = app_icon::current_theme(app.handle()).map_err(RuntimeError)?;
+    app_icon::apply_theme(app.handle(), initial_theme).map_err(RuntimeError)?;
 
     tracing::debug!("setup phase: resolve application paths");
     let legacy_app_data_dir = app.path().app_local_data_dir().map_err(|error| {

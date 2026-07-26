@@ -172,7 +172,7 @@
 
 Runtime 是 DM 的核心，承担：
 - 状态机驱动（见第 4 节）
-- 系统托盘的创建与持有（图标固定不变，不随状态改变；左键点击唤出 MainWindow，右键菜单提供"退出"）
+- 系统托盘的创建与持有（图标跟随系统明暗主题，但不随听写状态改变；左键点击唤出 MainWindow，右键菜单提供"退出"）
 - 运行期音频采集、模型加载/卸载、文字注入、全局键鼠监听和 History append
 
 配置、资源下载、模型选择和 Evoke Setup 属于独立 **Settings Plane**，由 `SettingsHandle + SettingsCoordinator + ManagedStorage` 管理；Runtime 只通过 `RuntimeDataPort` 获取运行 bundle，不直接访问任何 Store。
@@ -244,7 +244,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | **ManagedStorage** | Settings Plane 内组合 Database、ContentStorage、AssetManager、Profile/Setup/History/Config Store；RuntimeCore 不直接持有 |
 | **AssetManager** | 解释 `assets/sha.json`，执行目录检查、来源探测、下载、解压、SHA 验证、版本 lease 与无引用旧资产清理 |
 | **RuntimeDataPort** | Runtime 与 Storage 的唯一边界：generation watch、一次性 RuntimeBundle、History append |
-| **Tray Manager** | 创建/持有系统托盘图标（固定不变）；左键点击 = 向 State Machine 发出"打开 MainWindow 请求"，右键菜单提供"退出" |
+| **Tray Manager** | 创建/持有系统托盘图标（跟随系统明暗主题，不随听写状态改变）；左键点击 = 向 State Machine 发出"打开 MainWindow 请求"，右键菜单提供"退出" |
 | **Window Manager** | 基于 Tauri 多窗口能力，根据 State Machine 广播的状态**互斥显示** MainWindow 或 HudWindow（同一时刻只有一个可见） |
 
 ### 5.1 数据流（一次完整唤醒—听写—收尾周期）
@@ -358,7 +358,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
   - `Configure` → HudWindow 不存在/隐藏（MainWindow 取而代之）
   - `Unloading` → 胶囊切黄并开始绿色光束收缩/淡出，完成后保持待唤醒视觉
 - **用户文案**：`Listening` 固定显示“待唤醒”；`Loading` / `Dictating` 统一显示“听写中”，不向用户区分模型加载阶段。
-- **托盘图标**：不随状态变化，固定图标；左键点击 = 打开 MainWindow（触发 `Configure`）；所有运行时状态提示职责都交给 HUD
+- **托盘图标**：跟随系统明暗主题切换白色/中性灰版本，但不随听写状态变化；左键点击 = 打开 MainWindow（触发 `Configure`）；所有运行时状态提示职责都交给 HUD
 
 ---
 
@@ -470,7 +470,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | 14 | HUD 位置 | 主屏幕顶部居中，距顶部约 80px，不跟随鼠标，仅主屏幕显示 |
 | 15 | 唤醒词模型技术路线 | 自训练小型关键词检测模型（类 openWakeWord），导出 ONNX，预留声纹微调接口 |
 | 16 | MainWindow 视觉风格 | 深色气泡/现代极简（VS Code / Discord 色调） |
-| 17 | 托盘图标 | 固定不变，状态展示完全交给 HUD；导航为首页三卡片式 |
+| 17 | 托盘图标 | 跟随系统明暗主题，但不随听写状态变化；状态展示完全交给 HUD；导航为首页三卡片式 |
 | 18 | MainWindow/HudWindow 关系（v1.1） | 二者由 Runtime 互斥显示，同一时刻只有一个可见（推翻此前"HudWindow常驻+MainWindow访客"的表述） |
 | 19 | Configure 触发时机（v1.1 修正 #6） | 打开 MainWindow（不论首页还是任意二级页）即触发 `Configure`；若当前处于 Loading/Dictating/Unloading，会先自动流转 Unloading→Listening，再进入 Configure |
 | 20 | DictationModel 触发因果（v1.1） | DictationModel 严格只能由 State Machine 在收到 EvokeModel 的唤醒词检测事件后触发加载，模块图需体现这条因果链 |

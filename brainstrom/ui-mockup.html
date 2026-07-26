@@ -18,6 +18,7 @@
     --yellow: #f0b232;
     --green: #23a55a;
     --red: #f23f42;
+    --adaptive-logo-color: #f5f6f7;
   }
   * { box-sizing: border-box; }
   body {
@@ -34,6 +35,52 @@
   header h1 { margin: 0 0 6px; font-size: 22px; }
   header h1 .dot { color: var(--accent); }
   header p { margin: 0; color: var(--text-muted); font-size: 13px; }
+
+  .logo-review {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) 160px 160px;
+    gap: 16px;
+    align-items: stretch;
+    margin-top: 20px;
+  }
+  .logo-review-card {
+    display: flex; min-height: 146px;
+    align-items: center; justify-content: center; gap: 22px;
+    padding: 18px 22px;
+    border: 1px solid var(--border); border-radius: 14px;
+    background: var(--panel);
+  }
+  .logo-review-card--dark { --adaptive-logo-color: #f5f6f7; background: #151619; }
+  .logo-review-card--light {
+    --adaptive-logo-color: #4f535b;
+    border-color: #d6d8dc; background: #f4f5f7; color: #3c3f45;
+  }
+  .adaptive-logo {
+    display: block; width: 94px; height: 94px;
+    flex: 0 0 auto; color: var(--adaptive-logo-color);
+  }
+  .adaptive-logo__track,
+  .adaptive-logo__arc {
+    fill: none; stroke: currentColor;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .adaptive-logo__track { stroke-width: 4.3; opacity: .92; }
+  .adaptive-logo__arc { stroke-width: 2.8; opacity: .62; }
+  .adaptive-logo__mark { fill: currentColor; }
+  .logo-review-copy { min-width: 0; }
+  .logo-review-copy strong { display: block; font-size: 14px; }
+  .logo-review-copy span {
+    display: block; margin-top: 5px;
+    color: var(--text-muted); font-size: 11px; line-height: 1.5;
+  }
+  .logo-review-card--light .logo-review-copy span { color: #777b83; }
+  @media (prefers-color-scheme: light) {
+    :root { --adaptive-logo-color: #4f535b; }
+    .logo-review-card--system {
+      border-color: #d6d8dc; background: #f4f5f7; color: #3c3f45;
+    }
+    .logo-review-card--system .logo-review-copy span { color: #777b83; }
+  }
 
   .layout {
     display: block;
@@ -138,6 +185,7 @@
   }
 
   .window-body { padding: 20px 20px 32px; min-height: 0; }
+  .window-body > .view { width: 100%; }
 
   .status-pill {
     display: inline-flex;
@@ -197,6 +245,7 @@
     padding: 13px 14px; margin-bottom: 10px; color: inherit; font: inherit;
     text-align: left; cursor: pointer;
   }
+  .device-item:last-child { margin-bottom: 0; }
   .device-item.selected { border-color: var(--accent); background: rgba(88,101,242,0.1); }
   .radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--text-muted); flex-shrink: 0; position: relative; }
   .device-item.selected .radio-dot { border-color: var(--accent); }
@@ -766,6 +815,78 @@
 <header>
   <h1>DictatingMe <span class="dot">·</span> 界面预览</h1>
   <p>点击下方窗口里的卡片可以在页面间跳转；下方"模拟当前运行状态"可切换查看主窗口 ⇄ 悬浮窗的互斥显示效果。风格：深色气泡 / VS Code · Discord 色调</p>
+  <div class="logo-review">
+    <div class="logo-review-card logo-review-card--system">
+      <svg class="adaptive-logo" viewBox="0 0 100 100" role="img" aria-label="DictatingMe D Logo 系统主题预览">
+        <defs>
+          <filter id="wordmark-d-bold-system" x="31" y="27" width="38" height="46" filterUnits="userSpaceOnUse">
+            <feMorphology operator="dilate" radius=".2"></feMorphology>
+          </filter>
+          <mask id="wordmark-d-system" x="32.5" y="28.5" width="35" height="43" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+            <g filter="url(#wordmark-d-bold-system)">
+              <svg x="33" y="29" width="34" height="42" viewBox="30 32 205 251" preserveAspectRatio="xMidYMid meet">
+                <image href="../ui/assets/dictating-me-wordmark.png" width="1024" height="402"></image>
+              </svg>
+            </g>
+          </mask>
+        </defs>
+        <g transform="translate(50 50) scale(1.16) translate(-50 -50)">
+          <circle class="adaptive-logo__track" cx="50" cy="50" r="30"></circle>
+          <path class="adaptive-logo__arc" d="M50 14A36 36 0 0 1 86 50"></path>
+          <path class="adaptive-logo__arc" d="M50 86A36 36 0 0 1 14 50"></path>
+          <rect class="adaptive-logo__mark" x="32.5" y="28.5" width="35" height="43" mask="url(#wordmark-d-system)"></rect>
+        </g>
+      </svg>
+      <div class="logo-review-copy">
+        <strong>系统主题自动适配</strong>
+        <span>Dark 使用白色；Light 使用中性灰色。图标本身无背景，可直接用于应用图形。</span>
+      </div>
+    </div>
+    <div class="logo-review-card logo-review-card--dark">
+      <svg class="adaptive-logo" viewBox="0 0 100 100" aria-label="Dark Logo">
+        <defs>
+          <filter id="wordmark-d-bold-dark" x="31" y="27" width="38" height="46" filterUnits="userSpaceOnUse">
+            <feMorphology operator="dilate" radius=".2"></feMorphology>
+          </filter>
+          <mask id="wordmark-d-dark" x="32.5" y="28.5" width="35" height="43" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+            <g filter="url(#wordmark-d-bold-dark)">
+              <svg x="33" y="29" width="34" height="42" viewBox="30 32 205 251" preserveAspectRatio="xMidYMid meet">
+                <image href="../ui/assets/dictating-me-wordmark.png" width="1024" height="402"></image>
+              </svg>
+            </g>
+          </mask>
+        </defs>
+        <g transform="translate(50 50) scale(1.16) translate(-50 -50)">
+          <circle class="adaptive-logo__track" cx="50" cy="50" r="30"></circle>
+          <path class="adaptive-logo__arc" d="M50 14A36 36 0 0 1 86 50"></path>
+          <path class="adaptive-logo__arc" d="M50 86A36 36 0 0 1 14 50"></path>
+          <rect class="adaptive-logo__mark" x="32.5" y="28.5" width="35" height="43" mask="url(#wordmark-d-dark)"></rect>
+        </g>
+      </svg>
+    </div>
+    <div class="logo-review-card logo-review-card--light">
+      <svg class="adaptive-logo" viewBox="0 0 100 100" aria-label="Light Logo">
+        <defs>
+          <filter id="wordmark-d-bold-light" x="31" y="27" width="38" height="46" filterUnits="userSpaceOnUse">
+            <feMorphology operator="dilate" radius=".2"></feMorphology>
+          </filter>
+          <mask id="wordmark-d-light" x="32.5" y="28.5" width="35" height="43" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+            <g filter="url(#wordmark-d-bold-light)">
+              <svg x="33" y="29" width="34" height="42" viewBox="30 32 205 251" preserveAspectRatio="xMidYMid meet">
+                <image href="../ui/assets/dictating-me-wordmark.png" width="1024" height="402"></image>
+              </svg>
+            </g>
+          </mask>
+        </defs>
+        <g transform="translate(50 50) scale(1.16) translate(-50 -50)">
+          <circle class="adaptive-logo__track" cx="50" cy="50" r="30"></circle>
+          <path class="adaptive-logo__arc" d="M50 14A36 36 0 0 1 86 50"></path>
+          <path class="adaptive-logo__arc" d="M50 86A36 36 0 0 1 14 50"></path>
+          <rect class="adaptive-logo__mark" x="32.5" y="28.5" width="35" height="43" mask="url(#wordmark-d-light)"></rect>
+        </g>
+      </svg>
+    </div>
+  </div>
 </header>
 
 <div class="layout">
@@ -906,8 +1027,8 @@
             <div>
               <div class="device-name">USB 外接麦克风</div>
               <div class="device-sub">Blue Yeti</div>
-            </button>
-          </div>
+            </div>
+          </button>
         </div>
 
         <!-- EvokeWord 二级页 -->
@@ -1510,10 +1631,20 @@
   function resizeMockWindow() {
     const frame = document.getElementById('mainwindow-frame');
     const titlebar = frame?.querySelector('.titlebar');
+    const body = frame?.querySelector('.window-body');
     const visible = Array.from(document.querySelectorAll('#mainwindow-frame .view'))
       .find(view => getComputedStyle(view).display !== 'none');
-    if (!frame || !titlebar || !visible) return;
-    const target = Math.ceil(titlebar.getBoundingClientRect().height + visible.scrollHeight + 52);
+    if (!frame || !titlebar || !body || !visible) return;
+    const bodyStyle = getComputedStyle(body);
+    const bodyPadding = parseFloat(bodyStyle.paddingTop)
+      + parseFloat(bodyStyle.paddingBottom);
+    const frameBorder = frame.offsetHeight - frame.clientHeight;
+    const target = Math.ceil(
+      titlebar.offsetHeight
+      + bodyPadding
+      + visible.scrollHeight
+      + frameBorder
+    );
     frame.style.height = Math.max(220, target) + 'px';
   }
 
@@ -1954,6 +2085,11 @@
   }
 
   mountAssetDownloadButtons();
+  const mockWindowBody = document.querySelector('#mainwindow-frame .window-body');
+  if (mockWindowBody) {
+    new ResizeObserver(() => requestAnimationFrame(resizeMockWindow)).observe(mockWindowBody);
+  }
+  document.querySelector('.hero-wordmark')?.addEventListener('load', resizeMockWindow, { once: true });
   requestAnimationFrame(resizeMockWindow);
 </script>
 
