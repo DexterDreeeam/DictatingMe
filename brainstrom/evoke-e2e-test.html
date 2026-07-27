@@ -20,7 +20,7 @@
     .node.ui{border-color:#7a8bff}.node.service{border-color:var(--accent);background:rgba(88,101,242,.16)}.node.trait{border-color:#4d9d70}.node.port{border-style:dashed;border-color:#858b96}.node.runtime{border-color:#e4b34c}.node.data{border-color:#5f9ea0;background:rgba(95,158,160,.12)}.node.test{border-color:#b07acc;background:rgba(176,122,204,.13)}
     .arrow{display:flex;align-items:center;color:#b5bac1;font-size:18px;font-weight:700}.arrow.down{height:27px;justify-content:center;transform:rotate(90deg)}
     .bar{margin:18px auto;max-width:960px;padding:10px 14px;border:1px dashed #687080;border-radius:9px;color:#b5bac1;text-align:center;font-size:11px}.bar strong{color:#fff}.bar.good{border-color:#397d54;color:#7fd49e}.bar.stop{border-color:#7c4146;color:#ef9da2}.bar.warn{border-color:#7d6a35;color:#e8c982}
-    table{width:100%;border-collapse:collapse;min-width:720px;margin-bottom:6px;border:1px solid var(--line);background:var(--panel2);font-size:11px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:#282c35;white-space:nowrap}    td{color:var(--muted)}tr:last-child td{border-bottom:0}td code,th code{color:var(--code)}td strong{color:#e8ebf2}td.good{color:#7fd49e;font-weight:600}td.bad{color:#ef9da2;font-weight:600}
+    table{width:100%;border-collapse:collapse;min-width:720px;margin-bottom:6px;border:1px solid var(--line);background:var(--panel2);font-size:11px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:#282c35;white-space:nowrap}    td{color:var(--muted)}tr:last-child td{border-bottom:0}td code,th code{color:var(--code)}td strong{color:#e8ebf2}td.good{color:#7fd49e;font-weight:600}td.bad{color:#ef9da2;font-weight:600}.dim{color:#868c98;font-weight:400;font-size:10px}
     .tree{margin:0 0 8px;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:11px;line-height:1.75;white-space:pre;overflow:auto}
     .tree b{color:#8fd7ff;font-weight:600}.tree i{color:#7fd49e;font-style:normal}.tree u{color:var(--yellow);text-decoration:none}.tree s{color:#6f7787;text-decoration:none}
     .signature{margin:9px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:10.5px;line-height:1.65;white-space:pre;overflow:auto}
@@ -46,6 +46,7 @@
     <button class="tab" data-pane="matrix">测试矩阵</button>
     <button class="tab" data-pane="deliver">落地计划</button>
     <button class="tab" data-pane="result">实测结果</button>
+    <button class="tab" data-pane="tpr">TPR 提升方案</button>
   </div>
 
   <!-- ============================ 目标与指标 ============================ -->
@@ -728,6 +729,7 @@ EER = 0.113 @ sensitivity 0.58   (默认 0.65 偏松，建议下调)</div>
   </section>
 
   <section class="pane" id="pane-result">
+    <div class="canvas">
     <h2>实测结果 — 2026 基线</h2>
     <p class="lead">
       语料 325 条（20 组唤醒词 × 14 条 + 45 条自由语音），三套中文 VITS、15 个音色合成。
@@ -736,44 +738,206 @@ EER = 0.113 @ sensitivity 0.58   (默认 0.65 偏松，建议下调)</div>
       单模式判定次数 700 次（正 560 / 负 140），四模式合计 2800 次。
     </p>
 
-    <h3>1. 四模式总览</h3>
+    <h3>1. 指标口径与目标值</h3>
+    <p>
+      每一次「判定」= 把一条 5 秒音频逐帧喂进唤醒流水线，看它是否触发一次唤醒。
+      所有比率都是<b>按次计</b>（per-utterance），不是按小时计。
+    </p>
     <table>
-      <thead><tr><th>指标</th><th>text</th><th>voiceMatch</th><th>speakerVerify</th><th>classifier</th></tr></thead>
+      <thead>
+        <tr><th>指标</th><th>它回答的问题</th><th>分子 / 分母</th><th>方向</th><th>目标值</th><th>目标依据</th></tr>
+      </thead>
       <tbody>
-        <tr><td><b>TPR</b>（本人说唤醒词）</td><td>63.6%</td><td>43.2%</td><td><b>62.5%</b></td><td>37.9%</td></tr>
-        <tr><td>FAR — 冒充者</td><td class="bad">67.5%</td><td class="good">2.5%</td><td class="good">10.0%</td><td class="bad">32.5%</td></tr>
-        <tr><td>FAR — 对立词</td><td>17.5%</td><td>17.5%</td><td>17.5%</td><td>17.5%</td></tr>
-        <tr><td>FAR — 自由语音</td><td class="good">0.0%</td><td class="good">0.0%</td><td class="good">0.0%</td><td class="good">0.0%</td></tr>
-        <tr><td><b>FAR 合计</b></td><td class="bad">23.6%</td><td class="good">5.0%</td><td class="good">7.1%</td><td>13.6%</td></tr>
+        <tr>
+          <td><b>TPR</b><br><span class="dim">True Positive Rate<br>召回率 / 检出率</span></td>
+          <td>我本人想唤醒时，唤醒得了吗？</td>
+          <td>成功唤醒次数 / 本人说唤醒词的总次数<br><code>n = 560</code>（20 组 × 4 条 × 7 条件）</td>
+          <td>越高越好</td>
+          <td><b>≥ 90%</b><br><span class="dim">理想 ≥ 95%</span></td>
+          <td>消费级语音助手基线。低于 85% 用户会明显感到「叫不动」，
+            低于 70% 基本等于功能不可用。</td>
+        </tr>
+        <tr>
+          <td><b>FAR — 冒充者</b><br><span class="dim">False Accept Rate<br>（他人说唤醒词）</span></td>
+          <td>别人念出我的唤醒词，会替我唤醒吗？</td>
+          <td>误唤醒次数 / 冒充者说唤醒词的次数<br><code>n = 40</code></td>
+          <td>越低越好</td>
+          <td><b>≤ 5%</b><br><span class="dim">text 模式不适用</span></td>
+          <td>声纹验证类产品的常用 FAR 档位。text 模式设计上就不做说话人判别，
+            该指标对它没有意义，不应据此判它「不合格」。</td>
+        </tr>
+        <tr>
+          <td><b>FAR — 对立词</b><br><span class="dim">（本人说近音短语）</span></td>
+          <td>我说了跟唤醒词很像的话，会误唤醒吗？</td>
+          <td>误唤醒次数 / 本人说对立词的次数<br><code>n = 40</code>（T1 6 / T2 10 / T3 10 / T4 14）</td>
+          <td>越低越好</td>
+          <td><b>≤ 5%</b></td>
+          <td>近音短语在日常对话里出现频率不低，且用户会把它归因为「乱唤醒」。</td>
+        </tr>
+        <tr>
+          <td><b>FAR — 自由语音</b><br><span class="dim">（无关连续说话）</span></td>
+          <td>我正常说话/开会，会被冷不丁唤醒吗？</td>
+          <td>误唤醒次数 / 无关语音片段数<br><code>n = 60</code></td>
+          <td>越低越好</td>
+          <td><b>≤ 0.5 次 / 小时</b><br><span class="dim">业界通行的 FA/h 口径</span></td>
+          <td>这是用户感知最强的指标——误唤醒一次会直接往输入框里插入文字。
+            <b>本轮样本量远不足以验证该目标</b>，见第 5 节。</td>
+        </tr>
+        <tr>
+          <td><b>FAR 合计</b></td>
+          <td>综合误唤醒风险</td>
+          <td>全部误唤醒 / 全部负样本<br><code>n = 140</code></td>
+          <td>越低越好</td>
+          <td><b>≤ 5%</b></td>
+          <td>三类负样本的加权，仅用于横向比较四种模式，不代表真实使用中的误唤醒率
+            （真实场景里自由语音占比远高于 43%）。</td>
+        </tr>
       </tbody>
     </table>
 
-    <h3>2. 正样本按条件分列（TPR）</h3>
+    <h3>2. 四模式总览 vs 目标</h3>
     <table>
-      <thead><tr><th>条件</th><th>text</th><th>voiceMatch</th><th>speakerVerify</th><th>classifier</th></tr></thead>
+      <thead>
+        <tr><th>指标</th><th>目标</th><th>text</th><th>voiceMatch</th><th>speakerVerify</th><th>classifier</th><th>最好者与目标的差距</th></tr>
+      </thead>
       <tbody>
-        <tr><td>clean</td><td>63.7%</td><td>63.7%</td><td>63.7%</td><td>60.0%</td></tr>
-        <tr><td>fast ×1.15</td><td>65.0%</td><td>65.0%</td><td>61.3%</td><td>58.8%</td></tr>
-        <tr><td>slow ×0.87</td><td>58.8%</td><td>58.8%</td><td>57.5%</td><td>55.0%</td></tr>
-        <tr><td>quiet −6 dB</td><td>65.0%</td><td>63.7%</td><td>65.0%</td><td>55.0%</td></tr>
-        <tr><td>office @15 dB</td><td>62.5%</td><td>37.5%</td><td>62.5%</td><td>33.8%</td></tr>
-        <tr><td>crowd @10 dB</td><td>65.0%</td><td class="bad">12.5%</td><td>62.5%</td><td class="bad">0.0%</td></tr>
-        <tr><td>traffic @5 dB</td><td>65.0%</td><td class="bad">1.2%</td><td>65.0%</td><td class="bad">2.5%</td></tr>
+        <tr>
+          <td><b>TPR</b>（本人说唤醒词）</td><td>≥ 90%</td>
+          <td class="bad">63.6%</td><td class="bad">43.2%</td><td class="bad">62.5%</td><td class="bad">37.9%</td>
+          <td class="bad">四种全部不达标，最好者仍差 <b>26.4 个点</b></td>
+        </tr>
+        <tr>
+          <td>FAR — 冒充者</td><td>≤ 5%</td>
+          <td class="dim">67.5%<br><span class="dim">（不适用）</span></td><td class="good">2.5%</td><td>10.0%</td><td class="bad">32.5%</td>
+          <td class="good">voiceMatch 达标；speakerVerify 差 5 个点（统计上与达标不可区分）</td>
+        </tr>
+        <tr>
+          <td>FAR — 对立词</td><td>≤ 5%</td>
+          <td class="bad">17.5%</td><td class="bad">17.5%</td><td class="bad">17.5%</td><td class="bad">17.5%</td>
+          <td class="bad">四种一致不达标，差 <b>12.5 个点</b></td>
+        </tr>
+        <tr>
+          <td>FAR — 自由语音</td><td>≤ 0.5 次/小时</td>
+          <td class="good">0 / 60</td><td class="good">0 / 60</td><td class="good">0 / 60</td><td class="good">0 / 60</td>
+          <td><b>未验证</b>——0 次不等于达标，见第 5 节</td>
+        </tr>
+        <tr>
+          <td><b>FAR 合计</b></td><td>≤ 5%</td>
+          <td class="bad">23.6%</td><td class="good">5.0%</td><td>7.1%</td><td class="bad">13.6%</td>
+          <td class="good">voiceMatch 刚好达标，speakerVerify 差 2.1 个点</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="bar stop">
+      <strong>一句话结论：</strong>
+      安全性（FAR）在 voiceMatch / speakerVerify 上已经接近目标，
+      但<strong>可用性（TPR）四种模式全线崩在 90% 目标线下</strong>，且短板在共用的 KWS 环节。
+      当前配置下，唤醒功能对多数用户是「叫三次响两次」的体验。
+    </div>
+
+    <h3>3. 正样本按条件分列（TPR）</h3>
+    <p>
+      每格 <code>n = 80</code>（20 组 × 4 条）。同一列内条件之间的差异需超过约
+      <b>±10 个点</b>才有统计意义，见第 5 节。
+    </p>
+    <table>
+      <thead><tr><th>条件</th><th>含义</th><th>目标</th><th>text</th><th>voiceMatch</th><th>speakerVerify</th><th>classifier</th></tr></thead>
+      <tbody>
+        <tr><td>clean</td><td>无处理原始合成音，理想安静环境</td><td>≥ 95%</td>
+          <td class="bad">63.7%</td><td class="bad">63.7%</td><td class="bad">63.7%</td><td class="bad">60.0%</td></tr>
+        <tr><td>fast ×1.15</td><td>语速加快 15%，模拟着急/熟练用户</td><td>≥ 90%</td>
+          <td class="bad">65.0%</td><td class="bad">65.0%</td><td class="bad">61.3%</td><td class="bad">58.8%</td></tr>
+        <tr><td>slow ×0.87</td><td>语速放慢 13%，模拟刻意清晰发音</td><td>≥ 90%</td>
+          <td class="bad">58.8%</td><td class="bad">58.8%</td><td class="bad">57.5%</td><td class="bad">55.0%</td></tr>
+        <tr><td>quiet −6 dB</td><td>整体音量降 6 dB，模拟离麦远/小声说</td><td>≥ 90%</td>
+          <td class="bad">65.0%</td><td class="bad">63.7%</td><td class="bad">65.0%</td><td class="bad">55.0%</td></tr>
+        <tr><td>office @15 dB</td><td>叠办公室底噪，信噪比 15 dB（轻度）</td><td>≥ 90%</td>
+          <td class="bad">62.5%</td><td class="bad">37.5%</td><td class="bad">62.5%</td><td class="bad">33.8%</td></tr>
+        <tr><td>crowd @10 dB</td><td>叠人声嘈杂，信噪比 10 dB（中度）</td><td>≥ 85%</td>
+          <td class="bad">65.0%</td><td class="bad">12.5%</td><td class="bad">62.5%</td><td class="bad">0.0%</td></tr>
+        <tr><td>traffic @5 dB</td><td>叠交通噪声，信噪比 5 dB（重度，接近极限）</td><td>≥ 75%</td>
+          <td class="bad">65.0%</td><td class="bad">1.2%</td><td class="bad">65.0%</td><td class="bad">2.5%</td></tr>
+      </tbody>
+    </table>
+    <div class="bar warn">
+      <strong>读法：</strong>
+      text 与 speakerVerify 这两列<strong>几乎是水平直线</strong>——说明噪声/语速/音量根本没成为瓶颈，
+      瓶颈在它们之前的 KWS。voiceMatch 与 classifier 这两列<strong>随信噪比断崖下跌</strong>——
+      说明它们自己的特征提取扛不住噪声，这是可以单独修的问题。
+    </div>
+
+    <h3>4. 对立词按区分度档位分列（FAR）</h3>
+    <p>
+      对立词由<b>本人</b>朗读，因此声纹/模板/分类器都会判「是对的人」，只剩短语这一道闸——
+      这解释了为什么四种模式数值完全一致。目标全部为 <b>≤ 5%</b>。
+    </p>
+    <table>
+      <thead><tr><th>档位</th><th>差异维度</th><th>样本</th><th>四模式一致 FAR</th><th>95% 置信区间</th><th>判读</th></tr></thead>
+      <tbody>
+        <tr><td>T1</td><td>声母（小迪/小提、小贝/小佩）</td><td>6</td><td class="bad">33.3%</td>
+          <td class="dim">[9.7%, 70.0%]</td><td class="dim">样本太少，只能说「大概率不达标」</td></tr>
+        <tr><td>T2</td><td>韵母（口述/口试、记下来/接下来）</td><td>10</td><td class="good">0.0%</td>
+          <td class="dim">[0%, 27.8%]</td><td class="dim">未能证明达标，只能说「没看到问题」</td></tr>
+        <tr><td>T3</td><td>声调（小七/小奇、小猫/小毛）</td><td>10</td><td class="bad">30.0%</td>
+          <td class="dim">[10.8%, 60.3%]</td><td>不达标（区间下界已高于 5%）</td></tr>
+        <tr><td>T4</td><td>整音节替换（打字/打印、说话/说完）</td><td>14</td><td>7.1%</td>
+          <td class="dim">[1.3%, 31.5%]</td><td class="dim">无法判定</td></tr>
+        <tr><td><b>合计</b></td><td>—</td><td>40</td><td class="bad">17.5%</td>
+          <td class="dim">[8.8%, 31.9%]</td><td>不达标（区间下界高于 5%）</td></tr>
       </tbody>
     </table>
 
-    <h3>3. 对立词按区分度档位分列（FAR）</h3>
+    <h3>5. 统计置信度 — 哪些结论撑得住，哪些撑不住</h3>
+    <p>
+      下表用 Wilson 区间给出每个指标的 95% 置信区间。
+      <b>两个数字的区间重叠 ⇒ 不能说谁更好。</b>
+    </p>
     <table>
-      <thead><tr><th>档位</th><th>差异维度</th><th>样本</th><th>四模式一致 FAR</th></tr></thead>
+      <thead><tr><th>指标</th><th>样本量</th><th>误差半宽</th><th>能支撑的结论</th><th>不能支撑的结论</th></tr></thead>
       <tbody>
-        <tr><td>T1</td><td>声母（小迪/小提、小贝/小佩）</td><td>6</td><td class="bad">33.3%</td></tr>
-        <tr><td>T2</td><td>韵母（口述/口试、记下来/接下来）</td><td>10</td><td class="good">0.0%</td></tr>
-        <tr><td>T3</td><td>声调（小七/小奇、小猫/小毛）</td><td>10</td><td class="bad">30.0%</td></tr>
-        <tr><td>T4</td><td>整音节替换（打字/打印、说话/说完）</td><td>14</td><td class="good">7.1%</td></tr>
+        <tr>
+          <td>TPR</td><td><code>n = 560</code></td><td>约 ±4.0 点</td>
+          <td class="good">「四种模式都远低于 90% 目标」；
+            「text/speakerVerify 明显优于 voiceMatch/classifier」</td>
+          <td class="bad">「speakerVerify 比 text 差」——63.6% [59.5, 67.5] 与
+            62.5% [58.4, 66.4] 高度重叠，<b>两者无差别</b></td>
+        </tr>
+        <tr>
+          <td>TPR 分条件</td><td><code>n = 80</code></td><td>约 ±10.3 点</td>
+          <td class="good">「voiceMatch/classifier 随噪声断崖下跌」（跨度 &gt; 60 点）</td>
+          <td class="bad">「slow 比 fast 差」——58.8% vs 65.0% 只差 6.2 点，<b>在噪声内</b></td>
+        </tr>
+        <tr>
+          <td>FAR 冒充者</td><td><code>n = 40</code></td><td>约 ±6～14 点</td>
+          <td class="good">「text/classifier 显著不如 voiceMatch/speakerVerify」</td>
+          <td class="bad">「voiceMatch 的 2.5% 优于 speakerVerify 的 10%」——
+            [0.4, 12.9] 与 [4.0, 23.1] 重叠，<b>两者不可区分</b></td>
+        </tr>
+        <tr>
+          <td>FAR 对立词分档</td><td><code>n = 6～14</code></td><td>±20 点以上</td>
+          <td class="good">仅「T3 声调档不达标」一条（区间下界 10.8% &gt; 5%）</td>
+          <td class="bad">「T1 比 T4 更危险」「T2 是安全的」——
+            <b>档位之间的排序完全是噪声</b>，需要每档 ≥ 100 条才能下结论</td>
+        </tr>
+        <tr>
+          <td>FAR 自由语音</td><td><code>n = 60</code><br><span class="dim">总时长约 5 分钟</span></td>
+          <td>0 次的上界 6.0%</td>
+          <td class="good">「不存在高频误唤醒（&gt; 43 次/小时那种量级）」</td>
+          <td class="bad">「达到 ≤ 0.5 次/小时」——要验证这个目标，
+            至少需要 <b>4～6 小时</b>连续无关语音，本轮只有 5 分钟，<b>差两个数量级</b></td>
+        </tr>
       </tbody>
     </table>
+    <div class="bar stop">
+      <strong>本轮数据的最大局限：</strong>
+      语料是 <strong>TTS 合成</strong>而非真人录音。合成语音缺少真实的发音变异、口音、韵律抖动和录音链路特性，
+      对 KWS 而言既可能<em>更容易</em>（发音标准）也可能<em>更难</em>（分布外）。
+      因此 <strong>63.6% 这个绝对值不能直接当作真人场景的 TPR</strong>；
+      它的价值在于<strong>横向比较四种模式</strong>与<strong>定位瓶颈在 KWS</strong>，这两点是可靠的。
+      绝对值需要一批真人录音来校准。
+    </div>
 
-    <h3>4. 结论</h3>
+    <h3>6. 结论</h3>
     <table>
       <thead><tr><th>#</th><th>结论</th><th>依据</th></tr></thead>
       <tbody>
@@ -797,15 +961,19 @@ EER = 0.113 @ sensitivity 0.58   (默认 0.65 偏松，建议下调)</div>
         </tr>
         <tr>
           <td>4</td>
-          <td><b>speakerVerify 是四者里唯一「不牺牲 TPR 换安全」的模式。</b>
-            相对 text 只掉 1.1 个点 TPR，却把冒充者 FAR 从 67.5% 压到 10%，且完全不受噪声影响。</td>
-          <td>TPR 62.5% vs 63.6%；traffic@5 dB 下 TPR 65.0%（campplus 声纹嵌入对噪声鲁棒）。</td>
+          <td><b>speakerVerify 在不损失 TPR 的前提下拿到了防冒充能力。</b>
+            它与 text 的 TPR 在统计上<b>没有差别</b>（62.5% vs 63.6%，置信区间高度重叠），
+            却把冒充者 FAR 从 67.5% 压到 10%，且完全不受噪声影响。</td>
+          <td>TPR 62.5% [58.4, 66.4] vs text 63.6% [59.5, 67.5]；
+            traffic@5 dB 下 TPR 65.0%（campplus 声纹嵌入对噪声鲁棒）。</td>
         </tr>
         <tr>
           <td>5</td>
           <td><b>voiceMatch 的 DTW 模板匹配对噪声极度脆弱</b>，安静环境可用，嘈杂环境基本失效。
-            但它的冒充者拒绝率是四者最好的。</td>
-          <td>TPR 63.7%（clean）→ 12.5%（crowd@10 dB）→ 1.2%（traffic@5 dB）；冒充者 FAR 2.5%。</td>
+            它的冒充者 FAR 数字最低，但<b>与 speakerVerify 在统计上不可区分</b>（n = 40 太小），
+            不能据此认为它更安全。</td>
+          <td>TPR 63.7%（clean）→ 12.5%（crowd@10 dB）→ 1.2%（traffic@5 dB），跨度 62 点，
+            远超 ±10 点噪声；冒充者 FAR 2.5% [0.4, 12.9] vs speakerVerify 10% [4.0, 23.1]。</td>
         </tr>
         <tr>
           <td>6</td>
@@ -815,43 +983,62 @@ EER = 0.113 @ sensitivity 0.58   (默认 0.65 偏松，建议下调)</div>
         </tr>
         <tr>
           <td>7</td>
-          <td><b>近音词误唤醒完全由 KWS 决定，四种模式无差别。</b>
+          <td><b>近音词误唤醒完全由 KWS 决定，四种模式无差别，且整体不达标。</b>
             因为对立词是本人说的，声纹/模板/分类器都判它是「对的人」，只剩短语这一道闸。
-            其中<b>只差声母（T1 33.3%）或只差声调（T3 30.0%）挡不住</b>，
-            差韵母（T2 0%）或差整个音节（T4 7.1%）才安全。</td>
-          <td>T1/T2/T3/T4 的 FAR 在四种模式下数值完全一致。</td>
+            合计 FAR 17.5% [8.8, 31.9]，区间下界已高于 5% 目标。
+            <br><span class="dim">注：T1/T2/T3/T4 四档之间的排序<b>不可信</b>——每档只有 6～14 条，
+            置信区间跨度超过 20 个点，互相完全重叠。目前只有「T3 声调档不达标」一条撑得住。
+            要判断「哪种近音差异最危险」，每档需要 ≥ 100 条。</span></td>
+          <td>T1/T2/T3/T4 的 FAR 在四种模式下数值完全一致，证明判别只发生在 KWS。</td>
         </tr>
         <tr>
           <td>8</td>
-          <td><b>无关语音不会误唤醒。</b>45 条自由语音在四种模式下 FAR 全为 0。</td>
-          <td>freeSpeech 60 次判定，0 次唤醒。</td>
+          <td><b>没有观察到高频误唤醒，但远未验证达标。</b>
+            45 条自由语音、60 次判定、共约 5 分钟音频，四种模式 0 次误唤醒。
+            这只能排除「每小时几十次」那种量级的问题，
+            距离 ≤ 0.5 次/小时的目标还差两个数量级的样本量。</td>
+          <td>0/60，95% 上界 6.0%，换算约 ≤ 43 次/小时。验证 0.5 次/小时需 4～6 小时连续语音。</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>5. 由数据得出的行动项</h3>
+    <h3>7. 由数据得出的行动项</h3>
     <table>
-      <thead><tr><th>优先级</th><th>行动</th><th>预期收益</th></tr></thead>
+      <thead><tr><th>优先级</th><th>行动</th><th>目标指标</th><th>预期收益</th></tr></thead>
       <tbody>
         <tr><td>P0</td><td>调 KWS 触发阈值 / 引入 sherpa 的 keyword boosting score，或换更大的 KWS 模型。
           当前 <code>sensitivity_to_threshold(0.65) = 0.308</code> 且未设 <code>:score</code> 提升值。</td>
+          <td>TPR 63.6% → ≥ 90%</td>
           <td>直接抬高全部四种模式的 TPR 天花板</td></tr>
+        <tr><td>P0</td><td>补一批<b>真人录音</b>校准绝对值。当前全部结论建立在 TTS 合成语音上，
+          横向比较可信，但 63.6% 这个绝对数不能直接外推到真人。</td>
+          <td>TPR 绝对值可信度</td>
+          <td>确认瓶颈是否真在 KWS，避免照着错误的数优化</td></tr>
         <tr><td>P0</td><td>唤醒词设置页在用户输入短语后，用实录样本实测检出率并给出提示——
           现在用户完全可能选到一个 0% 检出的短语（如「嗨小迪」）。</td>
+          <td>最差情况 TPR 0% → 可感知</td>
           <td>规避最差情况</td></tr>
         <tr><td>P1</td><td>把 speakerVerify 设为推荐默认模式，voiceMatch 降级为「安静环境」选项。</td>
-          <td>同等 TPR 下 FAR 从 23.6% 降到 7.1%</td></tr>
+          <td>FAR 合计 23.6% → 7.1%</td>
+          <td>同等 TPR 下大幅降低误唤醒</td></tr>
         <tr><td>P1</td><td>对 voiceMatch / classifier 的特征做噪声归一（CMVN 或谱减），
           现在 <code>extract_feature_sequence</code> 直接用原始对数频带能量。</td>
+          <td>traffic@5 dB 下 TPR 1.2% → ≥ 50%</td>
           <td>修复噪声下 TPR 归零</td></tr>
+        <tr><td>P1</td><td>把负样本从 140 条扩到 ≥ 800 条（冒充者 200 / 对立词每档 100 / 自由语音 ≥ 4 小时）。
+          当前 n = 40 的档位置信区间宽达 ±20 点，几乎无法支撑任何精细结论。</td>
+          <td>FAR 误差半宽 ±14 点 → ±3 点</td>
+          <td>让 FAR 类指标真正可用于决策</td></tr>
         <tr><td>P2</td><td>重新评估 classifier 模式是否值得保留。</td>
+          <td>—</td>
           <td>各项指标均被其它模式支配</td></tr>
-        <tr><td>P2</td><td>唤醒词校验时警告「与常见词只差声母或声调」的短语。</td>
-          <td>降低 T1/T3 类误唤醒</td></tr>
+        <tr><td>P2</td><td>唤醒词校验时警告「与常见词只差声调」的短语（T3 档是唯一统计上确认不达标的）。</td>
+          <td>对立词 FAR 17.5% → ≤ 5%</td>
+          <td>降低声调类误唤醒</td></tr>
       </tbody>
     </table>
 
-    <h3>6. 复现方式</h3>
+    <h3>8. 复现方式</h3>
     <pre><code>cargo run -p xtask --release -- corpus          # 合成 325 条语料
 cargo test --release -p dictatingme-runtime --test evoke_e2e -- --ignored --nocapture
 cargo test --release -p dictatingme-runtime --test kws_probe -- --ignored --nocapture  # KWS 检出诊断</code></pre>
@@ -861,6 +1048,687 @@ cargo test --release -p dictatingme-runtime --test kws_probe -- --ignored --noca
       <code>DM_E2E_VERBOSE=1</code> 打印逐条判定。
       结果落到 <code>assets/reports/&lt;mode&gt;.json</code>。四模式全量约 12 分钟。
     </p>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card">
+        <h3>一句话结论</h3>
+        <p>四种模式全部卡在同一个瓶颈上：KWS 召回率 63.6%。
+          后面三种模式的 TPR 都是「KWS 召回 × 本级通过率」，
+          所以第一级不抬起来，改后面几级没有意义。</p>
+      </div>
+      <div class="card">
+        <h3>唯一统计上确认的缺陷</h3>
+        <ul>
+          <li>整体 TPR 远低于 90% 目标</li>
+          <li>T3（声调差异）档不达标</li>
+          <li>自由语音误唤醒上界 ≈ 43 次/小时，目标 0.5</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>不要过度解读</h3>
+        <p>语料是 TTS 合成而非真人录音，绝对值不能外推到线上。
+          可靠的是横向比较与瓶颈定位。</p>
+      </div>
+    </aside>
+  </section>
+
+  <section class="pane" id="pane-tpr">
+    <div class="canvas">
+    <h2>TPR 提升方案 — text / voiceMatch</h2>
+
+    <div class="sec">
+      <h3>结论先行：overall 识别率与误触发率</h3>
+      <p class="note">
+        <b>识别率</b> = 我本人说唤醒词，唤醒成功的比例（n=80）。<span class="dim">下文技术章节里写作 TPR，是同一个东西。</span><br>
+        <b>误触发率</b> = 不该唤醒却唤醒的比例（n=100 = 40 条近音对立词 + 60 条日常自由语音）。<br>
+        <b>他人说唤醒词不算误触发</b>——text 模式本来就不管谁在说。<br>
+        <b>超集触发不算误触发</b>——注册了「小迪」，用户说「小迪小迪」当然会响，这是预期行为。
+      </p>
+      <table>
+        <thead>
+          <tr><th>配置</th><th>识别率</th><th>误触发率</th><th>这个数字信得过吗</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>当前生产</b><br><span class="dim">paths=4，只注册全词</span></td>
+            <td class="bad"><b>68.8%</b></td>
+            <td class="good"><b>12.0%</b></td>
+            <td>信得过</td>
+          </tr>
+          <tr>
+            <td><b>改 1 行：beam 4→8</b></td>
+            <td><b>81.2%</b></td>
+            <td><b>18.0%</b></td>
+            <td class="good">信得过<br><span class="dim">配对 McNemar p≈0.002</span></td>
+          </tr>
+          <tr>
+            <td><b>再加：AABB 词注册前半</b><br>
+              <span class="dim">「小迪小迪」同时注册「小迪」</span></td>
+            <td class="good"><b>86.2%</b></td>
+            <td><b>18.0%</b><br><span class="dim">与上一行完全相同，一条没多</span></td>
+            <td class="good">信得过<br><span class="dim">但收益样本少，见第 5 节</span></td>
+          </tr>
+          <tr>
+            <td>再激进：注册首二字 / 末二字<br>
+              <span class="dim">「开始听写」同时注册「开始」「听写」</span></td>
+            <td><b>90.0%</b></td>
+            <td class="bad"><b>10.0%</b>（表面）</td>
+            <td class="bad"><b>不可信 —— 数字是假的</b><br>
+              <span class="dim">见第 5 节，真实代价语料测不到</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="bar good">
+        <strong>推荐落地前两条：识别率 68.8% → 86.2%，误触发率 12% → 18%。</strong>
+        代价全部落在「近音对立词」上（用户刻意说「小提小提」这种），
+        <b>日常说话时的误唤醒 4/60 从头到尾一条没变</b>。
+      </div>
+      <p class="note">
+        <b>误触发率这个合并数字要小心解读。</b>它把 40 条对立词和 60 条自由语音按 4:6 混在一起算，
+        而真实使用中你几乎不会去念「小提小提」，绝大部分时间是在正常说话。
+        如果只看真实场景更接近的自由语音一项，<b>三种配置全都是 6.7%（4/60），完全一致</b>。
+        换句话说：<b>前两条改动没有让它在你正常说话时更容易乱叫。</b>
+      </p>
+      <table>
+        <thead><tr><th>配置</th><th>近音对立词误触<br><span class="dim">n=40，你刻意念相似词</span></th>
+          <th>日常说话误唤醒<br><span class="dim">n=60，更接近真实场景</span></th></tr></thead>
+        <tbody>
+          <tr><td>当前生产</td><td>20.0%</td><td>6.7%</td></tr>
+          <tr><td>beam=8</td><td>35.0%</td><td class="good">6.7%<br><span class="dim">不变</span></td></tr>
+          <tr><td><b>beam=8 + AABB 前半</b></td><td>35.0%</td><td class="good">6.7%<br><span class="dim">不变</span></td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        目标值参考「实测结果」页：识别率目标 ≥ 90%，
+        所以 86.2% <b>仍未达标</b>，但已经从「基本不可用」拉到「可用」区间。
+        剩下的缺口主要是 w05「嗨小迪」与 w07「语音输入」两个词——
+        它们在所有配置下都是 0%，属于模型层面的硬失败，只能换词，见第 5 节末尾。
+      </p>
+    </div>
+
+    <p class="lead">
+      以下是拿到上面这张表的全过程。每一个数字都来自实跑实验，不是估计。五个探针：
+      <code>kws_sweep.rs</code>（参数扫描）、<code>kws_variant.rs</code>（子词探针）、
+      <code>kws_multi.rs</code>（多变体注册）、
+      <code>dtw_probe.rs</code>（DTW 逐层拆解）、<code>kws_cost.rs</code>（CPU 代价）。
+      所有对比都是<b>同一批样本的配对比较</b>，因此用 McNemar 判显著性，而不是看独立置信区间是否重叠。
+    </p>
+
+    <div class="kpi">
+      <div><b>68.8 → 86.2%</b><span>识别率<br>beam 4→8 再叠加 AABB 子词</span></div>
+      <div><b>6.7% → 6.7%</b><span>日常说话误唤醒<br>两步改动后一条没变</span></div>
+      <div><b>+22%</b><span>解码 CPU 上限<br>RTF 0.038 → 0.046</span></div>
+      <div><b>50.6 → 55.6%</b><span>DTW 通过率<br>同时误接受 5.0 → 3.8%</span></div>
+    </div>
+
+    <div class="sec">
+      <h3>1. 为什么必须先修 text 模式</h3>
+      <p class="note">
+        <code>scoring/mod.rs:122</code> 里 text 的 overall = <code>phrase_score × 0.82 + voice_activity × 0.18</code>，
+        而 <code>evaluate_candidate()</code> 把 <code>phrase_score</code> 直接钉成 1.0，所以 overall 恒 ≥ 0.82；
+        敏感度 0.65 时门限只有 0.464。<b>0.82 永远大于 0.464 —— text 模式一旦 KWS 命中就必然唤醒。</b>
+        于是 text 的 TPR 与 KWS 召回一比一相等，一个百分点都不差。
+      </p>
+      <p class="note">
+        另外三种模式的 overall = <code>phrase_score.min(mode_score)</code>，也就是<b>先过 KWS 才轮到自己</b>。
+        所以 KWS 召回是四种模式共同的天花板，
+        voiceMatch 实测 43.2% ≈ 63.6%（KWS）× 68%（DTW），完全对得上。
+      </p>
+      <div class="bar warn">
+        <strong>结论：</strong>「提高 text 模式 TPR」这个问题，等价于「提高 KWS 召回率」。
+        而提高 KWS 召回，同时把另外三种模式的天花板一起抬起来。
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>2. text 方案一：放宽 beam 搜索宽度（推荐，代价近乎为零）</h3>
+      <p class="note">
+        <code>models/evoke_model.rs:167-181</code> 建 <code>KeywordSpotter</code> 时从没设过
+        <code>max_active_paths</code>，落到 crate 默认 <b>4</b>。这是本轮找到的最大杠杆，
+        而上一轮的参数扫描完全没动过它。下表 <code>keywords_score</code> 与
+        <code>keywords_threshold</code> 全部保持生产原值，只动 beam 宽度：
+      </p>
+      <table>
+        <thead>
+          <tr><th>max_active_paths</th><th>TPR<br><span class="dim">n=80</span></th>
+            <th>对立词误接受<br><span class="dim">n=40</span></th>
+            <th>自由语音误唤醒<br><span class="dim">n=60</span></th>
+            <th>相对上一档<br>净翻转</th><th>McNemar</th><th>判定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>4</b>（当前生产）</td>
+            <td class="bad">68.8%<br><span class="dim">[57.9, 77.8]</span></td>
+            <td class="good">20.0%<br><span class="dim">[10.5, 34.8]</span></td>
+            <td>6.7%<br><span class="dim">[2.6, 15.9]</span></td>
+            <td>—</td><td>—</td><td>基线</td></tr>
+          <tr><td><b>8</b></td>
+            <td class="good">81.2%<br><span class="dim">[71.3, 88.3]</span></td>
+            <td class="bad">35.0%<br><span class="dim">[22.1, 50.5]</span></td>
+            <td>6.7%<br><span class="dim">未变化</span></td>
+            <td>+10 命中<br>0 丢失</td>
+            <td class="good">p ≈ 0.002</td>
+            <td class="good"><b>确认有效</b></td></tr>
+          <tr><td><b>16</b></td>
+            <td>86.2%<br><span class="dim">[77.0, 92.1]</span></td>
+            <td class="bad">47.5%<br><span class="dim">[32.9, 62.5]</span></td>
+            <td>6.7%<br><span class="dim">未变化</span></td>
+            <td>+4 命中<br>0 丢失</td>
+            <td class="bad">p = 0.125</td>
+            <td class="bad">证据不足</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        <b>三点必须说清楚：</b><br>
+        ① 4→8 是 10 条样本从「漏」翻成「中」、<b>零条反向翻转</b>，这是硬结论；
+        8→16 只翻了 4 条，p=0.125，<b>撑不住</b>——所以推荐值是 <b>8 而不是 16</b>，
+        表面上 86.2% 更好看，但那 5 个点是噪声。<br>
+        ② 代价全部落在「对立词」上（20.0 → 35.0），而
+        <b>自由语音误唤醒 4/60 三档完全不动</b>。这两者的运营含义天差地别：
+        对立词只在用户刻意说近似短语时才出现，自由语音误唤醒才是「放着不管它自己叫」。<br>
+        ③ 对 voiceMatch / speakerVerify / classifier 而言，这个代价<b>几乎不存在</b>——
+        对立词和冒充者本来就由第二级拦截，而 KWS 召回的提升是它们三个共享的净收益。
+      </p>
+      <table>
+        <thead><tr><th>分组</th><th>paths=4</th><th>paths=8</th><th>变化</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>w03 开始听写</td><td class="bad">25%</td><td>75%</td><td class="good">+50</td><td>beam 太窄，长关键词的部分路径被提前剪掉</td></tr>
+          <tr><td>w11 小贝小贝</td><td class="bad">50%</td><td class="good">100%</td><td class="good">+50</td><td>同上，4 音节重复词受害最重</td></tr>
+          <tr><td>w15 开始口述</td><td class="bad">50%</td><td class="good">100%</td><td class="good">+50</td><td>同上</td></tr>
+          <tr><td>w08 / w17 / w18 / w20</td><td>75%</td><td class="good">100%</td><td class="good">+25 各</td><td>4 组同时补满</td></tr>
+          <tr><td>w01 小迪小迪</td><td class="bad">0%</td><td class="bad">0%</td><td>—</td><td>加宽 beam 救不回来，见第 4 节</td></tr>
+          <tr><td>w07 语音输入</td><td class="bad">0%</td><td class="bad">0%</td><td>—</td><td>同上</td></tr>
+        </tbody>
+      </table>
+      <p class="note">从 paths=4 到 paths=8，<b>没有任何一组下降</b>。</p>
+    </div>
+
+    <div class="sec">
+      <h3>3. text 方案二：调 score / threshold（多数无效，代价大）</h3>
+      <p class="note">
+        生产的 <code>keywords_score</code> 从未被赋值（crate 默认 1.0），
+        <code>keywords_threshold</code> = <code>0.60 − 0.45 × 0.65</code> = <b>0.308</b>，
+        比 sherpa 上游默认的 0.25 还严。扫了 5 × 4 = 20 个组合（paths=4）：
+      </p>
+      <table>
+        <thead><tr><th>发现</th><th>证据</th><th>结论</th></tr></thead>
+        <tbody>
+          <tr><td><code>keywords_threshold</code> 基本是空操作</td>
+            <td>score ≤ 2.0 时，threshold 从 0.308 一路降到 0.05，
+              TPR / 对立 / 自由三个数字<b>一个都不变</b></td>
+            <td class="bad">不用调，调了没用</td></tr>
+          <tr><td><code>keywords_score</code> 有效但不划算</td>
+            <td>1.0 → 4.0：TPR 68.8 → 77.5（+8.7），
+              对立词 20.0 → 40.0（<b>翻倍</b>）</td>
+            <td class="bad">收益/代价比远差于 beam 宽度</td></tr>
+          <tr><td>score 过高会反噬</td>
+            <td><code>:4.0 #0.308</code> 的 TPR 只有 61.2%，
+              <b>比基线还低</b>；要靠同时把 threshold 压到 0.05 才拉回 77.5</td>
+            <td class="bad">两个参数耦合，不是单调的，难调</td></tr>
+        </tbody>
+      </table>
+      <div class="bar stop">
+        <strong>不建议</strong>把 <code>keywords_score</code> 当主要手段。
+        先上 beam 宽度，把它留作后备微调。
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>4. text 方案三：关键词长度 —— 两个 0% 词的真正死因</h3>
+      <p class="note">
+        w01「小迪小迪」和 w07「语音输入」在<b>全部 20 个参数组合、全部三档 beam 宽度</b>下都是 0%。
+        先排除了拼音派生 bug（20 组 token 全部正确）、也排除了 token 缺失
+        （<code>tokens.txt</code> 227 个 token，涉及的声母韵母全在）。
+        于是做了子词实验：把同一段音频喂给全词与它的每一个连续子串。
+      </p>
+      <table>
+        <thead><tr><th>注册的关键词</th><th>token 串</th><th>正样本命中</th><th>对立</th><th>自由</th></tr></thead>
+        <tbody>
+          <tr><td><b>小迪小迪</b>（当前）</td><td><code>x iǎo d í x iǎo d í</code></td>
+            <td class="bad">0/4</td><td>0/2</td><td>1/3</td></tr>
+          <tr><td>小迪</td><td><code>x iǎo d í</code></td>
+            <td class="good">3/4</td><td>0/2</td><td>1/3</td></tr>
+          <tr><td><b>语音输入</b>（当前）</td><td><code>y ǔ y īn sh ū r ù</code></td>
+            <td class="bad">0/4</td><td>0/2</td><td>0/3</td></tr>
+          <tr><td>语音</td><td><code>y ǔ y īn</code></td><td class="bad">0/4</td><td>0/2</td><td>0/3</td></tr>
+          <tr><td>输入</td><td><code>sh ū r ù</code></td>
+            <td class="good">3/4</td><td>0/2</td><td>0/3</td></tr>
+          <tr><td><b>小贝小贝</b>（当前）</td><td><code>x iǎo b èi x iǎo b èi</code></td>
+            <td class="bad">2/4</td><td>2/2</td><td>0/3</td></tr>
+          <tr><td>小贝</td><td><code>x iǎo b èi</code></td>
+            <td class="good">4/4</td><td>2/2</td><td>0/3</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        <b>「小迪小迪」检不出，但它自己的子串「小迪」4 条中 3 条命中。</b>
+        一个模式的超集反而比子集更难命中，这只能是解码路径被剪掉，不是声学上听不出。
+        这也解释了为什么放宽 beam 能救回 w03/w11/w15——它们是同一个病的轻症。<br>
+        「语音输入」是另一个病：<code>语音</code>、<code>音输</code>、<code>语音输</code>、<code>音输入</code>
+        全是 0/4，只有 <code>输入</code> 命中。这是 <code>y ǔ y īn</code> 这个音节组合本身
+        在 wenetspeech 模型上就检不出，属于该唤醒词不适合配这个 KWS 模型，
+        <b>不是「越短越好」</b>。
+      </p>
+      <table>
+        <thead><tr><th>策略</th><th>TPR</th><th>对立词误接受</th><th>自由语音误唤醒</th></tr></thead>
+        <tbody>
+          <tr><td>全词注册（当前）</td><td class="bad">68.8%</td><td>20.0%</td><td>6.7%</td></tr>
+          <tr><td>每组换成最优子词</td><td class="good">88.8%</td><td class="good">17.5%</td><td>6.7%</td></tr>
+        </tbody>
+      </table>
+      <div class="bar stop">
+        <strong>这个 88.8% 不能当作可交付数字。</strong>
+        「最优子词」是在同一批数据上挑出来的，存在选择偏差，
+        真实收益一定低于此。它的价值是<b>存在性证明</b>：关键词长度确实是一条独立于参数的瓶颈。
+        下一节用<b>先验规则</b>重跑，拿一个无偏的数字。
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>5. 多变体注册：唯一免费的那条规则</h3>
+      <p class="note">
+        为了消掉选择偏差，这一轮改成<b>在看结果之前就把规则定死</b>，
+        规则只看唤醒词的字面形态、不看任何检出数据。
+        注册方式是 sherpa 的多行关键词 + <b>共享同一个 <code>@alias</code></b>，
+        命中任意一行都算命中同一个唤醒词（<code>process_frame</code> 比的正是 alias）。
+        全部跑在 <code>max_active_paths = 8</code> 之上，回答的是「beam 已经放宽之后还有没有增量收益」。
+      </p>
+      <p class="note">
+        <b>先把「超集触发」的语义说清楚</b>，因为它决定了怎么算误触发：<br>
+        注册了 <code>小迪</code> → 用户说「<b>小迪</b>小迪」<b>会</b>触发。这是预期行为，不算误触发。<br>
+        只注册 <code>小迪小迪</code> → 用户说「小迪」<b>不会</b>触发。这也是预期行为。<br>
+        换句话说，<b>多注册一个短变体，等于把唤醒词整体放宽成那个短变体</b>——
+        注册 <code>小迪</code> 之后，唤醒词事实上就是「小迪」，而不再是「小迪小迪」。
+        这是这条方案真正的产品含义，也是它的全部风险来源。
+      </p>
+      <table>
+        <thead>
+          <tr><th>规则（先验）</th><th>额外注册什么</th><th>生效组数</th>
+            <th>识别率<br><span class="dim">n=80</span></th>
+            <th>近音对立词<br><span class="dim">n=40</span></th>
+            <th>日常说话<br><span class="dim">n=60</span></th><th>判定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>全词（paths=8 基线）</td><td>—</td><td>0</td>
+            <td>81.2%</td><td>35.0%</td><td>6.7%</td><td>基线</td></tr>
+          <tr><td><b>AABB 重复型 → 前半</b></td>
+            <td><code>小迪小迪</code> → 加 <code>小迪</code></td><td>5</td>
+            <td class="good"><b>86.2%</b></td>
+            <td class="good">35.0%<br><span class="dim">一条没变</span></td>
+            <td class="good">6.7%<br><span class="dim">一条没变</span></td>
+            <td class="good"><b>免费，采纳</b></td></tr>
+          <tr><td>去掉最后一字</td>
+            <td><code>开始听写</code> → 加 <code>开始听</code></td><td>18</td>
+            <td class="bad">81.2%<br><span class="dim">零收益</span></td>
+            <td class="bad">62.5%</td><td>6.7%</td>
+            <td class="bad">纯亏</td></tr>
+          <tr><td>首二字 + 末二字</td>
+            <td><code>开始听写</code> → 加 <code>开始</code>、<code>听写</code></td><td>18</td>
+            <td>90.0%</td>
+            <td class="bad">75.0%<br><span class="dim">豁免后 15.0%</span></td><td>6.7%</td>
+            <td class="bad">见下方陷阱</td></tr>
+        </tbody>
+      </table>
+      <div class="bar good">
+        <strong>「AABB 重复型注册前半」是干净的免费收益。</strong>
+        识别率 81.2 → 86.2，而近音对立词 35.0%、日常说话 6.7% <b>一条样本都没有变化</b>。
+        并且这 5 组的对立词<b>没有一个</b>包含新注册的变体（0/20），
+        所以那 35% 全是原本就存在的真误触，新变体没有引入任何新的误接受。
+      </div>
+      <p class="note">
+        收益全部来自 w01「小迪小迪」<b>0/4 → 4/4</b>，另外 4 组（小助/小言/小贝/小七）本来就满分。
+        <b>统计力度要如实说</b>：这是单组 4 条样本的完全翻转，n=4，双侧 p=0.125，
+        按我拒绝 paths=16 的同一把尺子，它<b>够不上显著</b>。
+        但两者的性质不同——paths=16 是<b>权衡</b>（涨 5 点识别率换 12.5 点对立词），
+        而这条规则是<b>支配</b>：多注册一行只会增加命中机会、不可能减少，
+        所以代价单调向上，而实测代价恰好是零。风险只是「白干」，不是「变差」。
+      </p>
+
+      <div class="bar stop">
+        <strong>「首二字 / 末二字」那个 90% 识别率 + 10% 误触发率，是本页最危险的一组数字。</strong>
+        它同时看起来识别率最高、误触发率最低——比什么都不改还低。这不可能是真的。
+      </div>
+      <p class="note">
+        <b>数字是怎么变好看的：</b>这条规则给「开始听写」额外注册了 <code>开始</code>。
+        于是对立词「<b>开始</b>停歇」触发了——但按上面的语义，
+        它包含已注册的 <code>开始</code>，所以<b>算预期行为、要豁免</b>。
+        实测 13/20 组的对立词都属于这种情况，30 条命中里 24 条被豁免，
+        误触发率就从 34% 掉到了 10%。<b>豁免本身没错，错在它掩盖了真实代价。</b>
+      </p>
+      <p class="note">
+        <b>真实代价在哪：</b>注册 <code>开始</code> 之后，你的唤醒词事实上<b>就是「开始」两个字</b>。
+        这条规则在 20 组里派生出的是
+        <code>开始</code>、<code>打开</code>、<code>记录</code>、<code>输入</code>、
+        <code>说话</code>、<code>听写</code>、<code>帮我</code>、<code>快来</code> 这一类词——
+        全是日常对话里的高频词。代价不会出现在对立词上（被豁免了），
+        只会出现在<b>你正常说话的时候</b>。
+      </p>
+      <p class="note">
+        <b>而这恰恰是我测不到的：</b>自由语音语料只有 15 句独立文本，
+        其中包含上述任一变体的<b>正好是 0 句</b>。
+        所以那个「日常说话 6.7%，一条没变」<b>不是证据，是语料没覆盖到</b>。
+        要给这条规则下结论，需要几百句真实日常对话语料，本轮没有。
+        <b>在补上之前，不要采纳这条规则。</b>
+      </p>
+      <p class="note">
+        对比之下，「AABB 前半」派生出的是 <code>小迪</code>、<code>小助</code>、
+        <code>小贝</code>、<code>小七</code> 这类「小X」结构，本身就不是日常用语，
+        撞车概率低得多。<b>这是它免费的真正原因，不是运气。</b>
+        顺带一个语料里的实例：自由语音「<b>接下来</b>我会把重点放在性能优化…」
+        包含 <code>下来</code>——而 <code>下来</code> 正是 w06「记下来」的一个候选子词。
+        通用子词的风险长这样。
+      </p>
+      <p class="note">
+        <b>「去尾一字」则是纯亏</b>：识别率一点没涨（81.2%），对立词却从 35% 冲到 62.5%。
+        因为「开始听」这种残词既不像完整词那么好检，又比全词松，两头不讨好，直接排除。
+      </p>
+      <p class="note">
+        <b>w05「嗨小迪」和 w07「语音输入」四条规则全部救不回来</b>
+        （0/4 → 0/4，「语音输入」在最激进规则下也只到 2/4）。
+        这两个词是模型层面的硬失败，任何参数和注册技巧都无效，
+        只能靠 setup 阶段试检出、劝退用户换词。
+        当前 86.2% 与 90% 目标之间的缺口，主要就是这两个词。
+      </p>
+    </div>
+
+    <div class="sec">
+      <h3>6. beam 加宽的 CPU 代价：可以忽略</h3>
+      <p class="note">
+        唤醒检测是常驻、逐帧运行的，准确率涨了但 CPU 翻倍就没法上。实测 200 秒音频、单 stream 单关键词：
+      </p>
+      <table>
+        <thead><tr><th>max_active_paths</th><th>墙钟</th><th>RTF</th><th>相对 paths=4</th><th>常驻占用</th></tr></thead>
+        <tbody>
+          <tr><td>4</td><td>7.56 s</td><td>0.0378</td><td>1.00x</td><td>≈ 3.8% 单核</td></tr>
+          <tr><td><b>8</b></td><td>9.20 s</td><td>0.0460</td><td>1.22x</td><td class="good">≈ 4.6% 单核</td></tr>
+          <tr><td>16</td><td>8.55 s</td><td>0.0428</td><td>1.13x</td><td>≈ 4.3% 单核</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        paths=16 反而比 paths=8 快，说明<b>run-to-run 抖动约 10%</b>，
+        真实增幅应读作「不超过 ~20%」。绝对值上 RTF 始终低于 0.05，
+        因为耗时的大头是 zipformer 编码器前向，beam 搜索只是零头。
+        <b>这条不构成阻碍。</b>
+      </p>
+    </div>
+
+    <div class="sec">
+      <h3>7. voiceMatch 根因：绝对 RMS 门限在噪声下毁掉时间对齐</h3>
+      <p class="note">
+        voiceMatch 的 TPR = KWS 召回 × DTW 通过率。实测 clean 下 DTW 通过率约 100%
+        （所以 clean 的 voiceMatch TPR 与 text 相同），traffic@5dB 下掉到 ~1%。
+        <b>问题 100% 在噪声鲁棒性，与干净精度无关。</b>
+      </p>
+      <p class="note">
+        <code>features.rs:153</code> 有一句 <code>if rms &gt;= 0.003</code>：低于这个能量的帧直接丢弃。
+        这是个<b>写死的绝对门限</b>。干净音频里静音帧被丢掉，序列只剩语音帧；
+        一旦加噪，噪声把每一帧的 RMS 都抬过门限，于是整段 5 秒全部保留。
+        紧接着 <code>resample_sequence(.., 64)</code> 把序列线性压回固定 64 帧——
+        干净样本的 64 帧几乎全是关键词，加噪样本的 64 帧里关键词只占一小段。
+        <b>时间对齐在进 DTW 之前就已经被改写了。</b>
+      </p>
+      <table>
+        <thead><tr><th>条件</th><th>进 DTW 前的原始帧数</th><th>相对 clean</th><th>DTW 相似度均值</th><th>注册阈值</th><th>通过率</th></tr></thead>
+        <tbody>
+          <tr><td>clean</td><td>81.5</td><td>1.0x</td><td class="good">0.917</td><td>0.727</td><td class="good">100%</td></tr>
+          <tr><td>traffic@5dB</td><td class="bad">498.0</td><td class="bad">6.1x</td><td class="bad">0.484</td><td>0.727</td><td class="bad">1%</td></tr>
+        </tbody>
+      </table>
+      <p class="note">
+        498 帧 ≈ 5 秒 ÷ 10 ms 跳步 = 500，也就是<b>一帧都没被丢掉</b>。假设完全坐实。
+      </p>
+    </div>
+
+    <div class="sec">
+      <h3>8. voiceMatch 方案对比：必须同时看正负两列</h3>
+      <p class="note">
+        voiceMatch 的职责是「同一个人 + 同一句话」，所以除了正样本通过率，
+        必须同时盯住<b>冒充者</b>（他人念同一唤醒词）的误接受率——
+        只看 TPR 会得出完全错误的结论。下表每格是 <b>正 / 冒</b>，
+        正样本 n=320，冒充者 n=160。
+      </p>
+      <table>
+        <thead>
+          <tr><th>特征管线</th><th>阈值策略</th><th>clean 正/冒</th><th>traffic@5dB 正/冒</th>
+            <th>合计正样本通过</th><th>合计冒充误接受</th><th>判定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><b>产品原样</b></td><td>干净注册（当前）</td><td>100 / 10</td><td class="bad">1 / 0</td>
+            <td>50.6%<br><span class="dim">[45.2, 56.1]</span></td>
+            <td>5.0%<br><span class="dim">[2.6, 9.6]</span></td><td>基线</td></tr>
+          <tr><td>B：自适应门限</td><td>干净注册</td><td>100 / 10</td><td>5 / 0</td>
+            <td>52.5%</td><td>5.0%</td><td>略优</td></tr>
+          <tr><td>C：能量裁剪</td><td>干净注册</td><td>100 / 10</td><td>9 / 0</td>
+            <td>54.4%</td><td>5.0%</td><td>略优</td></tr>
+          <tr><td><b>B + C</b></td><td>干净注册</td><td>100 / 8</td><td>11 / 0</td>
+            <td class="good">55.6%<br><span class="dim">[50.1, 61.0]</span></td>
+            <td class="good">3.8%<br><span class="dim">[1.7, 7.9]</span></td>
+            <td class="good"><b>严格占优</b></td></tr>
+          <tr><td>产品原样</td><td class="bad">A：增广注册</td><td>100 / 58</td><td>44 / 22</td>
+            <td>71.9%</td>
+            <td class="bad">40.0%<br><span class="dim">[32.7, 47.7]</span></td>
+            <td class="bad">TPR 是假的</td></tr>
+          <tr><td>B + C</td><td class="bad">A：增广注册</td><td>100 / 35</td><td>38 / 5</td>
+            <td>68.8%</td>
+            <td class="bad">20.0%<br><span class="dim">[14.5, 26.9]</span></td>
+            <td>看产品定位</td></tr>
+        </tbody>
+      </table>
+      <div class="bar stop">
+        <strong>「注册阶段增广后取 min 定阈值」是个陷阱。</strong>
+        它把阈值从 0.727 压到 0.526，TPR 从 50.6% 抬到 71.9% 很好看，
+        但冒充者误接受同时从 5.0% 爆到 <b>40.0%</b>，两个置信区间完全不重叠。
+        它<b>不是在提高识别能力，只是在放水</b>——而 voiceMatch 存在的意义正是拒绝冒充者。
+        要不要走这条路，取决于一个产品问题：既然已经有独立的 speakerVerify 模式，
+        voiceMatch 到底该不该负责拒人？<b>这需要你拍板，不是技术问题。</b>
+      </div>
+      <div class="bar good">
+        <strong>B + C 是唯一的免费午餐：</strong>正样本 50.6 → 55.6%，
+        冒充误接受同时 5.0 → 3.8%，<b>两个方向同时变好</b>，不存在取舍。
+      </div>
+      <p class="note">
+        <b>B（自适应门限）</b>：不再写死 0.003，改成按本段音频自己的底噪定
+        —— 取各帧 RMS 的 20 分位当噪声底、90 分位当峰值，门限落在两者之间 35% 处。
+        加噪后帧数从 498 降回 215.6，方向对了但没回到 clean 的 81.5。<br>
+        <b>C（能量裁剪）</b>：先按短时能量找出最强的 1.6 秒再做特征，
+        直接绕开「5.2 秒窗口里关键词只占一小段」的问题。<br>
+        <b>B + C 一起用</b>：加噪帧数 75.5 vs clean 59.2，
+        比例从 6.1x 收敛到 1.28x —— 时间对齐基本修好了。
+      </p>
+      <p class="note">
+        <b>但要如实说：即使 B+C，traffic@5dB 下正样本通过率也只有 11%。</b>
+        12 维对数带能量、无 mel 弯折、无 DCT、无 delta、无 CMVN，
+        这套特征在低信噪比下的判别力本身就接近于零。
+        要真正解决噪声场景，得换特征（带 delta 的 MFCC）或换方法（小型嵌入模型），
+        那是比调参大得多的改动。B+C 只是把免费的那部分先拿走。
+      </p>
+      <p class="note">
+        顺带一提，CMVN 这条路<b>试过了，是负收益</b>（合计通过率 50.6% → 49.4%），
+        已排除。原因大概是特征已经做过 per-frame L2 归一，再减均值反而抹掉了有用的谱形差异。
+      </p>
+    </div>
+
+    <div class="sec">
+      <h3>9. 建议的落地顺序</h3>
+      <table>
+        <thead><tr><th>顺序</th><th>改动</th><th>位置</th><th>实测收益</th><th>代价</th><th>风险</th></tr></thead>
+        <tbody>
+          <tr><td><b>1</b></td>
+            <td><code>max_active_paths</code> 4 → 8</td>
+            <td><code>evoke_model.rs:167-181</code><br><span class="dim">一行</span></td>
+            <td class="good">KWS 召回 68.8 → 81.2%<br>四种模式共享</td>
+            <td>CPU +≤22%（RTF 0.038→0.046）<br>对立词 20 → 35%</td>
+            <td class="good">低</td></tr>
+          <tr><td><b>2</b></td>
+            <td>DTW 特征加自适应门限 + 能量裁剪</td>
+            <td><code>features.rs:137-179</code></td>
+            <td class="good">DTW 通过 50.6 → 55.6%<br>冒充误接受 5.0 → 3.8%</td>
+            <td>无</td>
+            <td class="good">低<br><span class="dim">但会让已注册模板失效，需版本化重注册</span></td></tr>
+          <tr><td><b>3</b></td>
+            <td><b>AABB 重复型唤醒词额外注册前半</b><br>
+              <span class="dim">多行 keywords 共享同一 alias</span></td>
+            <td><code>evoke_model.rs:254-295</code><br>
+              <span class="dim">放开 <code>normalize_keyword</code> 对 <code>\n</code> 的拒绝</span></td>
+            <td class="good">KWS 召回 81.2 → 86.2%<br>
+              <span class="dim">对立词、自由语音各 0 条变化</span></td>
+            <td class="good">实测为零</td>
+            <td class="good">低<br><span class="dim">收益 n=4，不显著；但代价单调且实测为 0</span></td></tr>
+          <tr><td><b>4</b></td>
+            <td>setup 时试检出，劝退检不出的唤醒词</td>
+            <td><code>evoke_setup/</code></td>
+            <td>拦住「嗨小迪」「语音输入」这类<br>四条规则都救不回来的 0% 词</td>
+            <td>setup 多几秒</td>
+            <td class="good">低</td></tr>
+          <tr><td>5</td>
+            <td>换 DTW 特征（带 delta 的 MFCC）</td>
+            <td><code>features.rs</code></td>
+            <td>未测</td>
+            <td>—</td>
+            <td class="bad">高，改动大</td></tr>
+          <tr><td class="bad">✗</td>
+            <td>注册「首二字 / 末二字」通用子词</td>
+            <td>—</td>
+            <td>+8.8 点</td>
+            <td class="bad">等于把唤醒词换成<code>开始</code>这类高频词<br>
+              <span class="dim">代价落在自由语音上，现有语料测不到</span></td>
+            <td class="bad">语料不足以评估，不要上</td></tr>
+          <tr><td class="bad">✗</td>
+            <td>注册「去尾一字」子词</td>
+            <td>—</td>
+            <td class="bad">0 点</td>
+            <td class="bad">对立词 35 → 62.5%</td>
+            <td class="bad">纯亏</td></tr>
+          <tr><td class="bad">✗</td>
+            <td>提高 <code>keywords_score</code></td>
+            <td>—</td>
+            <td>+8.7 点</td>
+            <td class="bad">对立词误接受翻倍</td>
+            <td class="bad">收益比远差于 ①</td></tr>
+          <tr><td class="bad">✗</td>
+            <td>调 <code>keywords_threshold</code></td>
+            <td>—</td>
+            <td class="bad">0（空操作）</td>
+            <td>—</td><td>—</td></tr>
+          <tr><td class="bad">✗</td>
+            <td>注册阶段增广后取 min 定阈值</td>
+            <td>—</td>
+            <td>+21 点</td>
+            <td class="bad">冒充误接受 5 → 40%</td>
+            <td class="bad">背离 voiceMatch 定位，需产品拍板</td></tr>
+          <tr><td class="bad">✗</td>
+            <td>特征加 CMVN</td>
+            <td>—</td>
+            <td class="bad">−1.2 点</td>
+            <td>—</td><td>已实测排除</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sec">
+      <h3>10. 复现方式</h3>
+      <pre><code>cargo test --release -p dictatingme-runtime --test kws_sweep   -- --ignored --nocapture   # 参数扫描，约 7 分钟
+cargo test --release -p dictatingme-runtime --test kws_variant -- --ignored --nocapture   # 子词探针，约 3 分钟
+cargo test --release -p dictatingme-runtime --test kws_multi   -- --ignored --nocapture   # 多变体注册，约 3 分钟
+cargo test --release -p dictatingme-runtime --test dtw_probe   -- --ignored --nocapture   # DTW 逐层拆解，约 2 分钟
+cargo test --release -p dictatingme-runtime --test kws_cost    -- --ignored --nocapture   # CPU 代价，约 1 分钟</code></pre>
+      <p class="note">
+        <code>kws_sweep</code> 支持 <code>DM_KWS_ACTIVE_PATHS</code> 与
+        <code>DM_KWS_TRAILING_BLANKS</code> 两个环境变量覆盖 spotter 级参数，
+        beam 宽度实验就是靠它跑的。
+      </p>
+    </div>
+
+    <div class="sec">
+      <h3>11. 本轮没做、不要当成已知的事</h3>
+      <table>
+        <thead><tr><th>缺口</th><th>为什么重要</th></tr></thead>
+        <tbody>
+          <tr><td><b>自由语音语料太薄</b><br>
+              <span class="dim">15 句独立文本 / 60 次判定</span></td>
+            <td>这是本轮<b>最大的一个缺口</b>。「注册通用子词」的全部风险都落在这一项上，
+              而现有语料里恰好没有一句包含 <code>开始</code>/<code>打开</code>/<code>记录</code>，
+              所以「6.7% 一条没变」不是证据，是测不到。
+              要给通用子词方案下结论，需要几百句日常对话。</td></tr>
+          <tr><td>AABB 规则的收益 n 太小</td>
+            <td>+5.0 点 TPR 全部来自 w01 一组的 4 条样本翻转，p=0.125。
+              代价实测为零且机制上单调，所以可以采纳，
+              但<b>不要把 86.2% 当成一个稳定的期望值</b>。</td></tr>
+          <tr><td><code>num_trailing_blanks</code> 没扫</td>
+            <td>它控制关键词后需要多少静音才判定成立，理论上是 FAR 的直接旋钮。
+              本轮固定在默认值。</td></tr>
+          <tr><td>B/C 只在离线特征层验证</td>
+            <td>还没接进 5.2 秒滚动打分窗口跑端到端，
+              实际收益可能与离线数字有出入。</td></tr>
+          <tr><td>B/C 的参数是拍脑袋的</td>
+            <td>20 分位当底噪、35% 插值点、1.6 秒裁剪窗——
+              这三个数都没做敏感性扫描，可能还有余量。</td></tr>
+          <tr><td>speakerVerify / classifier 未展开</td>
+            <td>按要求先做前两种。但第 1 条改动（beam 宽度）对它们同样有效，
+              因为 KWS 是所有模式的第一级。</td></tr>
+          <tr><td>语料仍是 TTS 合成</td>
+            <td>所有绝对值都不能外推到真人。<b>可靠的是各方案之间的相对排序</b>，
+              因为它们跑在完全相同的样本上。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card">
+        <h3>只看两个数</h3>
+        <p><b>识别率 68.8% → 86.2%</b><br>
+          <b>误触发率 12% → 18%</b><br>
+          <span class="dim">改两处：beam 宽度 4→8，AABB 词加注前半。
+          多出来的误触发全在「刻意念近音词」上，
+          日常说话误唤醒 6.7% 一条没变。</span></p>
+      </div>
+      <div class="card">
+        <h3>最大的一条</h3>
+        <p><code>max_active_paths</code> 一行改动，识别率 68.8 → 81.2%，
+          日常说话误唤醒不变，CPU 涨不到 22%。
+          四种模式共享这个收益，因为 KWS 是所有模式的第一级。</p>
+      </div>
+      <div class="card">
+        <h3>第二条（免费）</h3>
+        <p>AABB 重复型唤醒词额外注册前半（<code>小迪小迪</code> 加注 <code>小迪</code>），
+          再 +5.0 点到 86.2%，对立词与日常说话<b>各 0 条变化</b>。</p>
+      </div>
+      <div class="card">
+        <h3>被实验推翻的直觉</h3>
+        <ul>
+          <li><code>keywords_threshold</code> 是空操作</li>
+          <li>CMVN 是负收益</li>
+          <li>增广注册阈值只是放水，冒充误接受 5% → 40%</li>
+          <li>paths=16 比 8 好看，但 p=0.125，是噪声</li>
+          <li>「去尾一字」子词 0 收益、对立词翻倍</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>指标会骗人的地方</h3>
+        <p>注册 <code>开始</code>、<code>打开</code> 这类通用子词，
+          误触发率会因「超集豁免」而<b>看起来降到 10%</b>，比不改还低。
+          但真实代价挪到了「你正常说话」上——而 15 句语料<b>测不到</b>。
+          别被那个 90% / 10% 骗了。</p>
+      </div>
+      <div class="card">
+        <h3>为什么用 McNemar</h3>
+        <p>所有对比跑在同一批样本上，属于配对数据。
+          直接比两个独立置信区间会低估显著性——
+          paths 4→8 的区间是重叠的，但配对看是净 10 中、0 丢，p≈0.002。</p>
+      </div>
+      <div class="card">
+        <h3>最深的坑</h3>
+        <p>voiceMatch 在噪声下即使修好时间对齐也只有 11% 通过率。
+          12 维对数带能量、无 mel/DCT/delta 的特征，
+          低信噪比下判别力接近于零。这不是调参能解决的。</p>
+      </div>
+      <div class="card">
+        <h3>等你拍板</h3>
+        <p>voiceMatch 该不该负责拒绝他人？
+          既然已有独立的 speakerVerify 模式，
+          如果答案是「不该」，方案 A 就从陷阱变成合理选择，TPR 可到 71.9%。</p>
+      </div>
+    </aside>
   </section>
 
     DictatingMe · Evoke E2E Test Plan ·

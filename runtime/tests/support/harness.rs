@@ -102,6 +102,10 @@ impl TestEnv {
         self.speaker_model.as_deref()
     }
 
+    pub fn kws_model_dir(&self) -> &Path {
+        &self.kws_model_dir
+    }
+
     /// setup 阶段：与 `evoke_setup` 命令走同一条 `processor_for(...).process(...)`。
     pub fn run_setup(
         &self,
