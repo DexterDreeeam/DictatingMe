@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DictatingMe · 唤醒 E2E 测试计划</title>
+  <style>
+    :root{color-scheme:dark;--bg:#111318;--panel:#191c23;--panel2:#20242d;--line:#353b48;--text:#e8ebf2;--muted:#9aa3b4;--accent:#5865f2;--green:#50c878;--yellow:#e5b95c;--red:#e06b72;--blue:#66a8ff;--code:#dbe5f8}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+    header{padding:28px 32px 17px;border-bottom:1px solid var(--line);background:#24262b}h1{margin:0 0 6px;font-size:22px}.lead{margin:0;color:var(--muted);font-size:13px}
+    .status{display:inline-block;margin-left:8px;padding:2px 8px;border:1px solid #715f36;border-radius:7px;color:var(--yellow);font-size:10px;vertical-align:3px}
+    .tabs{display:flex;flex-wrap:wrap;gap:8px;padding:16px 32px 0;border-bottom:1px solid var(--line)}.tab{position:relative;top:1px;padding:10px 16px;border:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);cursor:pointer;font-weight:600;font-size:12.5px}.tab.active{border:1px solid var(--line);border-bottom-color:var(--panel2);background:var(--panel2);color:#fff}
+    .pane{display:none;max-width:1540px;margin:auto;padding:28px 32px 60px}.pane.active{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px}.canvas{min-width:0;padding:24px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:auto}
+    .sidebar .card{margin-bottom:14px;padding:16px;border:1px solid var(--line);border-radius:11px;background:var(--panel)}.card h3{margin:0 0 8px;color:#fff;font-size:13px}.card p,.card li{margin:0;color:var(--muted);font-size:11.5px;line-height:1.65}.card ul{margin:0;padding-left:17px}.card ul li+li{margin-top:5px}
+    h2{margin:0 0 12px;font-size:15px;color:#fff}h2+p.note{margin:-6px 0 16px}
+    .sec{margin-top:30px;padding-top:22px;border-top:1px dashed #2f3540}.sec:first-child{margin-top:0;padding-top:0;border-top:0}
+    p.note{color:var(--muted);font-size:11.5px;line-height:1.7;margin:0 0 14px}
+    .row{display:flex;align-items:stretch;justify-content:center;gap:9px;min-width:max-content}.row+.row{margin-top:0}
+    .node{display:flex;min-width:140px;max-width:210px;min-height:70px;padding:11px 13px;flex-direction:column;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:11px;background:var(--panel2);text-align:center}.node strong{color:#fff;font-size:12px}.node span{margin-top:5px;color:var(--muted);font-size:10px;line-height:1.4}
+    .node.ui{border-color:#7a8bff}.node.service{border-color:var(--accent);background:rgba(88,101,242,.16)}.node.trait{border-color:#4d9d70}.node.port{border-style:dashed;border-color:#858b96}.node.runtime{border-color:#e4b34c}.node.data{border-color:#5f9ea0;background:rgba(95,158,160,.12)}.node.test{border-color:#b07acc;background:rgba(176,122,204,.13)}
+    .arrow{display:flex;align-items:center;color:#b5bac1;font-size:18px;font-weight:700}.arrow.down{height:27px;justify-content:center;transform:rotate(90deg)}
+    .bar{margin:18px auto;max-width:960px;padding:10px 14px;border:1px dashed #687080;border-radius:9px;color:#b5bac1;text-align:center;font-size:11px}.bar strong{color:#fff}.bar.good{border-color:#397d54;color:#7fd49e}.bar.stop{border-color:#7c4146;color:#ef9da2}.bar.warn{border-color:#7d6a35;color:#e8c982}
+    table{width:100%;border-collapse:collapse;min-width:720px;margin-bottom:6px;border:1px solid var(--line);background:var(--panel2);font-size:11px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:#282c35;white-space:nowrap}td{color:var(--muted)}tr:last-child td{border-bottom:0}td code,th code{color:var(--code)}td strong{color:#e8ebf2}
+    .tree{margin:0 0 8px;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:11px;line-height:1.75;white-space:pre;overflow:auto}
+    .tree b{color:#8fd7ff;font-weight:600}.tree i{color:#7fd49e;font-style:normal}.tree u{color:var(--yellow);text-decoration:none}.tree s{color:#6f7787;text-decoration:none}
+    .signature{margin:9px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:10.5px;line-height:1.65;white-space:pre;overflow:auto}
+    .type-grid{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:12px;min-width:780px;margin-bottom:8px}.type{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.type strong{display:block;color:#fff;font-size:12px}.type code{display:block;margin-top:7px;color:#aeb8ff;font-size:10px}.type span{display:block;margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
+    .kpi{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-bottom:16px;min-width:700px}.kpi div{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);text-align:center}.kpi b{display:block;color:#fff;font-size:19px}.kpi span{display:block;margin-top:5px;color:var(--muted);font-size:10.5px;line-height:1.4}
+    code{font-family:"Cascadia Code",Consolas,monospace}.keep{color:var(--green)}.remove{color:#ef8e94}.change{color:var(--yellow)}.new{color:#8fd7ff}
+    footer{padding:20px;border-top:1px solid var(--line);color:var(--muted);text-align:center;font-size:11px}a{color:#8c98ff}
+    @media(max-width:900px){.pane.active{grid-template-columns:1fr}.sidebar{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.pane{padding-inline:16px}.tabs{padding-left:16px;overflow:auto}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DictatingMe · 唤醒 E2E 测试计划 <span class="status">计划 / 未实现</span></h1>
+    <p class="lead">四种唤醒模式的可独立运行集成测试：素材下载 → 统一 Setup 输入 → 复刻真实处理流程 → 准确率 / 误识别率量化。</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-pane="goal">目标与指标</button>
+    <button class="tab" data-pane="assets">Assets 布局</button>
+    <button class="tab" data-pane="corpus">素材生成</button>
+    <button class="tab" data-pane="schema">统一 Schema</button>
+    <button class="tab" data-pane="flow">E2E 流程</button>
+    <button class="tab" data-pane="matrix">测试矩阵</button>
+    <button class="tab" data-pane="deliver">落地计划</button>
+  </div>
+
+  <!-- ============================ 目标与指标 ============================ -->
+  <section class="pane active" id="pane-goal">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 这份计划要解决什么</h2>
+        <p class="note">当前四种唤醒模式（Text / VoiceMatch / SpeakerVerify / Classifier）只有 <code>features.rs</code> 与 <code>scoring/mod.rs</code> 里的少量单元测试，验证的是「函数没写错」，而不是「唤醒词能不能用」。本计划把它升级为可独立运行的端到端集成测试：<strong>给定一个唤醒词 + 一组 5 秒音频，跑完真实的 setup 与打分链路，输出准确率与误识别率</strong>。</p>
+        <div class="kpi">
+          <div><b>4</b><span>唤醒模式，同一套输入 Schema</span></div>
+          <div><b>20</b><span>唤醒词分组（各带 1 个可区分对立词）</span></div>
+          <div><b>280</b><span>基础素材条数（不含增广）</span></div>
+          <div><b>0</b><span>提交进 git 的音频字节</span></div>
+        </div>
+        <div class="bar good"><strong>可独立运行：</strong>不依赖麦克风、不依赖 Tauri、不依赖 UI；只依赖 <code>assets/</code> 下已下载/已合成的素材，缺素材时测试 skip 而不是 fail。</div>
+      </div>
+
+      <div class="sec">
+        <h2>2. 五个必须回答的问题</h2>
+        <table>
+          <tr><th style="width:38px">#</th><th style="width:230px">问题</th><th>用什么指标回答</th></tr>
+          <tr><td>Q1</td><td>本人说唤醒词，能唤醒吗</td><td><strong>TPR / 唤醒率</strong>：同一说话人正样本被 <code>EvokeScore.accepted</code> 判定为真的比例</td></tr>
+          <tr><td>Q2</td><td>别人说同一个唤醒词，会不会被误唤醒</td><td><strong>FAR-impostor</strong>：非注册说话人正确念出唤醒词时的误接受率（SpeakerVerify 的核心指标）</td></tr>
+          <tr><td>Q3</td><td>发音接近但可区分的词会不会误唤醒</td><td><strong>FAR-confusable</strong>：与唤醒词只差一个声母/韵母/声调，或只替换一个音节的短语的误接受率（<strong>不含同音同调词</strong>）</td></tr>
+          <tr><td>Q4</td><td>放着不动，一小时误唤醒几次</td><td><strong>FA/h</strong>：连续噪声与自由语音流上的每小时误唤醒次数</td></tr>
+          <tr><td>Q5</td><td>阈值定得对不对</td><td><strong>ROC / EER</strong>：扫描 sensitivity 0.0→1.0，画出 TPR-FAR 曲线并求等错误率</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>3. 各模式验收基线（首轮建议值，跑完第一轮后按实测回填）</h2>
+        <p class="note">基线不是"必须达到"，而是"低于此值即视为该模式在当前实现下不可用，需要回到算法设计"。所有值在 clean + SNR 20 dB 条件下评估，噪声更强的条件单独记录退化曲线。</p>
+        <table>
+          <tr><th>模式</th><th>录音条数</th><th>TPR ≥</th><th>FAR-impostor ≤</th><th>FAR-cfz<br>T1/T2 ≤</th><th>FAR-cfz<br>T3/T4 ≤</th><th>FA/h ≤</th><th>说明</th></tr>
+          <tr><td><strong>Text</strong></td><td>0</td><td>0.90</td><td>n/a</td><td>0.35</td><td>0.12</td><td>2.0</td><td>纯 KWS 关键词匹配，本来就不区分说话人；重点是 Q3/Q4</td></tr>
+          <tr><td><strong>VoiceMatch</strong></td><td>3</td><td>0.85</td><td>0.30</td><td>0.40</td><td>0.20</td><td>1.0</td><td>DTW 模板匹配对基频不敏感，<strong>T3 声调组预计是它最差的一项</strong>，这正是它与 Text 拉开差距的关键观测点</td></tr>
+          <tr><td><strong>SpeakerVerify</strong></td><td>3</td><td>0.85</td><td><strong>0.10</strong></td><td>0.40</td><td>0.25</td><td>0.5</td><td>唯一有真正声纹能力的模式；内容分辨力全靠 KWS 层，cfz 指标偏高属预期</td></tr>
+          <tr><td><strong>Classifier</strong></td><td>6</td><td>0.85</td><td>0.30</td><td>0.35</td><td>0.15</td><td><strong>0.3</strong></td><td>正样本 vs 噪声负样本训练，主打抗环境噪声误触发</td></tr>
+        </table>
+        <div class="bar">T1/T2（声母/韵母对立）与 T3/T4（声调对立/音节替换）分开定基线：前者是<strong>音素级难例</strong>，允许较高 FAR；后者若也高，说明模型没有内容分辨力。两栏定义见「素材生成」页。</div>
+      </div>
+
+      <div class="sec">
+        <h2>4. 与现有代码的关系</h2>
+        <table>
+          <tr><th style="width:290px">现有资产</th><th>在 E2E 里的角色</th><th style="width:96px">是否改动</th></tr>
+          <tr><td><code>evoke_setup::processor_for(mode)</code></td><td>被测主体：setup 阶段直接调用，不做任何 mock</td><td class="keep">不改</td></tr>
+          <tr><td><code>evoke_setup::ProcessInput</code></td><td>统一输入 Schema 的载体，测试与真实 UI 走同一个结构</td><td class="change">小改（见 Schema 页）</td></tr>
+          <tr><td><code>evoke_setup::features::recording_quality()</code></td><td>setup 阶段的素材准入门槛，测试必须先过这一关</td><td class="keep">不改</td></tr>
+          <tr><td><code>scoring::ScoringSystem</code></td><td>被测主体：检测阶段逐帧喂音频并取 <code>EvokeScore</code></td><td class="keep">不改</td></tr>
+          <tr><td><code>models::evoke_model::keyword_syntax_for_model()</code></td><td>四个模式都会走的关键词校验；提供 KWS 命中信号</td><td class="keep">不改</td></tr>
+          <tr><td><code>storage::AssetManager</code></td><td>提供 speaker / classifier 模型路径；测试用临时 AppPaths 装载</td><td class="keep">不改</td></tr>
+          <tr><td><code>assets/download-assets.ps1</code> + <code>download-assets.cmd</code></td><td>唯一素材入口，扩展为「模型 + 语料 + 噪声」三段式</td><td class="change">重写</td></tr>
+        </table>
+        <div class="bar"><strong>原则：</strong>E2E 测试<strong>不允许</strong>复制粘贴算法逻辑。凡是测试里出现的打分/特征代码，都必须是从 <code>dictatingme_runtime</code> 里 <code>use</code> 进来的。</div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>一句话目标</h3><p>让「换个唤醒词好不好用」「这个模式是不是白做的」变成一条命令就能回答的问题。</p></div>
+      <div class="card"><h3>不在范围内</h3><ul>
+        <li>不测听写（Dictation）识别质量</li>
+        <li>不测 UI / HUD / 文本注入</li>
+        <li>不测真实麦克风采集与设备切换</li>
+        <li>不做模型训练与算法改进（本轮只做度量）</li>
+      </ul></div>
+      <div class="card"><h3>硬约束</h3><ul>
+        <li>素材一律不进 git，只进 <code>assets/</code> 并被 gitignore</li>
+        <li>素材可复现：同一 manifest 在任何机器上产出同一批文件</li>
+        <li>测试可在无素材环境下 skip，不阻塞常规 <code>cargo test</code></li>
+      </ul></div>
+    </aside>
+  </section>
+
+  <!-- ============================ Assets 布局 ============================ -->
+  <section class="pane" id="pane-assets">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 目标目录结构（一级 / 二级分类）</h2>
+        <p class="note">所有素材集中在 <code>C:\r\DictatingMe\assets</code> 下。<b class="new">一级目录 = 用途大类</b>，<b class="new">二级目录 = 细分类别</b>；文件直接放在二级目录里，靠命名约定表达角色，避免三级以上的深嵌套。</p>
+        <div class="tree"><b>assets/</b>
+├─ <u>assets-manifest.json</u>          <s># 【跟踪】<b>测试语料</b>清单：下载源 / 合成配方 / 相对路径 / 校验值</s>
+├─ <u>manifest-cn.json</u>             <s># 【跟踪】<b>产品运行时</b>清单（现有文件，本方案不动）</s>
+├─ <u>download-assets.ps1</u>           <s># 【跟踪】唯一执行体，被根目录 download-assets.cmd 调用</s>
+├─ <u>sha.json</u>                      <s># 【跟踪】运行时 Asset 目录（现有文件，保持不变）</s>
+│
+├─ <b>models/</b>                       <s># 一级：所有 onnx 模型，被 AssetManager 与 E2E 共用</s>
+│   ├─ <i>evoke-kws/</i>                <s># 二级：sherpa-onnx-kws-zipformer-wenetspeech-3.3M</s>
+│   ├─ <i>dictation/</i>                <s># 二级：sherpa-onnx-streaming-zipformer-bilingual-zh-en</s>
+│   ├─ <i>speaker/</i>                  <s># 二级：3dspeaker campplus 声纹模型（SpeakerVerify 必需）</s>
+│   └─ <i>tts/</i>                      <s># 二级：vits-zh-aishell3 多说话人合成模型（仅生成素材用）</s>
+│
+├─ <b>corpus/</b>                       <s># 一级：唤醒词语音正/负样本，20 个分组</s>
+│   ├─ <i>w01-xiaodi-xiaodi/</i>        <s># 二级：一个唤醒词一个文件夹，14 条 wav</s>
+│   ├─ <i>w02-nihao-diannao/</i>
+│   ├─ <i>…</i>
+│   └─ <i>w20-xiaoyan-xiaoyan/</i>
+│
+├─ <b>noise/</b>                        <s># 一级：MS-SNSD 环境底噪，30 条 16 kHz wav</s>
+│   ├─ <i>crowd/</i>                    <s># 二级：babble / cafe / cafeteria / airport</s>
+│   ├─ <i>traffic/</i>                  <s># 二级：car / bus / metro / station / road</s>
+│   ├─ <i>office/</i>                   <s># 二级：typing / copy-machine</s>
+│   ├─ <i>machinery/</i>                <s># 二级：vacuum / air-conditioner</s>
+│   └─ <i>home/</i>                     <s># 二级：washing-machine / tv</s>
+│
+├─ <b>freespeech/</b>                   <s># 一级：不含唤醒词的连续中文语音，用于 FA/h 长跑</s>
+│   ├─ <i>readspeech/</i>               <s># 二级：朗读句（合成，8–10 分钟）</s>
+│   └─ <i>conversation/</i>             <s># 二级：多说话人对话流（合成拼接）</s>
+│
+├─ <b>derived/</b>                      <s># 一级：本地增广产物，可随时删除重建</s>
+│   ├─ <i>speed/</i>                    <s># 二级：0.9x / 1.0x / 1.1x 变速</s>
+│   ├─ <i>snr/</i>                      <s># 二级：20 / 10 / 5 dB 混噪</s>
+│   └─ <i>gain/</i>                     <s># 二级：-6 dB / 0 dB / +6 dB 增益与削波</s>
+│
+└─ <b>reports/</b>                      <s># 一级：E2E 输出，json + markdown，同样 gitignore</s>
+    ├─ <i>latest/</i>
+    └─ <i>history/</i></div>
+      </div>
+
+      <div class="sec">
+        <h2>2. 命名约定（二级目录内的文件名即元数据）</h2>
+        <p class="note">测试加载器直接从文件名解析角色，不需要额外的索引文件；manifest 只负责"这个文件从哪来"，文件名负责"这个文件是什么"。</p>
+        <div class="signature">corpus/&lt;group&gt;/&lt;group&gt;_&lt;speaker&gt;_&lt;role&gt;_&lt;style&gt;_&lt;idx&gt;.wav
+
+  group    w01 … w20                       唤醒词分组编号
+  speaker  s01 … s08                       说话人编号（TTS speaker id 或真人编号）
+  role     enroll | pos | imp | cfz        注册 / 正样本 / 冒名者 / 对立词
+  style    normal|loud|soft|fast|slow|far  录制风格，对应 EnrollmentPlan 的 prompt id
+  idx      01 …                            同类内序号
+
+例：w01-xiaodi-xiaodi/w01_s03_enroll_normal_01.wav
+    w01-xiaodi-xiaodi/w01_s07_imp_normal_01.wav      ← s07 冒名说 w01 的唤醒词
+    w01-xiaodi-xiaodi/w01_s03_cfz_normal_01.wav      ← s03 说对立词「小提小提」(T1)</div>
+        <p class="note">对立词的<strong>难度类型（T1–T4）是分组固有属性</strong>，写在 manifest 的 <code>confusableTier</code> 字段里，不进文件名——每组只有一个对立词，从 group 即可反查。</p>
+        <table>
+          <tr><th style="width:90px">role</th><th style="width:64px">条/组</th><th>用途</th><th>参与阶段</th></tr>
+          <tr><td><code>enroll</code></td><td>6</td><td>Setup 输入。Text 取 0 条、VoiceMatch/SpeakerVerify 取前 3 条、Classifier 取全部 6 条</td><td>Setup</td></tr>
+          <tr><td><code>pos</code></td><td>4</td><td>同一说话人、未参与注册的正样本 → 算 TPR</td><td>Detect</td></tr>
+          <tr><td><code>imp</code></td><td>2</td><td>其他说话人念同一唤醒词 → 算 FAR-impostor</td><td>Detect</td></tr>
+          <tr><td><code>cfz</code></td><td>2</td><td>对立词（本人 + 另一说话人各一条）→ 按 T1–T4 分档算 FAR-confusable</td><td>Detect</td></tr>
+          <tr><td colspan="2"><strong>合计</strong></td><td colspan="2"><strong>14 条 / 组 × 20 组 = 280 条基础素材</strong>，增广后进入测试的样本量 ≈ 280 × 9 = 2520 条</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>3. assets-manifest.json 结构</h2>
+        <p class="note">manifest 有<strong>两类条目</strong>：<code>download</code>（有 URL，可多镜像回退）与 <code>synthesize</code>（无 URL，用本地 TTS 模型按配方生成）。两类都声明 <code>path</code> 与期望校验值，脚本据此做「校验 → 缺失才补」的幂等行为。</p>
+        <div class="bar stop"><strong>与 <code>manifest-cn.json</code> 的分工：两份清单并存，互不合并。</strong><br>
+        <code>manifest-cn.json</code> 是<strong>产品运行时清单</strong>——被 <code>tauri.conf.json</code> 打包进安装包、复制到 <code>%LOCALAPPDATA%\DictatingMe\</code>、由 <code>asset_manager.rs</code> 在运行时解析、由 <code>run-package.ps1</code> 硬校验 <code>schemaVersion 1</code>。改它等于改发布链路，与「加一套测试」毫无关系。<br>
+        <code>assets-manifest.json</code> 是<strong>测试语料清单</strong>——只被 <code>download-assets.ps1</code> 与测试 harness 读取，产品运行时完全不感知，删掉也不影响应用启动。</div>
+        <table>
+          <tr><th style="width:150px"></th><th style="width:210px">manifest-cn.json（现有）</th><th>assets-manifest.json（新增）</th></tr>
+          <tr><td>归属</td><td>产品运行时</td><td>测试基础设施</td></tr>
+          <tr><td>消费方</td><td><code>asset_manager.rs</code> / <code>run-package.ps1</code> / 安装包</td><td><code>download-assets.ps1</code> / <code>tests/support/corpus.rs</code></td></tr>
+          <tr><td>内容</td><td>dictation / speaker / classifier 三类<strong>模型与运行期资产</strong>的下载源</td><td>20 组唤醒词<strong>语料配方</strong> + 噪声清单 + TTS 模型</td></tr>
+          <tr><td>本方案动作</td><td class="keep">完全不动</td><td class="new">新增</td></tr>
+        </table>
+        <div class="bar">唯一的交集是 TTS 与噪声素材也需要下载。处理方式：<code>download-assets.ps1</code> 同时读两份清单，<strong>脚本层合并、文件层分离</strong>——不把测试用的 280 条语料配方塞进要随安装包分发的 json 里。</div>
+        <div class="signature">{
+  "schemaVersion": 2,
+  "locale": "zh-CN",
+
+  "models": [
+    { "id": "model.evoke-kws", "kind": "download", "path": "models/evoke-kws",
+      "archive": "tar.bz2", "requiredFiles": ["encoder-….onnx", "tokens.txt"],
+      "sources": [ "https://github.com/k2-fsa/…", "https://hf-mirror.com/…" ] },
+    { "id": "model.tts-aishell3", "kind": "download", "path": "models/tts",
+      "usedBy": "corpus-generation-only" }
+  ],
+
+  "noise": [
+    { "id": "noise.crowd.babble-1", "kind": "download",
+      "path": "noise/crowd/babble-train-1.wav",
+      "sources": ["https://raw.githubusercontent.com/microsoft/MS-SNSD/&lt;commit&gt;/noise_train/Babble_1.wav"],
+      "expect": { "format": "wav", "sampleRate": 16000, "minBytes": 100000 } }
+  ],
+
+  "wakeGroups": [
+    { "id": "w01", "dir": "corpus/w01-xiaodi-xiaodi",
+      "phrase": "小迪小迪", "confusable": "小提小提", "confusableTier": "T1",
+      "ownerSpeaker": "s03", "impostorSpeakers": ["s07", "s11"],
+      "entries": [
+        { "kind": "synthesize", "path": "w01_s03_enroll_normal_01.wav",
+          "recipe": { "model": "model.tts-aishell3", "speaker": 3,
+                      "text": "小迪小迪", "speed": 1.0, "padToMs": 5000 } }
+      ] }
+  ]
+}</div>
+        <table>
+          <tr><th style="width:150px">字段</th><th>约束</th></tr>
+          <tr><td><code>path</code></td><td>相对 <code>assets/</code> 的路径，<strong>必须是二级目录内</strong>；脚本拒绝写出到 <code>assets/</code> 之外或三级以上路径</td></tr>
+          <tr><td><code>sources[]</code></td><td>按序尝试；GitHub 直连失败时回退 hf-mirror / ghproxy，最后回退 <code>gh release download</code></td></tr>
+          <tr><td><code>recipe</code></td><td>合成配方必须完全确定（模型 + speaker + text + speed + 时长），保证跨机器可复现</td></tr>
+          <tr><td><code>confusableTier</code></td><td><code>T1</code>|<code>T2</code>|<code>T3</code>|<code>T4</code>，声明该组对立词的难度档；报告按此分列 FAR。<strong>禁止 T0（同音同调），manifest 校验时直接拒绝</strong></td></tr>
+          <tr><td><code>expect</code></td><td>校验条件；WAV 类校验 RIFF/WAVE 头 + 16 kHz + 最小字节数，模型类校验必需文件清单</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>4. .gitignore 调整</h2>
+        <div class="signature"># 现状（只放行三两个脚本，语义已经不够用）
+/assets/*
+!/assets/download-assets.ps1
+!/assets/sha.json
+…
+
+# 目标：默认全忽略，仅放行清单与脚本
+/assets/**
+!/assets/assets-manifest.json
+!/assets/manifest-cn.json          ← 现有白名单，保持
+!/assets/download-assets.ps1
+!/assets/sha.json
+!/assets/run-package.ps1
+!/assets/run-release.ps1
+!/assets/README.md</div>
+        <div class="bar warn"><strong>注意：</strong>当前 <code>asset_manager.rs</code> 用 <code>include_bytes!("../../../assets/preset/…")</code> 内嵌 KWS 模型。目录从 <code>assets/preset/</code> 改为 <code>assets/models/evoke-kws/</code> 时，<strong>必须同步改这四行 include 路径</strong>，否则整个 crate 编译不过。</div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>为什么是二级</h3><p>一级回答「这是干什么用的」，二级回答「属于哪一类」。再深一层的信息（说话人 / 角色 / 风格）用文件名承载，遍历成本更低，也便于在资源管理器里肉眼核对。</p></div>
+      <div class="card"><h3>可删除性分级</h3><ul>
+        <li><code>derived/</code> <code>reports/</code>：随时可删，脚本秒级重建</li>
+        <li><code>corpus/</code> <code>freespeech/</code>：可删，需本地 TTS 重跑（分钟级）</li>
+        <li><code>models/</code> <code>noise/</code>：可删，需重新联网下载（GB 级）</li>
+      </ul></div>
+      <div class="card"><h3>体积预估</h3><ul>
+        <li>models ≈ 1.3 GB（含 TTS 120 MB）</li>
+        <li>noise ≈ 60 MB</li>
+        <li>corpus 280×5s ≈ 44 MB</li>
+        <li>freespeech ≈ 20 MB</li>
+        <li>derived ≈ 370 MB（可裁剪）</li>
+      </ul></div>
+    </aside>
+  </section>
+
+  <!-- ============================ 素材生成 ============================ -->
+  <section class="pane" id="pane-corpus">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 素材从哪来</h2>
+        <p class="note">调研结论：公开的中文唤醒词真人语料要么是数 GB 的整包 tarball、要么需要商业授权，<strong>无法按条 HTTP 下载</strong>，也无法满足「同一说话人 / 不同说话人」这种 SpeakerVerify 必需的标注维度。因此采用<strong>本地多说话人 TTS 合成 + 真实环境噪声增广</strong>的方案。</p>
+        <table>
+          <tr><th style="width:150px">素材类型</th><th style="width:210px">来源</th><th>获取方式</th><th style="width:96px">可复现</th></tr>
+          <tr><td>唤醒词语音</td><td>vits-zh-aishell3（174 说话人）</td><td>下载 TTS 模型后本地合成，speaker/语速/文本全可控</td><td class="keep">完全</td></tr>
+          <tr><td>环境噪声</td><td>MS-SNSD（微软开源）</td><td>按 commit 固定的 raw URL 逐文件下载，30 条</td><td class="keep">完全</td></tr>
+          <tr><td>自由语音流</td><td>同 TTS 模型 + 公开中文句表</td><td>本地合成后拼接成 8–10 分钟长音频</td><td class="keep">完全</td></tr>
+          <tr><td>对立词语音</td><td>同 TTS 模型</td><td>每组人工指定一个<strong>可区分</strong>对立词（T1–T4），与唤醒词同 speaker 一起合成</td><td class="keep">完全</td></tr>
+          <tr><td class="change">真人录音（可选）</td><td>本人 / 同事</td><td>后续可放进同样的目录结构，覆盖同名合成素材，测试代码不用改</td><td class="change">手工</td></tr>
+        </table>
+        <div class="bar"><strong>合成素材的定位：</strong>它保证的是<strong>相对比较</strong>有效——模式之间、阈值之间、噪声条件之间的排序可信。绝对数值仍需少量真人录音校准，这一步放在 M6。</div>
+      </div>
+
+      <div class="sec">
+        <h2>2. 生成流水线</h2>
+        <div class="row">
+          <div class="node data"><strong>assets-manifest.json</strong><span>20 组 × 14 条配方</span></div><div class="arrow">→</div>
+          <div class="node service"><strong>download-assets.ps1</strong><span>阶段 1：下模型</span></div><div class="arrow">→</div>
+          <div class="node runtime"><strong>TTS 合成</strong><span>sherpa-onnx-offline-tts</span></div><div class="arrow">→</div>
+          <div class="node data"><strong>corpus/wNN-*/</strong><span>280 条 16 kHz mono</span></div>
+        </div>
+        <div class="arrow down">→</div>
+        <div class="row">
+          <div class="node service"><strong>阶段 2：下噪声</strong><span>MS-SNSD 30 条</span></div><div class="arrow">→</div>
+          <div class="node data"><strong>noise/&lt;类别&gt;/</strong><span>5 个二级分类</span></div><div class="arrow">→</div>
+          <div class="node test"><strong>增广器（测试内）</strong><span>变速 / 混噪 / 增益</span></div><div class="arrow">→</div>
+          <div class="node data"><strong>derived/ 或内存</strong><span>2520 条待测样本</span></div>
+        </div>
+        <div class="bar good"><strong>增广放在测试进程内做</strong>（Rust，复用 <code>features::read_wav_16k</code> / <code>write_wav_16k</code>），默认只在内存里生成；加 <code>--dump-derived</code> 才落盘到 <code>derived/</code> 供人工试听排查。</div>
+      </div>
+
+      <div class="sec">
+        <h2>3. 20 个唤醒词分组</h2>
+        <p class="note">分组要覆盖不同音节数、不同声调组合、叠词与非叠词、含英文字母的混合词——这些都会显著影响 KWS 与模板匹配的表现。每组指定一个<strong>对立词</strong>作为负样本。</p>
+        <div class="bar stop"><strong>硬性规则：对立词禁止同音同调。</strong>「小迪 / 小笛」（都是 xiǎo dí）、「记录 / 记路」（都是 jì lù）、「记下来 / 寄下来」（都是 jì xià lái）这类词，人耳和模型都不可能区分，测出来的 FAR 只是噪声。对立词必须在<strong>声母、韵母、声调或整个音节</strong>上至少有一处真实差异。</div>
+        <table>
+          <tr><th style="width:74px">对立类型</th><th style="width:170px">定义</th><th>难度与意义</th></tr>
+          <tr><td><strong>T1 声母</strong></td><td>韵母与声调完全相同，只差一个声母（d/t、b/p、z/zh、n/l、d/y、字母 D/T）</td><td>最难的可区分档；考察模型对送气/不送气、平翘舌的分辨力</td></tr>
+          <tr><td><strong>T2 韵母</strong></td><td>对应音节的韵母不同（可伴随声调差异），词形高度相似</td><td>次难；噪声下最先失效的一类</td></tr>
+          <tr><td><strong>T3 声调</strong></td><td>音节完全相同，只有声调不同</td><td>中文特有；纯声学模板（VoiceMatch）对声调不敏感，是它的弱项</td></tr>
+          <tr><td><strong>T4 音节替换</strong></td><td>整词中有一个音节完全不同，且对立词是日常真实用语</td><td>最容易区分，但<strong>最贴近真实误触发场景</strong>——用户本来就在说这句话</td></tr>
+          <tr><td class="remove">T0 同音</td><td class="remove">同音同调</td><td class="remove">已排除，不测</td></tr>
+        </table>
+        <table>
+          <tr><th style="width:44px">组</th><th style="width:150px">唤醒词</th><th style="width:150px">对立词</th><th style="width:60px">类型</th><th>考察点</th></tr>
+          <tr><td>w01</td><td><strong>小迪小迪</strong><br><code>xiǎo dí</code></td><td>小提小提<br><code>xiǎo tí</code></td><td>T1</td><td>叠词基线；d/t 不送气-送气对立，最典型的难例</td></tr>
+          <tr><td>w02</td><td><strong>你好电脑</strong><br><code>nǐ hǎo diàn nǎo</code></td><td>你好电视<br><code>diàn shì</code></td><td>T4</td><td>常见短语，前三音节完全相同，只差末音节</td></tr>
+          <tr><td>w03</td><td><strong>开始听写</strong><br><code>kāi shǐ tīng xiě</code></td><td>开始停歇<br><code>tíng xiē</code></td><td>T3</td><td>连续两个音节仅声调不同，声调分辨力的集中考验</td></tr>
+          <tr><td>w04</td><td><strong>小助小助</strong><br><code>xiǎo zhù</code></td><td>小猪小猪<br><code>xiǎo zhū</code></td><td>T3</td><td>叠词 + 单音节声调对立（去声 vs 阴平）</td></tr>
+          <tr><td>w05</td><td><strong>嗨小迪</strong><br><code>hāi xiǎo dí</code></td><td>嗨小李<br><code>xiǎo lǐ</code></td><td>T4</td><td>三音节短唤醒词；末音节替换为常见人名后缀</td></tr>
+          <tr><td>w06</td><td><strong>记下来</strong><br><code>jì xià lái</code></td><td>接下来<br><code>jiē xià lái</code></td><td>T2</td><td>「接下来」是口语中的超高频词，真实误触发风险最高的一组</td></tr>
+          <tr><td>w07</td><td><strong>语音输入</strong><br><code>yǔ yīn shū rù</code></td><td>语音输出<br><code>shū chū</code></td><td>T4</td><td>书面词，前三音节相同；产品语境内真实存在的对立词</td></tr>
+          <tr><td>w08</td><td><strong>小言小言</strong><br><code>xiǎo yán</code></td><td>小燕小燕<br><code>xiǎo yàn</code></td><td>T3</td><td>叠词 + 阳平/去声对立，两个都是真实人名</td></tr>
+          <tr><td>w09</td><td><strong>帮我打字</strong><br><code>bāng wǒ dǎ zì</code></td><td>帮我打印<br><code>dǎ yìn</code></td><td>T4</td><td>祈使句；两条都是用户会真实说出的指令</td></tr>
+          <tr><td>w10</td><td><strong>启动听写</strong><br><code>qǐ dòng tīng xiě</code></td><td>启用听写<br><code>qǐ yòng</code></td><td>T1</td><td>d/y 声母对立，同韵同调；后两音节完全一致</td></tr>
+          <tr><td>w11</td><td><strong>小 D 出来</strong><br><code>xiǎo D chū lái</code></td><td>小 T 出来<br><code>xiǎo T chū lái</code></td><td>T1</td><td>中英混合；字母 D/T 是英文里的经典最小对立对</td></tr>
+          <tr><td>w12</td><td><strong>准备记录</strong><br><code>zhǔn bèi jì lù</code></td><td>准备记账<br><code>jì zhàng</code></td><td>T4</td><td>后鼻音密集；末音节替换</td></tr>
+          <tr><td>w13</td><td><strong>听我说话</strong><br><code>tīng wǒ shuō huà</code></td><td>听我说完<br><code>shuō wán</code></td><td>T4</td><td>与自由语音高度重合，FA 压力最大的一组</td></tr>
+          <tr><td>w14</td><td><strong>小猫同学</strong><br><code>xiǎo māo tóng xué</code></td><td>小毛同学<br><code>xiǎo máo</code></td><td>T3</td><td>阴平/阳平对立，两个都是真实称呼</td></tr>
+          <tr><td>w15</td><td><strong>开始口述</strong><br><code>kāi shǐ kǒu shù</code></td><td>开始口试<br><code>kǒu shì</code></td><td>T2</td><td>u/i 韵母对立，同声母同为去声</td></tr>
+          <tr><td>w16</td><td><strong>唤醒助手</strong><br><code>huàn xǐng zhù shǒu</code></td><td>换新助手<br><code>huàn xīn</code></td><td>T2</td><td>ing/in 前后鼻音对立（兼声调差异），中文最经典的易混韵母对</td></tr>
+          <tr><td>w17</td><td><strong>打开输入</strong><br><code>dǎ kāi shū rù</code></td><td>打开数据<br><code>shù jù</code></td><td>T2</td><td>shū/shù 声调对立 + rù/jù 声母对立，双重差异，属于较易区分的对照组</td></tr>
+          <tr><td>w18</td><td><strong>小七小七</strong><br><code>xiǎo qī</code></td><td>小奇小奇<br><code>xiǎo qí</code></td><td>T3</td><td>叠词 + 阴平/阳平对立</td></tr>
+          <tr><td>w19</td><td><strong>快来记录</strong><br><code>kuài lái jì lù</code></td><td>快来继续<br><code>jì xù</code></td><td>T2</td><td>末音节 lù/xù 声母+韵母对立，前三音节完全一致</td></tr>
+          <tr><td>w20</td><td><strong>说话开始</strong><br><code>shuō huà kāi shǐ</code></td><td>说话开心<br><code>kāi xīn</code></td><td>T4</td><td>日常对话中真实存在的句子，检验语义前缀词的误触发</td></tr>
+        </table>
+        <table>
+          <tr><th style="width:110px">类型分布</th><th style="width:70px">组数</th><th>报告要求</th></tr>
+          <tr><td><strong>T1 声母</strong></td><td>3（w01 w10 w11）</td><td>FAR 最高属预期；若 T1 的 FAR 与 T4 相当，说明模型根本没在做音素级判别</td></tr>
+          <tr><td><strong>T2 韵母</strong></td><td>5（w06 w15 w16 w17 w19）</td><td>与 SNR 联动观察：韵母差异在 10 dB 以下最先被噪声抹平</td></tr>
+          <tr><td><strong>T3 声调</strong></td><td>5（w03 w04 w08 w14 w18）</td><td>VoiceMatch 预计在这一类上明显劣于 Text（DTW 对基频不敏感），这是区分两个模式价值的关键证据</td></tr>
+          <tr><td><strong>T4 音节替换</strong></td><td>7（w02 w05 w07 w09 w12 w13 w20）</td><td>FAR 应显著低于 T1/T2；若不低，说明唤醒判定基本没有内容分辨力，只是在做「有没有人说话」</td></tr>
+        </table>
+        <div class="bar good"><strong>报告要求：</strong>FAR-confusable <strong>必须按 T1/T2/T3/T4 分列</strong>，不允许合并成一个平均值——合并后 T4 的低 FAR 会把 T1 的高 FAR 稀释掉，得出「近音词没问题」的错误结论。</div>
+      </div>
+
+      <div class="sec">
+        <h2>4. 说话人分配</h2>
+        <table>
+          <tr><th style="width:150px">角色</th><th style="width:170px">说话人</th><th>规则</th></tr>
+          <tr><td>owner（注册者）</td><td>每组 1 位，20 组轮转使用 s01–s08</td><td><code>enroll</code> 与 <code>pos</code> 用同一位；<code>enroll</code> 与 <code>pos</code> 的合成参数（语速/停顿）不同，避免"注册即测试"的自证</td></tr>
+          <tr><td>impostor（冒名者）</td><td>每组 2 位，与 owner 性别各异其一</td><td>同性别 impostor 是难例，异性别是易例，分开统计</td></tr>
+          <tr><td>freespeech</td><td>4 位，与上面不重叠</td><td>保证 FA/h 长跑不会碰巧命中注册说话人</td></tr>
+        </table>
+        <div class="bar warn"><strong>已知局限：</strong>TTS 同一 speaker id 的声纹一致性高于真人多次录音，SpeakerVerify 的 TPR 会偏乐观、FAR-impostor 会偏乐观。计划用「加噪 + 变速 + 增益扰动」人为拉开注册与测试的分布差，并在报告里标注该偏差。</div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>为什么必须 TTS</h3><p>SpeakerVerify 要回答的问题是"别人说同一句话会不会过"。这要求同一文本、不同说话人的成对素材——真实公开数据集几乎没有这种标注，TTS 是唯一能低成本拿到 20 组 × 3 说话人成对样本的手段。</p></div>
+      <div class="card"><h3>合成参数固定项</h3><ul>
+        <li>采样率 16 kHz、单声道、16 bit</li>
+        <li>统一补静音至 5000 ms，对齐 <code>EnrollmentPlan.recording_duration_ms</code></li>
+        <li>唤醒词位置随机落在 1.0–2.5 s，避免模型学到"开头即唤醒词"</li>
+      </ul></div>
+      <div class="card"><h3>对立词怎么选</h3><p>先写拼音（含声调）逐音节对照，只有<strong>至少一处声母/韵母/声调不同</strong>才收录，同音同调一律作废。合成后必须人耳抽听确认两条音频真的听得出区别——TTS 对同音字输出的是同一段波形，混进去等于往数据集里塞噪声。</p></div>
+      <div class="card"><h3>为什么要分 T1–T4</h3><p>把「声母对立」和「换一个音节」混在一起算平均 FAR，得到的数字既不能说明模型好也不能说明模型差。分档后才能回答真正有用的问题：模型是<strong>做到了音素级判别</strong>，还是只在做「有没有人说话」。</p></div>
+      <div class="card"><h3>许可</h3><p>MS-SNSD 噪声为 CC0 / CC BY-SA 3.0；aishell3 与 vits 模型遵循各自 Apache-2.0 / CC BY-SA 许可。素材不入库，仅本地生成，README 中保留出处说明。</p></div>
+    </aside>
+  </section>
+
+  <!-- ============================ 统一 Schema ============================ -->
+  <section class="pane" id="pane-schema">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 现状：输入已接近统一，但缺三样东西</h2>
+        <div class="signature">// 现有 evoke_setup/processor.rs
+pub struct ProcessInput {
+    pub mode: EvokeMode,
+    pub phrase: String,
+    pub recording_paths: Vec&lt;PathBuf&gt;,
+}</div>
+        <table>
+          <tr><th style="width:200px">缺口</th><th>后果</th><th>计划</th></tr>
+          <tr><td>录音条数隐含在 <code>EvokeMode::required_recordings()</code></td><td>测试要自己 <code>match mode</code> 才知道喂几条，逻辑复制</td><td>由 <code>EnrollmentPlan</code> 唯一声明，<code>ProcessInput</code> 携带 plan 引用</td></tr>
+          <tr><td>录音只有路径，没有风格标签</td><td>无法表达"第 3 条要 fast"，也无法把 prompt 与文件对上</td><td>路径升级为 <code>RecordingSample { path, prompt_id }</code></td></tr>
+          <tr><td>没有质量门禁的统一入口</td><td>真实 UI 走 <code>recording_quality()</code>，测试可能绕过 → 流程不一致</td><td>新增 <code>EvokeSetupInput::validate()</code>，UI 与测试都必须调用</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>2. 目标 Schema</h2>
+        <div class="signature">// evoke_setup/types.rs（新增）
+pub struct RecordingSample {
+    pub path: PathBuf,      // 16 kHz mono wav，5 s
+    pub prompt_id: String,  // normal|loud|soft|fast|slow|far，对齐 EnrollmentPlan.prompts
+}
+
+pub struct EvokeSetupInput {
+    pub mode: EvokeMode,
+    pub phrase: String,
+    pub samples: Vec&lt;RecordingSample&gt;,
+}
+
+impl EvokeSetupInput {
+    /// 四模式统一前置校验：phrase 长度、条数与 plan 一致、每条过 recording_quality()
+    pub fn validate(&amp;self, plan: &amp;EnrollmentPlan) -&gt; Result&lt;(), StorageError&gt;;
+}
+
+// processor.rs：ProcessInput 收敛为 EvokeSetupInput 的别名/包装
+pub trait EvokeModeProcessor: Send + Sync {
+    fn mode(&amp;self) -&gt; EvokeMode;
+    fn plan(&amp;self) -&gt; EnrollmentPlan;                       // ← 新增：需求由 processor 声明
+    async fn process(&amp;self, input: EvokeSetupInput, assets: &amp;AssetManager)
+        -&gt; Result&lt;EvokeProfile, StorageError&gt;;
+}</div>
+        <div class="type-grid">
+          <div class="type"><strong>Text</strong><code>samples = 0</code><span>只校验 phrase 能否编译成 KWS 关键词</span></div>
+          <div class="type"><strong>VoiceMatch</strong><code>samples = 3</code><span>normal / loud / soft</span></div>
+          <div class="type"><strong>SpeakerVerify</strong><code>samples = 3</code><span>normal / loud / soft</span></div>
+          <div class="type"><strong>Classifier</strong><code>samples = 6</code><span>再加 fast / slow / far</span></div>
+        </div>
+        <div class="bar good"><strong>统一收益：</strong>E2E 测试对四个模式只需要写一份驱动代码——<code>plan() → 按 prompt_id 选素材 → validate() → process()</code>，模式差异全部收敛进 <code>processor_for(mode)</code>。</div>
+      </div>
+
+      <div class="sec">
+        <h2>3. 测试侧的对应类型</h2>
+        <div class="signature">// runtime/tests/support/corpus.rs（测试专用，不进 src）
+pub struct WakeGroup {
+    pub id: String,            // w01
+    pub phrase: String,        // 小迪小迪
+    pub confusable: String,    // 小提小提
+    pub tier: ConfusableTier,  // T1 声母 | T2 韵母 | T3 声调 | T4 音节替换
+    pub owner: SpeakerId,
+    pub samples: Vec&lt;CorpusSample&gt;,   // 从文件名解析
+}
+
+pub struct CorpusSample {
+    pub path: PathBuf,
+    pub group: String, pub speaker: SpeakerId,
+    pub role: Role,            // Enroll | Positive | Impostor | Confusable
+    pub style: String,         // 对应 prompt_id
+}
+
+pub struct Condition {           // 一次增广组合
+    pub speed: f32,              // 0.9 / 1.0 / 1.1
+    pub snr_db: Option&lt;f32&gt;,     // None(clean) / 20 / 10 / 5
+    pub noise_class: Option&lt;NoiseClass&gt;,
+    pub gain_db: f32,            // -6 / 0 / +6
+}</div>
+        <table>
+          <tr><th style="width:230px">测试类型</th><th>映射到生产类型</th></tr>
+          <tr><td><code>CorpusSample{role: Enroll}</code></td><td>→ <code>RecordingSample</code>，进 <code>EvokeSetupInput.samples</code></td></tr>
+          <tr><td><code>CorpusSample{role: Positive/Impostor/Confusable}</code></td><td>→ 切成 <code>AudioFrame</code> 序列，喂 <code>ScoringSystem::push_frame</code></td></tr>
+          <tr><td><code>Condition</code></td><td>→ 只作用于测试侧增广，不进生产代码</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>改动量评估</h3><ul>
+        <li><code>types.rs</code> +2 结构 +1 方法</li>
+        <li><code>processor.rs</code> 4 个实现各改签名，逻辑不动</li>
+        <li>调用方（commands / settings）跟随改一处构造</li>
+        <li>现有单测不受影响</li>
+      </ul></div>
+      <div class="card"><h3>兼容性</h3><p>序列化字段名保持 camelCase，<code>recordingPaths</code> → <code>samples</code> 属于破坏性改动，但 UI 尚未接线，此时改成本最低。</p></div>
+      <div class="card"><h3>验收</h3><p>E2E 里四个模式共用同一个 <code>run_setup(group, mode)</code> 函数且不出现任何 <code>match mode</code>，即视为 Schema 统一达成。</p></div>
+    </aside>
+  </section>
+
+  <!-- ============================ E2E 流程 ============================ -->
+  <section class="pane" id="pane-flow">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 阶段 A：Setup（复刻真实录入流程）</h2>
+        <div class="row">
+          <div class="node data"><strong>WakeGroup</strong><span>phrase + enroll 素材</span></div><div class="arrow">→</div>
+          <div class="node test"><strong>选样</strong><span>按 plan.prompts 取 0/3/6 条</span></div><div class="arrow">→</div>
+          <div class="node test"><strong>增广</strong><span>Condition 作用于 enroll</span></div><div class="arrow">→</div>
+          <div class="node service"><strong>recording_quality()</strong><span>生产代码，逐条准入</span></div>
+        </div>
+        <div class="arrow down">→</div>
+        <div class="row">
+          <div class="node service"><strong>EvokeSetupInput::validate()</strong><span>条数 / phrase / 质量</span></div><div class="arrow">→</div>
+          <div class="node trait"><strong>processor_for(mode).process()</strong><span>生产代码，四实现</span></div><div class="arrow">→</div>
+          <div class="node data"><strong>EvokeProfile</strong><span>artifact + threshold</span></div>
+        </div>
+        <div class="bar"><strong>断言点：</strong>①质量拒绝率符合预期（故意注入过小/削波样本要被拒）②<code>process()</code> 成功产出 profile ③<code>threshold</code> 落在各模式的 clamp 区间内 ④相同输入两次运行产出同一 threshold（确定性）</div>
+      </div>
+
+      <div class="sec">
+        <h2>2. 阶段 B：Detect（复刻真实打分流程）</h2>
+        <div class="row">
+          <div class="node data"><strong>测试样本</strong><span>pos / imp / cfz / 噪声流</span></div><div class="arrow">→</div>
+          <div class="node test"><strong>切帧</strong><span>100 ms → AudioFrame</span></div><div class="arrow">→</div>
+          <div class="node runtime"><strong>KWS 命中信号</strong><span>evoke_model 关键词流</span></div><div class="arrow">→</div>
+          <div class="node service"><strong>ScoringSystem::push_frame()</strong><span>生产代码</span></div>
+        </div>
+        <div class="arrow down">→</div>
+        <div class="row">
+          <div class="node service"><strong>preview()</strong><span>逐帧预览分（HUD 用）</span></div>
+          <div class="arrow">+</div>
+          <div class="node service"><strong>evaluate_candidate()</strong><span>命中后的终判</span></div><div class="arrow">→</div>
+          <div class="node data"><strong>EvokeScore</strong><span>overall / threshold / accepted</span></div><div class="arrow">→</div>
+          <div class="node test"><strong>混淆矩阵累加</strong><span>TP / FN / FP / TN</span></div>
+        </div>
+        <div class="bar good"><strong>关键：</strong>测试<strong>不直接调用</strong> <code>dtw_similarity</code> / <code>classifier_score</code> / <code>speaker_similarity</code>，一律通过 <code>ScoringSystem</code> 走完整链路，确保测的是真实判定路径而不是算法片段。</div>
+      </div>
+
+      <div class="sec">
+        <h2>3. 阶段 C：度量与报告</h2>
+        <table>
+          <tr><th style="width:150px">输出</th><th style="width:190px">路径</th><th>内容</th></tr>
+          <tr><td>逐样本明细</td><td><code>reports/latest/samples.jsonl</code></td><td>group / mode / condition / role / overall / threshold / accepted，可用于事后切片分析</td></tr>
+          <tr><td>汇总矩阵</td><td><code>reports/latest/summary.json</code></td><td>每个 (mode × condition) 的 TPR / FRR / FAR-impostor / FAR-confusable（按 T1–T4 分档）/ FA-per-hour</td></tr>
+          <tr><td>阈值曲线</td><td><code>reports/latest/roc.json</code></td><td>sensitivity 0.0→1.0 步进 0.05 的 TPR-FAR 点集与 EER</td></tr>
+          <tr><td>人读摘要</td><td><code>reports/latest/README.md</code></td><td>红绿灯表：哪些 (mode × condition) 未达基线</td></tr>
+          <tr><td>历史归档</td><td><code>reports/history/&lt;时间戳&gt;/</code></td><td>用于回归对比，检测算法改动引入的退化</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>4. 测试的组织与运行</h2>
+        <div class="signature">runtime/tests/
+├─ evoke_e2e.rs              # 入口：四个 #[test]，每个模式一个，可独立运行
+└─ support/
+    ├─ mod.rs
+    ├─ corpus.rs             # 扫描 assets/corpus，解析文件名 → WakeGroup
+    ├─ augment.rs            # 变速 / 混噪 / 增益，复用 features::read_wav_16k
+    ├─ harness.rs            # run_setup() / run_detect()，四模式共用
+    ├─ metrics.rs            # 混淆矩阵、TPR/FAR、ROC、EER
+    └─ report.rs             # jsonl / json / markdown 输出
+
+# 单模式独立运行
+cargo test -p dictatingme-runtime --test evoke_e2e text_mode        -- --ignored --nocapture
+cargo test -p dictatingme-runtime --test evoke_e2e voice_match_mode -- --ignored --nocapture
+cargo test -p dictatingme-runtime --test evoke_e2e speaker_verify_mode -- --ignored --nocapture
+cargo test -p dictatingme-runtime --test evoke_e2e classifier_mode  -- --ignored --nocapture
+
+# 全量（四模式一次跑完 + 生成报告）
+cargo test -p dictatingme-runtime --test evoke_e2e -- --ignored --nocapture</div>
+        <table>
+          <tr><th style="width:180px">机制</th><th>做法</th></tr>
+          <tr><td>默认不跑</td><td>四个用例都标 <code>#[ignore]</code>，常规 <code>cargo test</code> 不受影响（单次全量预计 5–15 分钟）</td></tr>
+          <tr><td>缺素材时 skip</td><td>启动先探测 <code>assets/corpus</code> 与所需模型；缺失时打印引导语「请先运行 download-assets.cmd」并 <code>return</code>，不 panic</td></tr>
+          <tr><td>可裁剪规模</td><td>环境变量 <code>DM_E2E_GROUPS=w01,w05</code> / <code>DM_E2E_CONDITIONS=clean,snr10</code> 用于快速迭代</td></tr>
+          <tr><td>确定性</td><td>增广随机数用固定种子（<code>DM_E2E_SEED</code>，默认 20260727），保证两次运行结果一致</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>为什么分 A/B 两阶段</h3><p>Setup 与 Detect 的失败原因完全不同：前者是素材/门禁/训练问题，后者是阈值/特征/噪声问题。分开断言才能在报告里直接定位。</p></div>
+      <div class="card"><h3>KWS 命中信号怎么来</h3><p>四个模式的 <code>overall</code> 都依赖 <code>phrase_score</code>。测试用 <code>keyword_syntax_for_model()</code> 生成关键词后，跑真实 KWS 流拿命中时刻，而不是硬编码 <code>keyword_hit=true</code>——否则 Text 模式等于没测。</p></div>
+      <div class="card"><h3>耗时预估</h3><ul>
+        <li>Text ≈ 1 min</li>
+        <li>VoiceMatch ≈ 2 min</li>
+        <li>SpeakerVerify ≈ 4 min（含声纹推理）</li>
+        <li>Classifier ≈ 6 min（含训练）</li>
+        <li>FA/h 长跑 ≈ 3 min</li>
+      </ul></div>
+    </aside>
+  </section>
+
+  <!-- ============================ 测试矩阵 ============================ -->
+  <section class="pane" id="pane-matrix">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 条件维度</h2>
+        <table>
+          <tr><th style="width:110px">维度</th><th style="width:230px">取值</th><th>为什么要测</th></tr>
+          <tr><td><strong>语速</strong></td><td>0.9x / 1.0x / 1.1x</td><td>DTW 模板对时长敏感；<code>resample_sequence</code> 归一化到 64 帧后是否还稳</td></tr>
+          <tr><td><strong>信噪比</strong></td><td>clean / 20 dB / 10 dB / 5 dB</td><td>Classifier 的负样本就是噪声，必须验证它没有把"有噪声"学成"不是唤醒词"</td></tr>
+          <tr><td><strong>噪声类别</strong></td><td>crowd / traffic / office / machinery / home</td><td>人声类噪声（babble）对声纹与 KWS 的干扰远大于稳态噪声</td></tr>
+          <tr><td><strong>增益</strong></td><td>-6 dB / 0 dB / +6 dB（+6 触发轻微削波）</td><td>验证 <code>recording_quality()</code> 的 rms / clipping 门禁是否合理</td></tr>
+          <tr><td><strong>灵敏度</strong></td><td>0.0 → 1.0 步进 0.05</td><td>出 ROC 曲线与 EER，回答"默认 0.65 是不是好值"</td></tr>
+        </table>
+        <div class="bar warn"><strong>组合爆炸控制：</strong>全笛卡尔积是 3×4×5×3 = 180 种条件 × 4 模式 × 20 组 × 14 条 ≈ 20 万次推理，不可接受。采用<strong>分层抽样</strong>：核心条件全跑，边缘条件按组抽样。</div>
+      </div>
+
+      <div class="sec">
+        <h2>2. 分层条件集</h2>
+        <table>
+          <tr><th style="width:120px">层级</th><th style="width:250px">条件组合</th><th style="width:80px">分组覆盖</th><th style="width:80px">样本量</th><th>用途</th></tr>
+          <tr><td><strong>L0 基线</strong></td><td>clean · 1.0x · 0 dB</td><td>20 / 20</td><td>280</td><td>每次提交都跑，最快的回归门</td></tr>
+          <tr><td><strong>L1 核心</strong></td><td>{clean, snr20, snr10} × {0.9x, 1.0x, 1.1x}，噪声取 crowd</td><td>20 / 20</td><td>2520</td><td>主报告数据源，出 TPR/FAR 表</td></tr>
+          <tr><td><strong>L2 噪声谱</strong></td><td>snr10 × 5 类噪声 × 1.0x</td><td>8 / 20</td><td>560</td><td>找出哪类噪声最致命；8 组需覆盖全部 4 个对立类型</td></tr>
+          <tr><td><strong>L3 极限</strong></td><td>snr5 · {0.9x,1.1x} · {-6dB,+6dB}</td><td>4 / 20</td><td>224</td><td>退化曲线尾部，允许不达标但要有数；4 组按 T1/T2/T3/T4 各取一组</td></tr>
+          <tr><td><strong>L4 阈值扫描</strong></td><td>L1 数据集 × sensitivity 21 档</td><td>20 / 20</td><td>复用</td><td>ROC / EER，不重新推理，缓存 <code>overall</code> 后离线扫阈值</td></tr>
+          <tr><td><strong>L5 长跑</strong></td><td>freespeech 8–10 min × 5 类噪声</td><td>—</td><td>50 min 音频</td><td>FA/h，唯一能回答"放着不动会不会乱唤醒"</td></tr>
+        </table>
+        <div class="bar good"><strong>L4 的技巧：</strong><code>threshold</code> 只在最后一步与 <code>overall</code> 比较，所以扫描灵敏度不需要重跑推理——把 L1 的 <code>overall</code> 全量落盘，离线扫 21 档阈值，成本接近 0。</div>
+      </div>
+
+      <div class="sec">
+        <h2>3. 模式 × 层级的执行范围</h2>
+        <table>
+          <tr><th style="width:130px">模式</th><th style="width:56px">L0</th><th style="width:56px">L1</th><th style="width:56px">L2</th><th style="width:56px">L3</th><th style="width:56px">L4</th><th style="width:56px">L5</th><th>特别关注</th></tr>
+          <tr><td><strong>Text</strong></td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td>impostor 必然通过（预期），断言的是"不比 confusable 差"</td></tr>
+          <tr><td><strong>VoiceMatch</strong></td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td>变速维度权重最高，DTW 抗时长形变能力</td></tr>
+          <tr><td><strong>SpeakerVerify</strong></td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="change">抽样</td><td class="keep">✓</td><td class="keep">✓</td><td>同性别 impostor 单列一张表，这是它的生死线</td></tr>
+          <tr><td><strong>Classifier</strong></td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td class="keep">✓</td><td>训练用过的噪声 vs 没用过的噪声要分开统计（防过拟合）</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>4. 报告主表长什么样</h2>
+        <div class="signature">mode=speakerVerify   groups=20   seed=20260727   assets=manifest@sha:1f3a…
+
+condition          N     TPR     FRR    FAR-imp(同性)  FAR-imp(异性)  FAR-cfz(T1/T2)  FAR-cfz(T3/T4)  基线
+clean  1.0x      80    0.96    0.04         0.09           0.02          0.24            0.08         PASS
+snr20  1.0x      80    0.94    0.06         0.12           0.03          0.31            0.11         WARN  (FAR-imp 0.12 > 0.10)
+snr10  1.0x      80    0.87    0.13         0.18           0.05          0.46            0.19         FAIL  (T1/T2 0.46 > 0.40)
+snr10  0.9x      80    0.84    0.16         0.19           0.06          0.49            0.22         FAIL
+…
+按类型细分（clean）: T1=0.29  T2=0.21  T3=0.12  T4=0.05
+FA/h (freespeech+crowd, 50 min)  ->  0.4 次/小时                                            PASS
+EER = 0.113 @ sensitivity 0.58   (默认 0.65 偏松，建议下调)</div>
+        <div class="bar">T1/T2 与 T3/T4 分列是硬性要求：合并成单一 FAR-cfz 会让 T4 的 0.05 把 T1 的 0.29 拉平到 0.15 左右，看上去「没问题」，实际上模型在最难的声母对立上已经一半失守。</div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>样本量够不够</h3><p>L1 每个 (mode×condition) 有 80 个正样本、40 个 impostor。TPR 0.9 时 95% 置信区间约 ±0.07，足够做"能不能用"的判断，不足以做"0.90 vs 0.92 谁更好"的比较。</p></div>
+      <div class="card"><h3>失败即数据</h3><p>L3/L5 允许 FAIL。目标不是全绿，而是拿到<strong>退化曲线</strong>：知道 SNR 降到多少、语速偏到多少就不能用了。</p></div>
+      <div class="card"><h3>回归对比</h3><p>每次运行与 <code>reports/history/</code> 最近一次对比，任一 (mode×L1条件) 的 TPR 下降超过 0.05 或 FAR 上升超过 0.05 即标红。</p></div>
+    </aside>
+  </section>
+
+  <!-- ============================ 落地计划 ============================ -->
+  <section class="pane" id="pane-deliver">
+    <div class="canvas">
+      <div class="sec">
+        <h2>1. 里程碑</h2>
+        <table>
+          <tr><th style="width:56px">阶段</th><th style="width:210px">交付物</th><th>验收标准</th><th style="width:80px">预估</th></tr>
+          <tr><td><strong>M1</strong></td><td>assets 目录重构 + manifest v2</td><td><code>assets-manifest.json</code> 完整描述 models/noise/20 组配方；<code>.gitignore</code> 收紧；<code>asset_manager.rs</code> 的 <code>include_bytes!</code> 路径同步更新且 <code>cargo build</code> 通过</td><td>0.5 天</td></tr>
+          <tr><td><strong>M2</strong></td><td>download-assets 三段式重写</td><td>空目录执行 <code>download-assets.cmd</code> 后，models/noise 齐备且校验通过；二次执行为幂等（全部命中"已验证"）</td><td>1 天</td></tr>
+          <tr><td><strong>M3</strong></td><td>TTS 语料生成</td><td><code>assets/corpus</code> 下生成 20 组 × 14 条 = 280 个 5 s / 16 kHz wav；抽听 10 条人耳可辨识唤醒词；<strong>逐组人耳复核对立词与唤醒词确实可分辨</strong>（同音同调即判定该组配方无效）</td><td>1 天</td></tr>
+          <tr><td><strong>M4</strong></td><td>EvokeSetupInput 统一 Schema</td><td><code>RecordingSample</code> / <code>validate()</code> / <code>plan()</code> 落地；四个 processor 改造完成；既有单测全绿</td><td>0.5 天</td></tr>
+          <tr><td><strong>M5</strong></td><td>E2E harness + 四个用例</td><td>四条 <code>cargo test</code> 命令各自独立可跑；缺素材时优雅 skip；输出 summary.json 与 README.md</td><td>2 天</td></tr>
+          <tr><td><strong>M6</strong></td><td>首轮基线与调优建议</td><td>产出 L0–L5 完整报告；回填各模式实测基线；给出 sensitivity 默认值与各模式 threshold clamp 区间的调整建议</td><td>1 天</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>2. 文件改动清单</h2>
+        <table>
+          <tr><th style="width:330px">路径</th><th style="width:70px">动作</th><th>说明</th></tr>
+          <tr><td><code>assets/assets-manifest.json</code></td><td class="new">新增</td><td><strong>测试语料</strong>清单：唤醒词配方 / 噪声 / TTS 模型的下载源与相对路径；与 <code>manifest-cn.json</code> 并存不合并</td></tr>
+          <tr><td><code>assets/download-assets.ps1</code></td><td class="change">重写</td><td>改为读 manifest 驱动；新增 TTS 合成阶段</td></tr>
+          <tr><td><code>assets/README.md</code></td><td class="new">新增</td><td>目录含义、许可出处、如何加入真人录音</td></tr>
+          <tr><td><code>.gitignore</code></td><td class="change">收紧</td><td><code>/assets/**</code> + 白名单</td></tr>
+          <tr><td><code>runtime/src/storage/asset_manager.rs</code></td><td class="change">改路径</td><td>4 处 <code>include_bytes!</code> 由 <code>assets/preset/</code> → <code>assets/models/evoke-kws/</code></td></tr>
+          <tr><td><code>runtime/src/evoke_setup/types.rs</code></td><td class="change">扩展</td><td><code>RecordingSample</code> / <code>EvokeSetupInput</code> / <code>validate()</code></td></tr>
+          <tr><td><code>runtime/src/evoke_setup/processor.rs</code></td><td class="change">改签名</td><td>四实现接 <code>EvokeSetupInput</code>，新增 <code>plan()</code></td></tr>
+          <tr><td><code>runtime/tests/evoke_e2e.rs</code></td><td class="new">新增</td><td>四个 <code>#[ignore]</code> 用例</td></tr>
+          <tr><td><code>runtime/tests/support/*.rs</code></td><td class="new">新增</td><td>corpus / augment / harness / metrics / report</td></tr>
+          <tr><td><code>brainstrom/plan.md</code></td><td class="change">补记</td><td>「附：配套文件」增加本文件索引 + 决策日志追加一条</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>3. 依赖与前置</h2>
+        <table>
+          <tr><th style="width:210px">依赖</th><th>用途</th><th style="width:110px">获取</th></tr>
+          <tr><td>vits-zh-aishell3 模型</td><td>合成 280 条唤醒词语料</td><td>已实测可下</td></tr>
+          <tr><td>sherpa-onnx TTS 可执行体</td><td>命令行批量合成</td><td>release 内置，或用 crate 内 API 写个 <code>xtask</code></td></tr>
+          <tr><td>MS-SNSD noise_train/test</td><td>30 条底噪</td><td>已实测可下</td></tr>
+          <tr><td>3dspeaker campplus</td><td>SpeakerVerify 推理</td><td>已在 manifest-cn.json 中</td></tr>
+          <tr><td>KWS zipformer</td><td>关键词命中信号</td><td>已有</td></tr>
+        </table>
+        <div class="bar"><strong>决策点（需确认）：</strong>TTS 合成用「下载 sherpa-onnx 官方 CLI 可执行体」还是「在 workspace 里加一个 <code>xtask</code> crate 调 sherpa-onnx Rust API」。后者无额外二进制依赖、跨平台更干净，但要多写约 150 行代码。</div>
+      </div>
+
+      <div class="sec">
+        <h2>4. 风险</h2>
+        <table>
+          <tr><th style="width:44px">#</th><th style="width:230px">风险</th><th>缓解</th></tr>
+          <tr><td>R1</td><td>TTS 语音的声纹一致性过高，SpeakerVerify 指标虚高</td><td>注册与测试样本使用不同语速/增益/噪声；报告中显式标注"合成偏差"；M6 用少量真人录音校准</td></tr>
+          <tr><td>R2</td><td>TTS 无法产出"远场/小声"这类真实录制风格</td><td>用增益衰减 + 混响近似（可选加简单 RIR 卷积）；标注为近似条件</td></tr>
+          <tr><td>R3</td><td><code>include_bytes!</code> 路径改动导致编译中断</td><td>M1 单独一个提交，只做目录迁移与路径同步，先保证 <code>cargo build</code> 绿</td></tr>
+          <tr><td>R4</td><td>全量 E2E 太慢，没人愿意跑</td><td>L0 层控制在 1 分钟内作为日常门；全量走 <code>cargo test … -- --ignored</code> 按需跑，不额外造脚本</td></tr>
+          <tr><td>R5</td><td>素材下载源失效（GitHub / hf-mirror 波动）</td><td>manifest 多镜像 + <code>gh release download</code> 回退；校验失败只重下失败项</td></tr>
+          <tr><td>R6</td><td>Classifier 负样本用的噪声与测试噪声同源 → 过拟合看不出来</td><td>严格划分：<code>noise_train/*</code> 只进训练，<code>noise_test/*</code> 只进测试，报告分列两栏</td></tr>
+        </table>
+      </div>
+
+      <div class="sec">
+        <h2>5. 需要你拍板的三件事</h2>
+        <table>
+          <tr><th style="width:44px">#</th><th style="width:220px">议题</th><th>选项</th></tr>
+          <tr><td>D1</td><td>TTS 合成的实现形态</td><td>(a) 下载官方 CLI 可执行体，脚本调用 &nbsp;|&nbsp; (b) workspace 加 <code>xtask</code> crate 用 Rust API 合成（推荐）</td></tr>
+          <tr><td>D2</td><td>素材是否落盘 derived/</td><td>(a) 只在内存增广，省 370 MB（推荐） &nbsp;|&nbsp; (b) 全量落盘，便于人工试听排查</td></tr>
+          <tr><td>D3</td><td>是否现在就改 Schema</td><td>(a) M4 一并改，四模式彻底统一（推荐） &nbsp;|&nbsp; (b) 保持 <code>ProcessInput</code> 不动，测试侧自己 match mode</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card"><h3>总工期</h3><p>约 <strong>6 个工作日</strong>，可按 M1→M2→M3 / M4 并行拆分。M1–M3 是素材基础设施，M4–M6 是测试本体。</p></div>
+      <div class="card"><h3>最小可用切片</h3><p>如果只想先看到结果：M1 + M2 + M3（只做 5 组唤醒词）+ M5（只做 Text 与 SpeakerVerify），约 2.5 天即可拿到第一份 TPR/FAR 表。</p></div>
+      <div class="card"><h3>后续可扩展</h3><ul>
+        <li>真人录音接入同一目录结构，零测试代码改动</li>
+        <li>接 CI：L0 层作为 PR 门禁</li>
+        <li>指标进 <code>reports/history</code> 后可画长期趋势</li>
+      </ul></div>
+    </aside>
+  </section>
+
+  <footer>
+    DictatingMe · Evoke E2E Test Plan ·
+    <a href="./architecture-evoke-setup.html">唤醒设置架构图</a> /
+    <a href="./interface-evoke-setup.html">唤醒设置接口图</a> /
+    <a href="./interface-storage.html">Storage 接口图</a> /
+    <a href="./plan.md">Plan</a>
+  </footer>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const panes = document.querySelectorAll('.pane');
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      tabs.forEach(item => item.classList.remove('active'));
+      panes.forEach(item => item.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('pane-' + tab.dataset.pane).classList.add('active');
+    }));
+  </script>
+</body>
+</html>

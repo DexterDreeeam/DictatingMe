@@ -535,3 +535,4 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 - `interface-evoke-setup.html` —— **待评审 Evoke 接口图**：SettingsHandle 公共面、Processor/Verifier、Commands 与零 Runtime 直连
 - `architecture-storage.html` —— **待评审 Storage 流程图**：模块、Asset 安装、引用/清理、Runtime 边界与恢复
 - `interface-storage.html` —— **待评审 Storage 接口图**：SettingsSnapshot、Asset/Content、Commands 与三方法 RuntimeDataPort
+- `evoke-e2e-test.html` —— **待评审 唤醒 E2E 测试计划**：assets 一级/二级目录与 manifest、素材下载与合成、统一 Setup 输入 Schema、四模式独立集成测试与准确率/误识别率矩阵
