@@ -221,14 +221,14 @@
     <div class="card">
       <h3>🧩 关键约束</h3>
       <ul>
-        <li><b>Windows 完整性级别</b>：DictatingMe 整体以管理员权限运行，使 Ctrl+V 文本注入和全局 dismiss 监听可覆盖管理员前台窗口</li>
+        <li><b>Windows 完整性级别</b>：DictatingMe 整体以管理员权限运行，使 Unicode 键盘注入和全局 dismiss 监听可覆盖管理员前台窗口</li>
         <li><b>启动初态</b>：Runtime 启动后进入 Configure 并首先显示 MainWindow；用户点击播放后进入后台 Listening</li>
         <li><b>MainWindow ⇄ HudWindow 互斥</b>：由 Window Manager 依据 State Machine 广播的状态切换，同一时刻只有一个可见</li>
         <li><b>因果链</b>：EvokeModel 检测到唤醒词 → State Machine → 才触发 DictationModel 加载（① → ②）→ 同时才允许 Audio Ring Buffer 开始缓冲（③）。三者都不会在唤醒词检测之前发生，Audio Capture 本身持续采集麦克风音频，但只有 State Machine 授权后音频才会被写入缓冲区</li>
         <li>点击托盘图标 = 向 State Machine 发出"打开 MainWindow 请求"，效果等价于一次 dismiss</li>
         <li>MainWindow 标题栏播放按钮（进入后台运行）= 向 State Machine 发出"关闭 MainWindow"，回到 Listening；电源按钮 = 直接终止 Runtime 进程，不经过 State Machine，与托盘"退出"走同一路径</li>
         <li>EvokeModel 与 DictationModel 互斥运行：前者仅 Listening 态激活，后者仅 Loading/Dictating 态激活</li>
-        <li>Streaming Output 把新增后缀写入剪贴板，再发送 Ctrl+V 粘贴；只追加不回退</li>
+        <li>Streaming Output 通过 SendInput 直接发送新增后缀的 Unicode 键盘事件，不读写剪贴板；只追加不回退</li>
         <li>Runtime 与 UI 同进程（Tauri），无需跨进程 IPC</li>
       </ul>
     </div>
@@ -337,7 +337,7 @@
         <div class="tl-content">
           <span class="tl-tag tag-voice-on">Dictating · 循环</span>
           <div class="tl-title">流式识别 → 增量打字</div>
-          <div class="tl-desc">DictationModel 产出当前完整识别文本 → Text Diff 对比上一次结果，仅取新增后缀 → Text Injector 写入剪贴板并发送 Ctrl+V 到当前系统焦点（不做回退修正）</div>
+          <div class="tl-desc">DictationModel 产出当前完整识别文本 → Text Diff 对比上一次结果，仅取新增后缀 → Text Injector 发送 Unicode 键盘事件到当前系统焦点（不读写剪贴板、不做回退修正）</div>
         </div>
       </div>
 
@@ -562,7 +562,7 @@
     // OS 边界
     cc.connect('n-kbd', 'top', 'n-mon', 'bottom', {});
     cc.connect('n-mic', 'top', 'n-ac', 'bottom', {});
-    cc.connect('n-out', 'bottom', 'n-focus', 'top', { label: '剪贴板粘贴' });
+    cc.connect('n-out', 'bottom', 'n-focus', 'top', { label: 'Unicode 键盘输入' });
   }
 
   function renderStateDiagram() {

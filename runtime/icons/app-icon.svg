@@ -15,7 +15,7 @@
       />
     </mask>
   </defs>
-  <g transform="translate(256 256) scale(1.16) translate(-256 -256)">
+  <g transform="translate(256 256) scale(1.32) translate(-256 -256)">
     <g fill="none" stroke="#7a7e86" stroke-linecap="round">
       <circle cx="256" cy="256" r="154" stroke-width="22" opacity=".92"/>
       <path d="M256 72A184 184 0 0 1 440 256" stroke-width="14" opacity=".62"/>

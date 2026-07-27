@@ -1,8 +1,12 @@
-# DictatingMe 设计方案（Brainstorm v1.18）
+# DictatingMe 设计方案（Brainstorm v1.19）
 
 > 状态：v0.2 已实现并生成 NSIS 安装包。四份 architecture/interface 文档继续作为模块边界和后续重构方向；实际代码保留少量兼容接口以维持既有运行链路。
 
 ## 修订记录
+
+**v1.19（v0.2 实现）**：
+1. **流式输出不再污染剪贴板**：Text Injector 使用 Windows `SendInput + KEYEVENTF_UNICODE` 直接发送 UTF-16 键盘事件，不再写入剪贴板或发送 `Ctrl+V`。
+2. **保持管理员窗口支持**：DictatingMe 继续以 High 完整性运行，可向普通和管理员前台窗口注入；UIPI 仍会阻止向更高完整性、SYSTEM 进程或安全桌面注入。
 
 **v1.18（v0.2 实现）**：
 1. **受管 AppData 已落地**：SQLite、模型、训练资源、Profile、录入样本与 History 使用 `%LOCALAPPDATA%\DictatingMe`；全部资源位于 `assets\`，下载暂存和回收目录为 `assets\.staging` / `assets\.trash`。preset/目录清单编译进 EXE 并在首次运行释放到该目录，Program Files 不保存模型，覆盖安装不删除用户数据。
@@ -70,7 +74,7 @@
 
 **v1.8**：
 1. **Windows 进程整体提升为管理员权限**：DictatingMe 每次启动请求 UAC，以 High 完整性运行 Runtime、WebView、全局输入监听和文本注入。
-2. **覆盖管理员前台窗口**：与管理员应用处于相同完整性级别后，剪贴板 + `Ctrl+V` 可以作用于当前前台焦点控件，全局键鼠监听也可以在该窗口中触发 dismiss。
+2. **覆盖管理员前台窗口**：与管理员应用处于相同完整性级别后，Unicode 键盘注入可以作用于当前前台焦点控件，全局键鼠监听也可以在该窗口中触发 dismiss。
 3. **明确安全取舍**：整体提权扩大了应用权限范围，因此 WebView 仅加载本地/开发源，Tauri 使用受限 CSP；不加载任意远程页面或执行外部脚本。
 
 **v1.7**：
@@ -119,7 +123,7 @@
 **DictatingMe（DM）** 是一款常驻后台的语音听写工具，交互模式类似"智能音箱"：
 
 1. 软件持续监听麦克风，等待用户说出**唤醒词**；
-2. 唤醒后，软件开始**流式**将用户语音转换为文字，并通过剪贴板 + `Ctrl+V` 把新增内容实时粘贴到当前屏幕焦点所在的输入框；
+2. 唤醒后，软件开始**流式**将用户语音转换为文字，并通过 Unicode 键盘事件把新增内容实时输入到当前屏幕焦点所在的输入框；
 3. 用户做出任意键盘/鼠标操作即视为结束本次听写（dismiss），软件自动收尾并回到监听状态。
 
 核心设计原则：
@@ -179,7 +183,7 @@ Runtime 是 DM 的核心，承担：
 
 **关键生命周期事实**：Runtime 与 SystemTray 共生共灭；MainWindow / HudWindow 都是 Runtime 派生的"访客窗口"，二者互斥显示，均可被显示/隐藏，不影响 Runtime 主循环本身。软件**不做开机自启动**；通过托盘菜单“退出”或 MainWindow 电源按钮才终止整个 Runtime 进程。MainWindow 播放按钮、窗口关闭请求都只进入后台运行。
 
-**权限事实**：Windows UIPI 不允许 Medium 完整性进程向 High 完整性窗口发送 `Ctrl+V`，也不允许低完整性钩子完整观察高完整性窗口输入。因此 v1 的整个 DictatingMe 进程通过 `requireAdministrator` manifest 和开发启动脚本提升到 High 完整性。
+**权限事实**：Windows UIPI 不允许 Medium 完整性进程向 High 完整性窗口发送模拟键盘事件，也不允许低完整性钩子完整观察高完整性窗口输入。因此 v1 的整个 DictatingMe 进程通过 `requireAdministrator` manifest 和开发启动脚本提升到 High 完整性。
 
 ---
 
@@ -238,7 +242,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | **EvokePipeline** | 读取 active EvokeProfile，组合基础 KWS 与模式 verifier；仅在 Listening 激活，输出统一 `EvokeDecision` |
 | **EvokeSetupService** | Configure 内管理 begin/capture/finish/cancel，会从 Processor Registry 选择四种模式共用 trait 的实现 |
 | **DictationModel Engine** | 通过 active DictationModel asset lease 加载本地 ONNX；**仅由 State Machine 在收到 EvokePipeline 接受结果后触发加载** |
-| **Streaming Output** | 由 Text Diff + Text Injector 组成：比较完整识别假设，只把新增后缀写入剪贴板并通过 `Ctrl+V` 粘贴到当前焦点，不做回退 |
+| **Streaming Output** | 由 Text Diff + Text Injector 组成：比较完整识别假设，只把新增后缀转换为 Unicode 键盘事件发送到当前焦点，不读写剪贴板、不做回退 |
 | **Global Input Monitor** | 全局监听键盘/鼠标事件，用于识别 dismiss 信号 |
 | **SettingsHandle / SettingsCoordinator** | MainWindow 设置命令的独立 Actor；串行执行 mutation，生成 SettingsSnapshot/readiness；不经过 RuntimeHandle |
 | **ManagedStorage** | Settings Plane 内组合 Database、ContentStorage、AssetManager、Profile/Setup/History/Config Store；RuntimeCore 不直接持有 |
@@ -364,11 +368,11 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 
 ## 8. 关键机制细节
 
-### 8.1 流式文字注入（剪贴板粘贴、无回退修正）
+### 8.1 流式文字注入（Unicode 键盘事件、无回退修正）
 
 - `DictationModel` 每次产出的是"当前完整识别文本"（而非单纯 delta），`Text Diff Engine` 对比上一次完整文本，只取**新增的后缀部分**
-- 每个新增后缀写入系统剪贴板，再通过 Windows `SendInput` 发送 `Ctrl+V` 到当前焦点；剪贴板内容会更新为最近一次注入文本
-- `Ctrl+V` 输入携带应用私有标记，Global Input Monitor 不会把 DM 自己的粘贴快捷键识别为 dismiss
+- 每个新增后缀编码为 UTF-16，通过 Windows `SendInput + KEYEVENTF_UNICODE` 直接发送到当前焦点；不会读取、覆盖或写入系统剪贴板历史
+- Unicode 键盘事件携带应用私有标记，Global Input Monitor 不会把 DM 自己的注入识别为 dismiss
 - **不做修正回退**：如果模型后续修正了之前的识别结果（流式 ASR 常见现象），DM 不会退格重打，只会继续追加新内容——这是刻意的简化取舍，避免在任意应用中做"选中删除重打"带来的光标/焦点风险
 - **无条件发送到当前操作系统焦点控件**，不做密码框等敏感控件的识别与保护（v1 明确排除，见 Future Work）
 - 其他真实或外部注入的键鼠事件仍按 dismiss 处理
@@ -437,7 +441,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | # | 风险/问题 | 说明 |
 | --- | --- | --- |
 | 1 | 本地 ONNX ASR 的推理性能 | 本地部署对 CPU/内存有一定要求，需要持续实测模型加载耗时、实时率和流式转写延迟 |
-| 2 | `Ctrl+V` 在部分应用中可能被拦截 | 剪贴板写入不等于跨权限输入；普通权限进程向管理员窗口发送 `Ctrl+V` 仍可能被 UIPI 拦截，部分游戏/安全软件也可能拦截 |
+| 2 | Unicode 模拟输入在部分应用中可能被拦截 | `KEYEVENTF_UNICODE` 依赖目标控件接受 `VK_PACKET`；部分游戏、自绘控件和安全软件可能忽略，UIPI 也会阻止向更高完整性或安全桌面注入 |
 | 3 | 全局键鼠监听的实现方式与权限 | Windows 上通常用低级钩子（`SetWindowsHookEx`）或 Raw Input；需评估杀毒软件/安全软件的误报风险 |
 | 4 | `Unloading` 的 HUD 过渡视觉 | 颜色语义已明确（黄=可唤醒/绿=记录输入/灰=无响应），Loading 已定为绿灯；`Unloading` 具体是瞬时熄灭还是有渐隐动画，细节留待下一轮 UI 细化 |
 | 5 | 流式识别"仅追加不回退"的体验影响 | 需要在实际使用中验证：千问 ASR 流式输出的 partial 结果修正频率是否会导致明显的"错字堆积"现象 |
@@ -456,7 +460,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | --- | --- | --- |
 | 1 | 技术栈 | Runtime: Rust；UI: Tauri（同进程） |
 | 2 | DictationModel 部署 | 本地 ONNX 模型（非云端 API），离线可用 |
-| 3 | 流式输出机制 | ~~逐字符模拟键盘输入且不用剪贴板~~ → **v1.7 修正**：剪贴板写入 + `Ctrl+V`，仍保持纯追加、不做修正回退（见 #40） |
+| 3 | 流式输出机制 | **v1.19 修正**：`SendInput + KEYEVENTF_UNICODE` 直接输入，不使用剪贴板；仍保持纯追加、不做修正回退（见 #65） |
 | 4 | Dictating 结束条件 | 无静音超时，仅靠任意键鼠 dismiss |
 | 5 | 目标平台 | Windows 优先，架构预留 macOS/Linux |
 | 6 | Configure 触发时机 | ~~仅二级编辑页（InputDevice/EvokeWord）触发锁定，首页/History 不锁定~~ → **v1.1 修正**：MainWindow 打开即触发 `Configure`，不区分首页/二级页（见 #18） |
@@ -518,6 +522,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | 62 | RuntimeDataPort（v1.17） | 双方固定为 `subscribe_generation` / `acquire_active_bundle` / `append_history` 三个方法 |
 | 63 | RuntimeBundle（v1.17） | 进入 Listening 前一次获取完整运行依赖与 leases；Listening/Loading/Dictating 不查询 Storage |
 | 64 | SettingsSnapshot（v1.17） | UI 设置读取收敛到单一 snapshot；`settings-changed` 只携带 generation 并触发 refetch |
+| 65 | 文本注入方式（v1.19） | Streaming Output 改为 `SendInput + KEYEVENTF_UNICODE`，不再写入剪贴板；DictatingMe 以 High 完整性覆盖普通和管理员前台窗口 |
 
 ---
 

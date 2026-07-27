@@ -29,19 +29,24 @@ function Invoke-TauriIcon {
 
 Push-Location $repositoryRoot
 try {
-    $neutralDirectory = Join-Path $temporaryRoot "neutral"
-    Invoke-TauriIcon -InputPath $sourceIcon -OutputPath $neutralDirectory
-
-    foreach ($name in @("32x32.png", "128x128.png", "128x128@2x.png", "icon.ico")) {
-        Copy-Item (Join-Path $neutralDirectory $name) (Join-Path $iconDirectory $name) -Force
-    }
-    Copy-Item (Join-Path $neutralDirectory "32x32.png") (Join-Path $iconDirectory "tray.png") -Force
-
     $sourceMarkup = Get-Content $sourceIcon -Raw
     $themeColors = [ordered]@{
         dark = "#f5f6f7"
         light = "#4f535b"
     }
+
+    $staticDirectory = Join-Path $temporaryRoot "static"
+    New-Item -ItemType Directory -Force -Path $staticDirectory | Out-Null
+    Copy-Item $wordmark (Join-Path $staticDirectory "wordmark-d.png")
+    $staticSource = Join-Path $staticDirectory "app-icon.svg"
+    $sourceMarkup.Replace("#7a7e86", $themeColors.dark) |
+        Set-Content $staticSource -Encoding utf8 -NoNewline
+    Invoke-TauriIcon -InputPath $staticSource -OutputPath $staticDirectory
+
+    foreach ($name in @("32x32.png", "128x128.png", "128x128@2x.png", "icon.ico")) {
+        Copy-Item (Join-Path $staticDirectory $name) (Join-Path $iconDirectory $name) -Force
+    }
+    Copy-Item (Join-Path $staticDirectory "32x32.png") (Join-Path $iconDirectory "tray.png") -Force
 
     foreach ($theme in $themeColors.Keys) {
         $themeDirectory = Join-Path $temporaryRoot $theme

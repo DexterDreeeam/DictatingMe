@@ -81,8 +81,10 @@ pub fn run() {
             if window.label() != "main" {
                 return;
             }
-            if let tauri::WindowEvent::ThemeChanged(theme) = event {
-                if let Err(error) = app_icon::apply_theme(window.app_handle(), *theme) {
+            if let tauri::WindowEvent::ThemeChanged(_) = event {
+                let result = app_icon::current_theme(window.app_handle())
+                    .and_then(|theme| app_icon::apply_theme(window.app_handle(), theme));
+                if let Err(error) = result {
                     tracing::error!(%error, "failed to apply system-themed application icon");
                 }
             }
