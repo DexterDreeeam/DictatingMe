@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["runtime"]
+members = ["runtime", "xtask"]
 
-# 说明：仅 runtime/ 是 Rust crate（Tauri 后端 + Runtime 核心逻辑）。
+# 说明：runtime/ 是产品 Rust crate（Tauri 后端 + Runtime 核心逻辑）。
+# xtask/ 只在开发期使用，负责合成唤醒词 E2E 测试语料，不参与打包。
 # ui/ 是纯前端（TypeScript），不属于本 workspace，由 package.json / vite 单独构建。

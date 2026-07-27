@@ -20,6 +20,7 @@ Cargo.lock
 !/assets/download-assets.ps1
 !/assets/sha.json
 !/assets/manifest-cn.json
+!/assets/assets-manifest.json
 !/assets/run-package.ps1
 !/assets/run-release.ps1
 

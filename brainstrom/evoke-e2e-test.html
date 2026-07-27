@@ -20,7 +20,7 @@
     .node.ui{border-color:#7a8bff}.node.service{border-color:var(--accent);background:rgba(88,101,242,.16)}.node.trait{border-color:#4d9d70}.node.port{border-style:dashed;border-color:#858b96}.node.runtime{border-color:#e4b34c}.node.data{border-color:#5f9ea0;background:rgba(95,158,160,.12)}.node.test{border-color:#b07acc;background:rgba(176,122,204,.13)}
     .arrow{display:flex;align-items:center;color:#b5bac1;font-size:18px;font-weight:700}.arrow.down{height:27px;justify-content:center;transform:rotate(90deg)}
     .bar{margin:18px auto;max-width:960px;padding:10px 14px;border:1px dashed #687080;border-radius:9px;color:#b5bac1;text-align:center;font-size:11px}.bar strong{color:#fff}.bar.good{border-color:#397d54;color:#7fd49e}.bar.stop{border-color:#7c4146;color:#ef9da2}.bar.warn{border-color:#7d6a35;color:#e8c982}
-    table{width:100%;border-collapse:collapse;min-width:720px;margin-bottom:6px;border:1px solid var(--line);background:var(--panel2);font-size:11px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:#282c35;white-space:nowrap}td{color:var(--muted)}tr:last-child td{border-bottom:0}td code,th code{color:var(--code)}td strong{color:#e8ebf2}
+    table{width:100%;border-collapse:collapse;min-width:720px;margin-bottom:6px;border:1px solid var(--line);background:var(--panel2);font-size:11px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:#fff;background:#282c35;white-space:nowrap}    td{color:var(--muted)}tr:last-child td{border-bottom:0}td code,th code{color:var(--code)}td strong{color:#e8ebf2}td.good{color:#7fd49e;font-weight:600}td.bad{color:#ef9da2;font-weight:600}
     .tree{margin:0 0 8px;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:11px;line-height:1.75;white-space:pre;overflow:auto}
     .tree b{color:#8fd7ff;font-weight:600}.tree i{color:#7fd49e;font-style:normal}.tree u{color:var(--yellow);text-decoration:none}.tree s{color:#6f7787;text-decoration:none}
     .signature{margin:9px 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#0d0f14;color:var(--code);font-family:"Cascadia Code",Consolas,monospace;font-size:10.5px;line-height:1.65;white-space:pre;overflow:auto}
@@ -45,6 +45,7 @@
     <button class="tab" data-pane="flow">E2E 流程</button>
     <button class="tab" data-pane="matrix">测试矩阵</button>
     <button class="tab" data-pane="deliver">落地计划</button>
+    <button class="tab" data-pane="result">实测结果</button>
   </div>
 
   <!-- ============================ 目标与指标 ============================ -->
@@ -322,7 +323,7 @@
         <div class="bar stop"><strong>硬性规则：对立词禁止同音同调。</strong>「小迪 / 小笛」（都是 xiǎo dí）、「记录 / 记路」（都是 jì lù）、「记下来 / 寄下来」（都是 jì xià lái）这类词，人耳和模型都不可能区分，测出来的 FAR 只是噪声。对立词必须在<strong>声母、韵母、声调或整个音节</strong>上至少有一处真实差异。</div>
         <table>
           <tr><th style="width:74px">对立类型</th><th style="width:170px">定义</th><th>难度与意义</th></tr>
-          <tr><td><strong>T1 声母</strong></td><td>韵母与声调完全相同，只差一个声母（d/t、b/p、z/zh、n/l、d/y、字母 D/T）</td><td>最难的可区分档；考察模型对送气/不送气、平翘舌的分辨力</td></tr>
+          <tr><td><strong>T1 声母</strong></td><td>韵母与声调完全相同，只差一个声母（d/t、b/p、z/zh、n/l、d/y）</td><td>最难的可区分档；考察模型对送气/不送气、平翘舌的分辨力</td></tr>
           <tr><td><strong>T2 韵母</strong></td><td>对应音节的韵母不同（可伴随声调差异），词形高度相似</td><td>次难；噪声下最先失效的一类</td></tr>
           <tr><td><strong>T3 声调</strong></td><td>音节完全相同，只有声调不同</td><td>中文特有；纯声学模板（VoiceMatch）对声调不敏感，是它的弱项</td></tr>
           <tr><td><strong>T4 音节替换</strong></td><td>整词中有一个音节完全不同，且对立词是日常真实用语</td><td>最容易区分，但<strong>最贴近真实误触发场景</strong>——用户本来就在说这句话</td></tr>
@@ -340,7 +341,7 @@
           <tr><td>w08</td><td><strong>小言小言</strong><br><code>xiǎo yán</code></td><td>小燕小燕<br><code>xiǎo yàn</code></td><td>T3</td><td>叠词 + 阳平/去声对立，两个都是真实人名</td></tr>
           <tr><td>w09</td><td><strong>帮我打字</strong><br><code>bāng wǒ dǎ zì</code></td><td>帮我打印<br><code>dǎ yìn</code></td><td>T4</td><td>祈使句；两条都是用户会真实说出的指令</td></tr>
           <tr><td>w10</td><td><strong>启动听写</strong><br><code>qǐ dòng tīng xiě</code></td><td>启用听写<br><code>qǐ yòng</code></td><td>T1</td><td>d/y 声母对立，同韵同调；后两音节完全一致</td></tr>
-          <tr><td>w11</td><td><strong>小 D 出来</strong><br><code>xiǎo D chū lái</code></td><td>小 T 出来<br><code>xiǎo T chū lái</code></td><td>T1</td><td>中英混合；字母 D/T 是英文里的经典最小对立对</td></tr>
+          <tr><td>w11</td><td><strong>小贝小贝</strong><br><code>xiǎo bèi</code></td><td>小佩小佩<br><code>xiǎo pèi</code></td><td>T1</td><td>叠词 + b/p 送气对立，同韵同调；两个都是真实人名</td></tr>
           <tr><td>w12</td><td><strong>准备记录</strong><br><code>zhǔn bèi jì lù</code></td><td>准备记账<br><code>jì zhàng</code></td><td>T4</td><td>后鼻音密集；末音节替换</td></tr>
           <tr><td>w13</td><td><strong>听我说话</strong><br><code>tīng wǒ shuō huà</code></td><td>听我说完<br><code>shuō wán</code></td><td>T4</td><td>与自由语音高度重合，FA 压力最大的一组</td></tr>
           <tr><td>w14</td><td><strong>小猫同学</strong><br><code>xiǎo māo tóng xué</code></td><td>小毛同学<br><code>xiǎo máo</code></td><td>T3</td><td>阴平/阳平对立，两个都是真实称呼</td></tr>
@@ -726,7 +727,142 @@ EER = 0.113 @ sensitivity 0.58   (默认 0.65 偏松，建议下调)</div>
     </aside>
   </section>
 
-  <footer>
+  <section class="pane" id="pane-result">
+    <h2>实测结果 — 2026 基线</h2>
+    <p class="lead">
+      语料 325 条（20 组唤醒词 × 14 条 + 45 条自由语音），三套中文 VITS、15 个音色合成。
+      测试入口 <code>runtime/tests/evoke_e2e.rs</code>，detect 回路逐帧复刻
+      <code>runtime.rs</code> 的 <code>State::Listening</code> 分支。敏感度 0.65。
+      单模式判定次数 700 次（正 560 / 负 140），四模式合计 2800 次。
+    </p>
+
+    <h3>1. 四模式总览</h3>
+    <table>
+      <thead><tr><th>指标</th><th>text</th><th>voiceMatch</th><th>speakerVerify</th><th>classifier</th></tr></thead>
+      <tbody>
+        <tr><td><b>TPR</b>（本人说唤醒词）</td><td>63.6%</td><td>43.2%</td><td><b>62.5%</b></td><td>37.9%</td></tr>
+        <tr><td>FAR — 冒充者</td><td class="bad">67.5%</td><td class="good">2.5%</td><td class="good">10.0%</td><td class="bad">32.5%</td></tr>
+        <tr><td>FAR — 对立词</td><td>17.5%</td><td>17.5%</td><td>17.5%</td><td>17.5%</td></tr>
+        <tr><td>FAR — 自由语音</td><td class="good">0.0%</td><td class="good">0.0%</td><td class="good">0.0%</td><td class="good">0.0%</td></tr>
+        <tr><td><b>FAR 合计</b></td><td class="bad">23.6%</td><td class="good">5.0%</td><td class="good">7.1%</td><td>13.6%</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2. 正样本按条件分列（TPR）</h3>
+    <table>
+      <thead><tr><th>条件</th><th>text</th><th>voiceMatch</th><th>speakerVerify</th><th>classifier</th></tr></thead>
+      <tbody>
+        <tr><td>clean</td><td>63.7%</td><td>63.7%</td><td>63.7%</td><td>60.0%</td></tr>
+        <tr><td>fast ×1.15</td><td>65.0%</td><td>65.0%</td><td>61.3%</td><td>58.8%</td></tr>
+        <tr><td>slow ×0.87</td><td>58.8%</td><td>58.8%</td><td>57.5%</td><td>55.0%</td></tr>
+        <tr><td>quiet −6 dB</td><td>65.0%</td><td>63.7%</td><td>65.0%</td><td>55.0%</td></tr>
+        <tr><td>office @15 dB</td><td>62.5%</td><td>37.5%</td><td>62.5%</td><td>33.8%</td></tr>
+        <tr><td>crowd @10 dB</td><td>65.0%</td><td class="bad">12.5%</td><td>62.5%</td><td class="bad">0.0%</td></tr>
+        <tr><td>traffic @5 dB</td><td>65.0%</td><td class="bad">1.2%</td><td>65.0%</td><td class="bad">2.5%</td></tr>
+      </tbody>
+    </table>
+
+    <h3>3. 对立词按区分度档位分列（FAR）</h3>
+    <table>
+      <thead><tr><th>档位</th><th>差异维度</th><th>样本</th><th>四模式一致 FAR</th></tr></thead>
+      <tbody>
+        <tr><td>T1</td><td>声母（小迪/小提、小贝/小佩）</td><td>6</td><td class="bad">33.3%</td></tr>
+        <tr><td>T2</td><td>韵母（口述/口试、记下来/接下来）</td><td>10</td><td class="good">0.0%</td></tr>
+        <tr><td>T3</td><td>声调（小七/小奇、小猫/小毛）</td><td>10</td><td class="bad">30.0%</td></tr>
+        <tr><td>T4</td><td>整音节替换（打字/打印、说话/说完）</td><td>14</td><td class="good">7.1%</td></tr>
+      </tbody>
+    </table>
+
+    <h3>4. 结论</h3>
+    <table>
+      <thead><tr><th>#</th><th>结论</th><th>依据</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><b>KWS 是整条链路的天花板，也是当前最大短板。</b>
+            四种模式的 TPR 都被 KWS 检出率封顶在 63.6%，即使干净语音也有 36% 漏唤醒。</td>
+          <td>text 模式 = 纯 KWS，TPR 63.6%；其余模式只能更低。KWS 探针显示分组检出率
+            0%（嗨小迪）～100%（帮我打字），音色间 18%～93%。</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><b>漏唤醒是「说什么 + 谁在说」决定的，不是环境决定的。</b>
+            噪声、语速、音量对 KWS 几乎没有影响。</td>
+          <td>text 模式在 traffic@5 dB 下 TPR 仍是 65.0%，与 clean 的 63.7% 持平。</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><b>text 模式不具备防冒充能力</b>，任何人念出唤醒词都会触发，只适合单人独占场景。</td>
+          <td>冒充者 FAR 67.5%——等于冒充者只要过了 KWS 就一定唤醒。</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><b>speakerVerify 是四者里唯一「不牺牲 TPR 换安全」的模式。</b>
+            相对 text 只掉 1.1 个点 TPR，却把冒充者 FAR 从 67.5% 压到 10%，且完全不受噪声影响。</td>
+          <td>TPR 62.5% vs 63.6%；traffic@5 dB 下 TPR 65.0%（campplus 声纹嵌入对噪声鲁棒）。</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><b>voiceMatch 的 DTW 模板匹配对噪声极度脆弱</b>，安静环境可用，嘈杂环境基本失效。
+            但它的冒充者拒绝率是四者最好的。</td>
+          <td>TPR 63.7%（clean）→ 12.5%（crowd@10 dB）→ 1.2%（traffic@5 dB）；冒充者 FAR 2.5%。</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><b>classifier 模式全面劣于其它三种</b>：TPR 最低、抗噪最差、防冒充也只是中等。
+            6 条正样本 + 噪声负样本训练出的逻辑回归泛化不足。</td>
+          <td>TPR 37.9%，crowd@10 dB 下归零，冒充者 FAR 仍有 32.5%。</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><b>近音词误唤醒完全由 KWS 决定，四种模式无差别。</b>
+            因为对立词是本人说的，声纹/模板/分类器都判它是「对的人」，只剩短语这一道闸。
+            其中<b>只差声母（T1 33.3%）或只差声调（T3 30.0%）挡不住</b>，
+            差韵母（T2 0%）或差整个音节（T4 7.1%）才安全。</td>
+          <td>T1/T2/T3/T4 的 FAR 在四种模式下数值完全一致。</td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td><b>无关语音不会误唤醒。</b>45 条自由语音在四种模式下 FAR 全为 0。</td>
+          <td>freeSpeech 60 次判定，0 次唤醒。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>5. 由数据得出的行动项</h3>
+    <table>
+      <thead><tr><th>优先级</th><th>行动</th><th>预期收益</th></tr></thead>
+      <tbody>
+        <tr><td>P0</td><td>调 KWS 触发阈值 / 引入 sherpa 的 keyword boosting score，或换更大的 KWS 模型。
+          当前 <code>sensitivity_to_threshold(0.65) = 0.308</code> 且未设 <code>:score</code> 提升值。</td>
+          <td>直接抬高全部四种模式的 TPR 天花板</td></tr>
+        <tr><td>P0</td><td>唤醒词设置页在用户输入短语后，用实录样本实测检出率并给出提示——
+          现在用户完全可能选到一个 0% 检出的短语（如「嗨小迪」）。</td>
+          <td>规避最差情况</td></tr>
+        <tr><td>P1</td><td>把 speakerVerify 设为推荐默认模式，voiceMatch 降级为「安静环境」选项。</td>
+          <td>同等 TPR 下 FAR 从 23.6% 降到 7.1%</td></tr>
+        <tr><td>P1</td><td>对 voiceMatch / classifier 的特征做噪声归一（CMVN 或谱减），
+          现在 <code>extract_feature_sequence</code> 直接用原始对数频带能量。</td>
+          <td>修复噪声下 TPR 归零</td></tr>
+        <tr><td>P2</td><td>重新评估 classifier 模式是否值得保留。</td>
+          <td>各项指标均被其它模式支配</td></tr>
+        <tr><td>P2</td><td>唤醒词校验时警告「与常见词只差声母或声调」的短语。</td>
+          <td>降低 T1/T3 类误唤醒</td></tr>
+      </tbody>
+    </table>
+
+    <h3>6. 复现方式</h3>
+    <pre><code>cargo run -p xtask --release -- corpus          # 合成 325 条语料
+cargo test --release -p dictatingme-runtime --test evoke_e2e -- --ignored --nocapture
+cargo test --release -p dictatingme-runtime --test kws_probe -- --ignored --nocapture  # KWS 检出诊断</code></pre>
+    <p>
+      环境变量：<code>DM_E2E_GROUPS=w01,w05</code> 限定分组，
+      <code>DM_E2E_SENSITIVITY=0.8</code> 覆盖敏感度，
+      <code>DM_E2E_VERBOSE=1</code> 打印逐条判定。
+      结果落到 <code>assets/reports/&lt;mode&gt;.json</code>。四模式全量约 12 分钟。
+    </p>
+  </section>
+
     DictatingMe · Evoke E2E Test Plan ·
     <a href="./architecture-evoke-setup.html">唤醒设置架构图</a> /
     <a href="./interface-evoke-setup.html">唤醒设置接口图</a> /

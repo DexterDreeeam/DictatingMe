@@ -1,0 +1,16 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "DictatingMe 开发期工具：合成唤醒词 E2E 测试语料（见 brainstrom/evoke-e2e-test.html）"
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dependencies]
+hound = "=3.5.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sherpa-onnx = { version = "=1.13.4", default-features = false, features = ["static"] }

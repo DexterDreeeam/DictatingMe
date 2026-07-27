@@ -64,6 +64,11 @@ impl EvokeModelEngine {
         &self.active_word
     }
 
+    /// 当前生效的 sherpa-onnx keyword 语法（含派生出的拼音 token），用于诊断。
+    pub fn keyword_syntax(&self) -> &str {
+        &self.keyword_syntax
+    }
+
     /// 切换生效唤醒词（EvokeWord 设置页），可能需要重新加载/微调模型权重。
     pub fn set_active_word(&mut self, word: String) -> Result<(), ModelError> {
         let normalized = normalize_keyword(&word, &self.token_set)?;

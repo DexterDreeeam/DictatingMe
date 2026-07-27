@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "locale": "zh-CN",
+  "description": "Evoke E2E test corpus recipe. Consumed by `cargo run -p xtask -- corpus`. Product runtime assets live in manifest-cn.json and are unrelated to this file.",
+  "seed": 20260727,
+  "sampleRate": 16000,
+  "recordingDurationMs": 5000,
+  "ttsModels": [
+    {
+      "id": "fanchen-c",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-zh-hf-fanchen-C.tar.bz2",
+      "archive": "vits-zh-hf-fanchen-C.tar.bz2",
+      "root": "models/tts/vits-zh-hf-fanchen-C",
+      "sampleRate": 16000
+    },
+    {
+      "id": "theresa",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-zh-hf-theresa.tar.bz2",
+      "archive": "vits-zh-hf-theresa.tar.bz2",
+      "root": "models/tts/vits-zh-hf-theresa",
+      "sampleRate": 16000
+    },
+    {
+      "id": "zh-ll",
+      "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/sherpa-onnx-vits-zh-ll.tar.bz2",
+      "archive": "sherpa-onnx-vits-zh-ll.tar.bz2",
+      "root": "models/tts/sherpa-onnx-vits-zh-ll",
+      "sampleRate": 16000
+    }
+  ],
+  "voices": [
+    { "id": "v01", "model": "fanchen-c", "sid": 8 },
+    { "id": "v02", "model": "fanchen-c", "sid": 37 },
+    { "id": "v03", "model": "fanchen-c", "sid": 66 },
+    { "id": "v04", "model": "fanchen-c", "sid": 104 },
+    { "id": "v05", "model": "fanchen-c", "sid": 151 },
+    { "id": "v06", "model": "theresa", "sid": 12 },
+    { "id": "v07", "model": "theresa", "sid": 190 },
+    { "id": "v08", "model": "theresa", "sid": 383 },
+    { "id": "v09", "model": "theresa", "sid": 561 },
+    { "id": "v10", "model": "theresa", "sid": 744 },
+    { "id": "v11", "model": "zh-ll", "sid": 0 },
+    { "id": "v12", "model": "zh-ll", "sid": 1 },
+    { "id": "v13", "model": "zh-ll", "sid": 2 },
+    { "id": "v14", "model": "zh-ll", "sid": 3 },
+    { "id": "v15", "model": "zh-ll", "sid": 4 }
+  ],
+  "styles": [
+    { "id": "normal", "speed": 1.0, "gain": 1.0, "farfield": false },
+    { "id": "louder", "speed": 1.0, "gain": 1.75, "farfield": false },
+    { "id": "softer", "speed": 1.0, "gain": 0.45, "farfield": false },
+    { "id": "faster", "speed": 1.28, "gain": 1.0, "farfield": false },
+    { "id": "slower", "speed": 0.8, "gain": 1.0, "farfield": false },
+    { "id": "farther", "speed": 1.0, "gain": 0.34, "farfield": true }
+  ],
+  "roles": [
+    {
+      "id": "enroll",
+      "text": "phrase",
+      "source": "target",
+      "styles": ["normal", "louder", "softer", "faster", "slower", "farther"]
+    },
+    {
+      "id": "pos",
+      "text": "phrase",
+      "source": "target",
+      "styles": ["normal", "faster", "slower", "farther"]
+    },
+    {
+      "id": "imp",
+      "text": "phrase",
+      "source": "impostor",
+      "styles": ["normal", "faster"]
+    },
+    {
+      "id": "cfz",
+      "text": "confusable",
+      "source": "target",
+      "styles": ["normal", "slower"]
+    }
+  ],
+  "groups": [
+    {
+      "id": "w01", "slug": "xiaodi-xiaodi",
+      "phrase": "小迪小迪", "pinyin": "xiǎo dí xiǎo dí",
+      "confusable": "小提小提", "confusablePinyin": "xiǎo tí xiǎo tí", "confusableTier": "T1",
+      "targetVoice": "v01", "impostorVoices": ["v06", "v11"],
+      "note": "叠词基线；d/t 不送气-送气对立"
+    },
+    {
+      "id": "w02", "slug": "nihao-diannao",
+      "phrase": "你好电脑", "pinyin": "nǐ hǎo diàn nǎo",
+      "confusable": "你好电视", "confusablePinyin": "nǐ hǎo diàn shì", "confusableTier": "T4",
+      "targetVoice": "v02", "impostorVoices": ["v07", "v12"],
+      "note": "常见短语，前三音节相同"
+    },
+    {
+      "id": "w03", "slug": "kaishi-tingxie",
+      "phrase": "开始听写", "pinyin": "kāi shǐ tīng xiě",
+      "confusable": "开始停歇", "confusablePinyin": "kāi shǐ tíng xiē", "confusableTier": "T3",
+      "targetVoice": "v03", "impostorVoices": ["v08", "v13"],
+      "note": "连续两个音节仅声调不同"
+    },
+    {
+      "id": "w04", "slug": "xiaozhu-xiaozhu",
+      "phrase": "小助小助", "pinyin": "xiǎo zhù xiǎo zhù",
+      "confusable": "小猪小猪", "confusablePinyin": "xiǎo zhū xiǎo zhū", "confusableTier": "T3",
+      "targetVoice": "v04", "impostorVoices": ["v09", "v14"],
+      "note": "叠词 + 去声/阴平对立"
+    },
+    {
+      "id": "w05", "slug": "hai-xiaodi",
+      "phrase": "嗨小迪", "pinyin": "hāi xiǎo dí",
+      "confusable": "嗨小李", "confusablePinyin": "hāi xiǎo lǐ", "confusableTier": "T4",
+      "targetVoice": "v05", "impostorVoices": ["v10", "v15"],
+      "note": "三音节短唤醒词"
+    },
+    {
+      "id": "w06", "slug": "jixialai",
+      "phrase": "记下来", "pinyin": "jì xià lái",
+      "confusable": "接下来", "confusablePinyin": "jiē xià lái", "confusableTier": "T2",
+      "targetVoice": "v06", "impostorVoices": ["v01", "v11"],
+      "note": "接下来是口语超高频词，真实误触发风险最高"
+    },
+    {
+      "id": "w07", "slug": "yuyin-shuru",
+      "phrase": "语音输入", "pinyin": "yǔ yīn shū rù",
+      "confusable": "语音输出", "confusablePinyin": "yǔ yīn shū chū", "confusableTier": "T4",
+      "targetVoice": "v07", "impostorVoices": ["v02", "v12"],
+      "note": "产品语境内真实存在的对立词"
+    },
+    {
+      "id": "w08", "slug": "xiaoyan-xiaoyan",
+      "phrase": "小言小言", "pinyin": "xiǎo yán xiǎo yán",
+      "confusable": "小燕小燕", "confusablePinyin": "xiǎo yàn xiǎo yàn", "confusableTier": "T3",
+      "targetVoice": "v08", "impostorVoices": ["v03", "v13"],
+      "note": "叠词 + 阳平/去声对立"
+    },
+    {
+      "id": "w09", "slug": "bangwo-dazi",
+      "phrase": "帮我打字", "pinyin": "bāng wǒ dǎ zì",
+      "confusable": "帮我打印", "confusablePinyin": "bāng wǒ dǎ yìn", "confusableTier": "T4",
+      "targetVoice": "v09", "impostorVoices": ["v04", "v14"],
+      "note": "祈使句；两条都是真实指令"
+    },
+    {
+      "id": "w10", "slug": "qidong-tingxie",
+      "phrase": "启动听写", "pinyin": "qǐ dòng tīng xiě",
+      "confusable": "启用听写", "confusablePinyin": "qǐ yòng tīng xiě", "confusableTier": "T1",
+      "targetVoice": "v10", "impostorVoices": ["v05", "v15"],
+      "note": "d/y 声母对立，同韵同调"
+    },
+    {
+      "id": "w11", "slug": "xiaobei-xiaobei",
+      "phrase": "小贝小贝", "pinyin": "xiǎo bèi xiǎo bèi",
+      "confusable": "小佩小佩", "confusablePinyin": "xiǎo pèi xiǎo pèi", "confusableTier": "T1",
+      "targetVoice": "v11", "impostorVoices": ["v01", "v06"],
+      "note": "b/p 不送气-送气对立，同韵同调，两个都是真实人名"
+    },
+    {
+      "id": "w12", "slug": "zhunbei-jilu",
+      "phrase": "准备记录", "pinyin": "zhǔn bèi jì lù",
+      "confusable": "准备记账", "confusablePinyin": "zhǔn bèi jì zhàng", "confusableTier": "T4",
+      "targetVoice": "v12", "impostorVoices": ["v02", "v07"],
+      "note": "后鼻音密集；末音节替换"
+    },
+    {
+      "id": "w13", "slug": "tingwo-shuohua",
+      "phrase": "听我说话", "pinyin": "tīng wǒ shuō huà",
+      "confusable": "听我说完", "confusablePinyin": "tīng wǒ shuō wán", "confusableTier": "T4",
+      "targetVoice": "v13", "impostorVoices": ["v03", "v08"],
+      "note": "与自由语音高度重合，FA 压力最大"
+    },
+    {
+      "id": "w14", "slug": "xiaomao-tongxue",
+      "phrase": "小猫同学", "pinyin": "xiǎo māo tóng xué",
+      "confusable": "小毛同学", "confusablePinyin": "xiǎo máo tóng xué", "confusableTier": "T3",
+      "targetVoice": "v14", "impostorVoices": ["v04", "v09"],
+      "note": "阴平/阳平对立"
+    },
+    {
+      "id": "w15", "slug": "kaishi-koushu",
+      "phrase": "开始口述", "pinyin": "kāi shǐ kǒu shù",
+      "confusable": "开始口试", "confusablePinyin": "kāi shǐ kǒu shì", "confusableTier": "T2",
+      "targetVoice": "v15", "impostorVoices": ["v05", "v10"],
+      "note": "u/i 韵母对立，同声母同为去声"
+    },
+    {
+      "id": "w16", "slug": "huanxing-zhushou",
+      "phrase": "唤醒助手", "pinyin": "huàn xǐng zhù shǒu",
+      "confusable": "换新助手", "confusablePinyin": "huàn xīn zhù shǒu", "confusableTier": "T2",
+      "targetVoice": "v01", "impostorVoices": ["v07", "v13"],
+      "note": "ing/in 前后鼻音对立"
+    },
+    {
+      "id": "w17", "slug": "dakai-shuru",
+      "phrase": "打开输入", "pinyin": "dǎ kāi shū rù",
+      "confusable": "打开数据", "confusablePinyin": "dǎ kāi shù jù", "confusableTier": "T2",
+      "targetVoice": "v03", "impostorVoices": ["v09", "v15"],
+      "note": "双重差异，较易区分的对照组"
+    },
+    {
+      "id": "w18", "slug": "xiaoqi-xiaoqi",
+      "phrase": "小七小七", "pinyin": "xiǎo qī xiǎo qī",
+      "confusable": "小奇小奇", "confusablePinyin": "xiǎo qí xiǎo qí", "confusableTier": "T3",
+      "targetVoice": "v05", "impostorVoices": ["v11", "v08"],
+      "note": "叠词 + 阴平/阳平对立"
+    },
+    {
+      "id": "w19", "slug": "kuailai-jilu",
+      "phrase": "快来记录", "pinyin": "kuài lái jì lù",
+      "confusable": "快来继续", "confusablePinyin": "kuài lái jì xù", "confusableTier": "T2",
+      "targetVoice": "v07", "impostorVoices": ["v13", "v02"],
+      "note": "末音节声母+韵母对立"
+    },
+    {
+      "id": "w20", "slug": "shuohua-kaishi",
+      "phrase": "说话开始", "pinyin": "shuō huà kāi shǐ",
+      "confusable": "说话开心", "confusablePinyin": "shuō huà kāi xīn", "confusableTier": "T4",
+      "targetVoice": "v09", "impostorVoices": ["v15", "v04"],
+      "note": "日常对话中真实存在的句子"
+    }
+  ],
+  "freeSpeech": {
+    "dir": "freespeech",
+    "voices": ["v02", "v08", "v12"],
+    "utterances": [
+      "今天下午三点我们在会议室讨论下一版的排期安排。",
+      "这个功能上线之后用户的反馈整体还是比较正面的。",
+      "麻烦你把昨天那份统计表发到我的邮箱里，我看一下。",
+      "我先去楼下买杯咖啡，回来再继续写这部分文档。",
+      "如果网络不稳定的话可以先把内容保存到本地草稿。",
+      "他说下周要出差，所以这周得把手头的事情处理完。",
+      "刚才那段录音的背景噪声有点大，可能需要重新录一次。",
+      "我们把接口协议再对一遍，避免上线之后出现兼容问题。",
+      "早上开会的时候提到过这个风险，但当时没有展开讲。",
+      "这批数据量比较大，跑完大概需要一个多小时的时间。",
+      "你先把初稿写出来，细节部分我们再一起打磨。",
+      "系统提示说磁盘空间不足，我清理了一些旧的日志文件。",
+      "接下来我会把重点放在性能优化和内存占用上面。",
+      "这个方案的成本偏高，要不要考虑一个更轻量的做法。",
+      "周五之前把测试报告整理好，下周一评审的时候要用。"
+    ]
+  },
+  "noise": {
+    "dir": "noise",
+    "categories": {
+      "crowd": ["crowd-babble", "crowd-cafe", "crowd-restaurant", "crowd-park", "crowd-station"],
+      "office": ["office-typing", "office-air-conditioner"],
+      "machinery": ["machinery-vacuum-cleaner", "machinery-copy-machine", "machinery-shutting-door"],
+      "home": ["home-washing-machine", "home-kitchen", "home-television"],
+      "outdoor": ["outdoor-traffic", "outdoor-wind", "outdoor-rain"]
+    }
+  }
+}
