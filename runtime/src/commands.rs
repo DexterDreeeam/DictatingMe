@@ -100,7 +100,11 @@ pub async fn inspect_asset(
     asset_path: String,
 ) -> Result<AssetSummary, String> {
     command_begin("inspect_asset");
-    Ok(settings.inspect_asset(&asset_path))
+    let settings = settings.inner().clone();
+    let summary = tokio::task::spawn_blocking(move || settings.inspect_asset(&asset_path))
+        .await
+        .map_err(|error| format!("asset verification task failed: {error}"))?;
+    command_finish("inspect_asset", Ok(summary))
 }
 
 #[tauri::command]

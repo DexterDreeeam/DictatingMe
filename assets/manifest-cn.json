@@ -32,13 +32,26 @@
     "models": [
       {
         "id": "dictation.sherpa-zipformer-zh-en",
-        "name": "sherpa-zipformer 中英双语模型",
+        "name": "Zipformer 中英双语流式模型",
+        "fileSizeBytes": 511274346,
         "sources": [
           "https://modelscope.cn/api/v1/models/pkufool/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20/repo?Revision=master&FilePath={file}",
           "https://hf-mirror.com/csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20/resolve/main/{file}",
           "https://ghproxy.net/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2",
           "https://gh-proxy.com/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2",
           "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20.tar.bz2"
+        ]
+      },
+      {
+        "id": "dictation.qwen3-asr-0.6b-int8",
+        "name": "Qwen3-ASR 0.6B INT8 多语言模型",
+        "fileSizeBytes": 878702423,
+        "sources": [
+          "https://hf-mirror.com/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/main/{file}",
+          "https://huggingface.co/csukuangfj2/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25/resolve/main/{file}",
+          "https://ghproxy.net/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2",
+          "https://gh-proxy.com/https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2",
+          "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25.tar.bz2"
         ]
       }
     ]

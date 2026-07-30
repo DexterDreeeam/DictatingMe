@@ -48,11 +48,17 @@ export type AssetPhase =
   | 'ready'
   | 'failed';
 
+export type RecognizerType = 'onlineTransducer' | 'offlineGenerative';
+export type OutputMode = 'streaming' | 'utterance';
+
 export interface AssetSummary {
   id: string;
   kind: AssetKind;
   assetGroup: AssetGroup | null;
   displayName: string;
+  fileSizeBytes: number | null;
+  recognizerType: RecognizerType | null;
+  outputMode: OutputMode | null;
   version: string;
   assetPath: string;
   sources: string[];

@@ -183,8 +183,8 @@
           <div class="node-sub">核心调度中枢</div>
           <div class="sm-states">Configure ・ Listening ・ Loading ・ Dictating ・ Unloading</div>
         </div>
-        <div class="node node-model" id="n-dic"><div class="node-title">DictationModel</div><div class="node-sub">本地 ONNX 千问ASR<br/>仅Evoke触发后加载</div></div>
-        <div class="node" id="n-out"><div class="node-title">Streaming Output</div><div class="node-sub">Text Diff<br/>+ Text Injector</div></div>
+        <div class="node node-model" id="n-dic"><div class="node-title">Dictation Recognizer</div><div class="node-sub">manifest 驱动<br/>实时 / 整句</div></div>
+        <div class="node" id="n-out"><div class="node-title">Dictation Output</div><div class="node-sub">Text Diff<br/>+ Text Injector</div></div>
         <div></div>
 
         <!-- B1: Ring Buffer 绕行 / History+Config（独立列，避免遮挡右侧竖直通道） -->
@@ -228,7 +228,7 @@
         <li>点击托盘图标 = 向 State Machine 发出"打开 MainWindow 请求"，效果等价于一次 dismiss</li>
         <li>MainWindow 标题栏播放按钮（进入后台运行）= 向 State Machine 发出"关闭 MainWindow"，回到 Listening；电源按钮 = 直接终止 Runtime 进程，不经过 State Machine，与托盘"退出"走同一路径</li>
         <li>EvokeModel 与 DictationModel 互斥运行：前者仅 Listening 态激活，后者仅 Loading/Dictating 态激活</li>
-        <li>Streaming Output 通过 SendInput 直接发送新增后缀的 Unicode 键盘事件，不读写剪贴板；只追加不回退</li>
+        <li>Dictation Output 统一接收实时 partial 或后台整句结果，通过 SendInput 发送新增后缀的 Unicode 键盘事件；不读写剪贴板，只追加不回退</li>
         <li>Runtime 与 UI 同进程（Tauri），无需跨进程 IPC</li>
       </ul>
     </div>
@@ -246,7 +246,7 @@
 
         <div class="node" id="s-listening" style="border-left:3px solid var(--yellow);"><div class="node-title">🟡 Listening</div><div class="node-sub">等待唤醒词<br/>EvokeModel 运行中</div></div>
         <div class="node" id="s-loading" style="border-left:3px solid var(--green);"><div class="node-title">🟢 Loading</div><div class="node-sub">加载 DictationModel<br/>同时缓冲录音</div></div>
-        <div class="node" id="s-dictating" style="border-left:3px solid var(--green);"><div class="node-title">🟢 Dictating</div><div class="node-sub">流式转写+打字<br/>无静音超时</div></div>
+        <div class="node" id="s-dictating" style="border-left:3px solid var(--green);"><div class="node-title">🟢 Dictating</div><div class="node-sub">实时或整句转写<br/>任意键鼠结束</div></div>
         <div class="node" id="s-unloading" style="border-left:3px solid var(--text-muted);"><div class="node-title">Unloading</div><div class="node-sub">丢弃未转换内容<br/>卸载模型/写History</div></div>
       </div>
     </div>
@@ -264,7 +264,7 @@
         <li><b>Configure</b>：MainWindow 打开中，全局锁定（灰，不分首页/二级页）</li>
         <li><b>Listening</b>：进入后台后的待机监听状态（黄灯）</li>
         <li><b>Loading</b>：加载ASR模型 + 无缝缓冲录音（绿灯，录音已开始）</li>
-        <li><b>Dictating</b>：流式转写 + 打字（绿灯）</li>
+        <li><b>Dictating</b>：Zipformer 实时转写，或 Qwen 按静音切句后整句转写（绿灯）</li>
         <li><b>Unloading</b>：收尾清理，不再记录（灰），回到 Listening</li>
       </ul>
     </div>
@@ -336,8 +336,8 @@
         <div class="tl-marker">6</div>
         <div class="tl-content">
           <span class="tl-tag tag-voice-on">Dictating · 循环</span>
-          <div class="tl-title">流式识别 → 增量打字</div>
-          <div class="tl-desc">DictationModel 产出当前完整识别文本 → Text Diff 对比上一次结果，仅取新增后缀 → Text Injector 发送 Unicode 键盘事件到当前系统焦点（不读写剪贴板、不做回退修正）</div>
+          <div class="tl-title">识别结果 → 增量打字</div>
+          <div class="tl-desc">在线 Transducer 产出实时结果，离线 Generative 在后台完成整句结果 → Text Diff 仅取新增后缀 → Text Injector 发送 Unicode 键盘事件到当前系统焦点（不读写剪贴板、不做回退修正）</div>
         </div>
       </div>
 

@@ -5,7 +5,7 @@
 import type { PageComponent } from '../page';
 import type { RouteName } from '../router';
 import { getSettingsSnapshot, listDevices, listHistory } from '../../shared/api';
-import { onHistoryUpdated, type Unlisten } from '../../shared/events';
+import { onHistoryUpdated, onSettingsChanged, type Unlisten } from '../../shared/events';
 import { HISTORY_CAPACITY } from '../../shared/types';
 import { renderNavCard } from '../components/nav-card';
 
@@ -17,6 +17,7 @@ export interface HomePageDeps {
 export class HomePage implements PageComponent {
   #generation = 0;
   #unlisten: Unlisten | null = null;
+  #unlistenSettings: Unlisten | null = null;
   #historyCount = 0;
   #historySubtitle: HTMLElement | null = null;
 
@@ -27,13 +28,15 @@ export class HomePage implements PageComponent {
     const generation = ++this.#generation;
     container.replaceChildren(this.#renderLoading());
     void this.#load(container, generation);
-    void this.#subscribe(generation);
+    void this.#subscribe(container, generation);
   }
 
   unmount(): void {
     this.#generation += 1;
     this.#unlisten?.();
     this.#unlisten = null;
+    this.#unlistenSettings?.();
+    this.#unlistenSettings = null;
     this.#historySubtitle = null;
   }
 
@@ -68,7 +71,7 @@ export class HomePage implements PageComponent {
     }
   }
 
-  async #subscribe(generation: number): Promise<void> {
+  async #subscribe(container: HTMLElement, generation: number): Promise<void> {
     try {
       const unlisten = await onHistoryUpdated(() => {
         if (generation !== this.#generation) {
@@ -82,6 +85,16 @@ export class HomePage implements PageComponent {
         return;
       }
       this.#unlisten = unlisten;
+      const unlistenSettings = await onSettingsChanged(() => {
+        if (generation === this.#generation) {
+          void this.#load(container, generation);
+        }
+      });
+      if (generation !== this.#generation) {
+        unlistenSettings();
+        return;
+      }
+      this.#unlistenSettings = unlistenSettings;
     } catch (error) {
       if (generation === this.#generation) {
         console.error('Failed to subscribe to history updates:', error);

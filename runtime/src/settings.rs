@@ -12,6 +12,7 @@ use crate::evoke_setup::{
     processor_for, EvokeProfile, EvokeSetupPhase, EvokeSetupSession, ProcessInput,
     RecordingReceipt, StartEvokeSetup,
 };
+use crate::models::DictationModelSpec;
 use crate::storage::{
     AppConfig, AppPaths, AssetDescriptor, AssetGroup, AssetInstallRequest, AssetKind, AssetManager,
     AssetPhase, AssetSummary, ConfigStore, OperationKind, OperationPhase, OperationProgress,
@@ -33,7 +34,7 @@ pub struct RuntimeBundle {
     pub config: AppConfig,
     pub profile: EvokeProfile,
     pub preset_model_path: PathBuf,
-    pub dictation_model_path: PathBuf,
+    pub dictation_model: Option<DictationModelSpec>,
     pub speaker_model_path: Option<PathBuf>,
 }
 
@@ -76,7 +77,7 @@ impl SettingsHandle {
         }
         let generation = config.generation;
         let (generation_tx, _) = watch::channel(generation);
-        Ok(Self {
+        let handle = Self {
             store,
             config_store,
             assets,
@@ -87,7 +88,9 @@ impl SettingsHandle {
             asset_operations: Arc::new(Mutex::new(std::collections::HashMap::new())),
             active_captures: Arc::new(Mutex::new(std::collections::HashSet::new())),
             cancelled_setups: Arc::new(Mutex::new(std::collections::HashSet::new())),
-        })
+        };
+        handle.start_background_verification();
+        Ok(handle)
     }
 
     pub fn subscribe_generation(&self) -> watch::Receiver<u64> {
@@ -109,12 +112,30 @@ impl SettingsHandle {
     }
 
     pub fn inspect_asset(&self, asset_path: &str) -> AssetSummary {
+        let previous_phase = self.assets.cached_phase_for_path(asset_path);
         let selected = self
             .config_store
             .load()
             .ok()
             .and_then(|config| config.active_dictation_asset_id);
-        self.assets.inspect(asset_path, selected.as_deref())
+        let summary = self.assets.inspect(asset_path, selected.as_deref());
+        if previous_phase != AssetPhase::Ready && summary.phase == AssetPhase::Ready {
+            match self.config_store.load() {
+                Ok(config) => {
+                    if summary.selected {
+                        self.notify_generation(config.generation);
+                    }
+                }
+                Err(error) => {
+                    tracing::error!(
+                        asset_path,
+                        %error,
+                        "failed to publish completed asset verification"
+                    );
+                }
+            }
+        }
+        summary
     }
 
     pub fn install_asset(&self, request: AssetInstallRequest) -> Result<String, StorageError> {
@@ -170,18 +191,20 @@ impl SettingsHandle {
                     let mut generation_changed = false;
                     if asset.kind == AssetKind::DictationModel {
                         let config = this.config_store.load();
-                        let only_dictation_model = this
+                        let only_ready_dictation_model = this
                             .assets
-                            .catalog()
-                            .assets
-                            .iter()
-                            .filter(|descriptor| descriptor.kind == AssetKind::DictationModel)
+                            .summaries(None)
+                            .into_iter()
+                            .filter(|summary| {
+                                summary.kind == AssetKind::DictationModel
+                                    && summary.phase == AssetPhase::Ready
+                            })
                             .count()
                             == 1;
                         if config
                             .as_ref()
                             .is_ok_and(|config| config.active_dictation_asset_id.is_none())
-                            && only_dictation_model
+                            && only_ready_dictation_model
                         {
                             if let Ok(config) = this.store.select_dictation_asset(&asset.id) {
                                 this.notify_generation(config.generation);
@@ -231,8 +254,7 @@ impl SettingsHandle {
                 "asset '{asset_id}' is not a dictation model"
             )));
         }
-        let path = self.assets.asset_path(descriptor)?;
-        crate::storage::verify_asset_directory(&path, descriptor)?;
+        self.assets.require_verified(descriptor)?;
         let config = self.store.select_dictation_asset(asset_id)?;
         self.notify_generation(config.generation);
         self.snapshot()
@@ -244,9 +266,45 @@ impl SettingsHandle {
                 "sensitivity must be between 0 and 1".to_owned(),
             ));
         }
+
         let config = self.store.set_sensitivity(value)?;
         self.notify_generation(config.generation);
         self.snapshot()
+    }
+
+    fn start_background_verification(&self) {
+        let asset_paths = self
+            .assets
+            .summaries(None)
+            .into_iter()
+            .filter(|asset| asset.phase == AssetPhase::Checking)
+            .map(|asset| asset.asset_path)
+            .collect::<Vec<_>>();
+        if asset_paths.is_empty() {
+            return;
+        }
+        let settings = self.clone();
+        tauri::async_runtime::spawn(async move {
+            for asset_path in asset_paths {
+                tracing::info!(asset_path, "background asset verification begin");
+                let verification = settings.clone();
+                match tokio::task::spawn_blocking(move || verification.inspect_asset(&asset_path))
+                    .await
+                {
+                    Ok(summary) => tracing::info!(
+                        asset_id = %summary.id,
+                        phase = ?summary.phase,
+                        "background asset verification finish"
+                    ),
+                    Err(error) => {
+                        tracing::error!(
+                            %error,
+                            "background asset verification task failed"
+                        );
+                    }
+                }
+            }
+        });
     }
 
     pub fn begin_evoke_setup(
@@ -598,13 +656,16 @@ impl SettingsHandle {
             .as_deref()
             .ok_or_else(|| StorageError("no dictation model is selected".to_owned()))?;
         let dictation = self.assets.descriptor(dictation_id)?;
+        let dictation_model =
+            DictationModelSpec::from_descriptor(dictation, self.assets.asset_path(dictation)?)
+                .map_err(|error| StorageError(error.0))?;
         let speaker_model_path = self.speaker_model_path(&profile, false)?;
         Ok(RuntimeBundle {
             generation: snapshot.generation,
             config: snapshot.config,
             profile,
             preset_model_path: self.assets.asset_path(preset)?,
-            dictation_model_path: self.assets.asset_path(dictation)?,
+            dictation_model: Some(dictation_model),
             speaker_model_path,
         })
     }
@@ -618,19 +679,21 @@ impl SettingsHandle {
         let preset = self
             .assets
             .first_descriptor_of_kind(AssetKind::PresetEvoke)?;
-        let dictation_model_path = config
+        let dictation_model = config
             .active_dictation_asset_id
             .as_deref()
             .and_then(|id| self.assets.descriptor(id).ok())
-            .and_then(|descriptor| self.assets.asset_path(descriptor).ok())
-            .unwrap_or_else(|| self.paths.assets.join("dictation").join("missing"));
+            .and_then(|descriptor| {
+                let path = self.assets.asset_path(descriptor).ok()?;
+                DictationModelSpec::from_descriptor(descriptor, path).ok()
+            });
         let speaker_model_path = self.speaker_model_path(&profile, true)?;
         Ok(RuntimeBundle {
             generation: config.generation,
             config,
             profile,
             preset_model_path: self.assets.asset_path(preset)?,
-            dictation_model_path,
+            dictation_model,
             speaker_model_path,
         })
     }

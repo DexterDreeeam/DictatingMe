@@ -27,7 +27,12 @@ fn resolve(dir: &Path, role: &str, candidates: &[&str]) -> PathBuf {
         .unwrap_or_else(|| panic!("missing {role} under '{}'", dir.display()))
 }
 
-fn build(dir: &Path, max_active_paths: i32, keywords: &str) -> KeywordSpotter {
+fn build(
+    dir: &Path,
+    num_threads: i32,
+    max_active_paths: i32,
+    keywords: &str,
+) -> KeywordSpotter {
     let mut config = KeywordSpotterConfig::default();
     config.model_config.transducer.encoder = Some(
         resolve(
@@ -57,7 +62,7 @@ fn build(dir: &Path, max_active_paths: i32, keywords: &str) -> KeywordSpotter {
         .to_string(),
     );
     config.model_config.tokens = Some(resolve(dir, "tokens", &["tokens.txt"]).display().to_string());
-    config.model_config.num_threads = 2;
+    config.model_config.num_threads = num_threads;
     config.max_active_paths = max_active_paths;
     config.keywords_buf = Some(keywords.to_owned());
     KeywordSpotter::create(&config).expect("spotter")
@@ -90,7 +95,7 @@ fn measures_beam_width_cost() {
 
     let mut baseline = 0.0_f64;
     for paths in [4_i32, 8, 16] {
-        let spotter = build(&dir, paths, &keywords);
+        let spotter = build(&dir, 2, paths, &keywords);
         // 预热一遍，避开首次推理的一次性开销。
         {
             let stream = spotter.create_stream();
@@ -122,4 +127,45 @@ fn measures_beam_width_cost() {
         );
     }
     println!("RTF 0.05 = 处理 1 秒音频花 50 ms，也就是常驻占用约 5% 的一个核。");
+}
+
+#[test]
+#[ignore = "手动性能基准"]
+fn measures_idle_thread_count_cost() {
+    let dir = support::corpus::assets_dir()
+        .join("preset")
+        .join("sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01");
+    let keywords = "n ǐ h ǎo @你好\n";
+    let frame = vec![0.0_f32; 1_600];
+    let frame_count = 1_200;
+    let audio_seconds = frame_count as f64 / 10.0;
+
+    println!("\n=== 空闲监听线程数代价（{audio_seconds:.0} 秒静音）===");
+    println!("{:<12}{:>12}{:>12}{:>15}", "threads", "墙钟(s)", "RTF", "单核占用估算");
+    for threads in [1, 2] {
+        let spotter = build(&dir, threads, 4, keywords);
+        let stream = spotter.create_stream_with_keywords(keywords);
+        for _ in 0..20 {
+            stream.accept_waveform(16_000, &frame);
+            while spotter.is_ready(&stream) {
+                spotter.decode(&stream);
+            }
+        }
+        let started = Instant::now();
+        for _ in 0..frame_count {
+            stream.accept_waveform(16_000, &frame);
+            while spotter.is_ready(&stream) {
+                spotter.decode(&stream);
+            }
+        }
+        let elapsed = started.elapsed().as_secs_f64();
+        let rtf = elapsed / audio_seconds;
+        println!(
+            "{:<12}{:>12.3}{:>12.4}{:>14.2}%",
+            threads,
+            elapsed,
+            rtf,
+            rtf * 100.0
+        );
+    }
 }

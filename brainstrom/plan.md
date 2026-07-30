@@ -1,8 +1,16 @@
-# DictatingMe 设计方案（Brainstorm v1.19）
+# DictatingMe 设计方案（Brainstorm v1.20）
 
 > 状态：v0.2 已实现并生成 NSIS 安装包。四份 architecture/interface 文档继续作为模块边界和后续重构方向；实际代码保留少量兼容接口以维持既有运行链路。
 
 ## 修订记录
+
+**v1.20（v0.2 实现）**：
+1. **DictationModel 改为 manifest 驱动**：可信 `sha.json` 为每个模型声明 `engine`、`recognizerType`、`outputMode`、artifact 角色和推理参数；同一识别机制的新模型不再需要修改 Rust。
+2. **统一识别接口**：`onlineTransducer` 保持实时 partial 输出；`offlineGenerative` 通过语音/静音切句，在后台线程整句识别并非阻塞地返回带标点结果。
+3. **接入 Qwen3-ASR 0.6B INT8**：使用 sherpa-onnx offline API，900ms 尾静音触发整句识别；当前 Zipformer 继续作为低延迟流式选项。
+4. **严格能力门控**：artifact 必须由 SHA 清单覆盖；不支持、缺字段或 output mode 不匹配的 recognizer 在 catalog 加载阶段直接失败，不允许选择后再运行时报错。
+5. **模型验证与选择解耦**：启动和 snapshot 只做文件元数据检查，已安装模型显示“检查中”并在后台串行执行 SHA-256；验证完成前禁选，完成后自动刷新 readiness；切换模型只读取验证缓存并立即保存，不再重新哈希或提前加载模型。
+6. **空闲监听 CPU 优化**：常驻 KWS 使用单推理线程；3.3M 小模型的 120 秒静音基准 RTF 从双线程 `0.0226` 降到单线程 `0.0176`，避免线程调度开销。
 
 **v1.19（v0.2 实现）**：
 1. **流式输出不再污染剪贴板**：Text Injector 使用 Windows `SendInput + KEYEVENTF_UNICODE` 直接发送 UTF-16 键盘事件，不再写入剪贴板或发送 `Ctrl+V`。
@@ -154,7 +162,7 @@
 | **Preset EvokeModel** | 基础唤醒词检测 | `assets/preset/` 随包发布，常驻内存 | sherpa-onnx KWS；所有模式都复用基础候选检测 |
 | **EvokeProfile** | 当前用户唤醒配置 | AppData 小型 manifest + artifact | 文字参数、语音模板、声纹 centroid 或分类器；同一时间只有一个 active profile |
 | **Optional Evoke Assets** | 声纹/分类处理依赖 | 首次使用按需下载 | speaker embedding、keyword embedding、negative embedding bank |
-| **DictationModel Asset** | 流式语音转文字 | 体积较大，下载后选择，唤醒后加载/结束后卸载 | 当前模型显示名 `sherpa-zipformer-zh-en`，本地 ONNX、离线可用 |
+| **DictationModel Asset** | 语音转文字 | 体积较大，下载后选择，唤醒后加载/结束后卸载 | Zipformer 实时输出或 Qwen3-ASR 整句输出；均为本地 ONNX、离线可用 |
 
 运行时仍然互斥：EvokePipeline 只在 `Listening` 处理麦克风音频；一旦进入 `Loading`/`Dictating`/`Unloading`，唤醒检测停止。设置/下载/录入只在 `Configure` 内运行，不新增 Runtime 状态。
 
@@ -333,13 +341,14 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 
 ### 6.4 SpeechModel 二级页
 
-- 语音模型列表与唤醒模式卡片使用相同选择视觉；当前模型显示名为 `sherpa-zipformer-zh-en`，副标题为“中文, English”。
+- 语音模型列表与唤醒模式卡片使用相同选择视觉；显示模型自身名称、版本、下载大小，以及“实时输出”或“整句输出”，不把推理框架 `sherpa-onnx` 当作模型名称。
 - 模型未下载或 SHA 不正确时没有默认选中项，模型卡不可选择；DownloadButton 依次显示下载、连接中、进度、验证中、就绪。
 - 下载完成只把模型变为可选择，用户仍需主动选中；选中后首页卡恢复正常，播放按钮才可能解锁。
 
 ### 6.5 History 二级页
 
 - 正文仅为最近最多 20 条记录的可滚动紧凑卡片列表（FIFO，第 21 条进来自动淘汰最旧的 1 条），记录数只显示在标题栏。
+- 历史列表使用固定 400px 高的内部滚动视口；记录数量和单条文字长度不再改变 MainWindow 高度。
 - 每条记录顶行包含时间戳与线性播放/复制按钮，文本显示在下方。
 - 支持**复制**文本；**不支持删除、不支持搜索**（v1 范围明确排除）
 - 播放/复制成功不显示 toast；失败可在列表附近就地提示。

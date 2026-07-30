@@ -55,22 +55,20 @@ export class SpeechModelPage implements PageComponent {
       const title = document.createElement('strong');
       title.textContent = model.displayName;
       const detail = document.createElement('span');
-      detail.textContent = `版本 ${model.version}`;
+      const size = formatModelSize(model.fileSizeBytes);
+      const output = formatOutputMode(model.outputMode);
+      detail.textContent = [`版本 ${model.version}`, size, output].filter(Boolean).join(' · ');
       copy.append(title, detail);
       const download = createDownloadButton(model.sources, model.assetPath);
       download.addEventListener('dictatingme:asset-ready', () => {
         model.phase = 'ready';
         radio.disabled = false;
         option.classList.remove('mode-option--unavailable');
-        if (models.length === 1) {
-          void getSettingsSnapshot()
-            .then((snapshot) => {
-              if (snapshot.config.activeDictationAssetId === model.id) return snapshot;
-              return selectDictationModel(model.id);
-            })
-            .then(() => selectRenderedModel(list, radio, option))
-            .catch((error) => console.error('Failed to auto-select dictation model:', error));
-        }
+        void getSettingsSnapshot()
+          .then((snapshot) => {
+            syncRenderedSelection(list, snapshot.config.activeDictationAssetId);
+          })
+          .catch((error) => console.error('Failed to sync dictation model selection:', error));
       });
       option.classList.toggle('mode-option--selected', model.selected);
       option.classList.toggle('mode-option--unavailable', model.phase !== 'ready');
@@ -115,6 +113,20 @@ export class SpeechModelPage implements PageComponent {
   }
 }
 
+export function formatModelSize(bytes: number | null): string | null {
+  if (bytes === null || !Number.isFinite(bytes) || bytes < 0) return null;
+  const gibibyte = 1024 ** 3;
+  const divisor = bytes < gibibyte ? 1024 ** 2 : gibibyte;
+  const unit = bytes < gibibyte ? 'MB' : 'GB';
+  return `${(bytes / divisor).toFixed(2)} ${unit}`;
+}
+
+function formatOutputMode(mode: AssetSummary['outputMode']): string | null {
+  if (mode === 'streaming') return '实时输出';
+  if (mode === 'utterance') return '整句输出';
+  return null;
+}
+
 function selectRenderedModel(
   list: HTMLElement,
   selectedRadio: HTMLInputElement,
@@ -125,5 +137,13 @@ function selectRenderedModel(
   });
   list.querySelectorAll('.mode-option').forEach((option) => {
     option.classList.toggle('mode-option--selected', option === selectedOption);
+  });
+}
+
+function syncRenderedSelection(list: HTMLElement, selectedId: string | null): void {
+  list.querySelectorAll<HTMLInputElement>('input[name="speech-model"]').forEach((radio) => {
+    const selected = radio.value === selectedId;
+    radio.checked = selected;
+    radio.closest('.mode-option')?.classList.toggle('mode-option--selected', selected);
   });
 }

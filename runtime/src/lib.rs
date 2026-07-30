@@ -200,10 +200,18 @@ fn setup_runtime(app: &mut tauri::App) -> Result<(), RuntimeError> {
 
     tracing::debug!("setup phase: resolve model directories");
     let evoke_path = bundle.preset_model_path.clone();
-    let dictation_path = bundle.dictation_model_path.clone();
     tracing::info!(
         evoke_model_directory = %evoke_path.display(),
-        dictation_model_directory = %dictation_path.display(),
+        dictation_model_id = bundle
+            .dictation_model
+            .as_ref()
+            .map(|model| model.id.as_str())
+            .unwrap_or("unconfigured"),
+        dictation_model_directory = bundle
+            .dictation_model
+            .as_ref()
+            .map(|model| model.root.display().to_string())
+            .unwrap_or_else(|| "unconfigured".to_owned()),
         "model directories resolved"
     );
     tracing::debug!("setup phase: initialize model engines");
@@ -213,7 +221,7 @@ fn setup_runtime(app: &mut tauri::App) -> Result<(), RuntimeError> {
     )
     .map_err(|error| RuntimeError(format!("failed to initialize evoke model: {}", error.0)))?;
     evoke_model.set_sensitivity(bundle.config.sensitivity);
-    let dictation_model = DictationModelEngine::new(path_text(&dictation_path, "dictation model")?);
+    let dictation_model = DictationModelEngine::new(bundle.dictation_model.clone());
 
     tracing::debug!("setup phase: initialize tray and windows");
     let tray_manager = tray::create_tauri_tray_manager(app.handle().clone());

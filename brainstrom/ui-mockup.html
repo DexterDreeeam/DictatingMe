@@ -675,7 +675,7 @@
   }
   .icon-btn:hover { background: var(--panel-hover); color: var(--text); }
   .history-text { font-size: 12.5px; color: var(--text); line-height: 1.5; }
-  .history-scroll { max-height: 400px; overflow-y: auto; padding-right: 4px; }
+  .history-scroll { height: 400px; overflow-y: auto; padding-right: 4px; }
   .history-scroll::-webkit-scrollbar { width: 6px; }
   .history-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
@@ -1272,7 +1272,7 @@
               />
               <span class="wake-mode-radio"></span>
               <span class="wake-mode-copy">
-                <span class="wake-mode-title">sherpa-zipformer-zh-en</span>
+                <span class="wake-mode-title">Zipformer 中英双语流式模型</span>
                 <span class="wake-mode-desc">中文, English</span>
               </span>
               <span class="asset-download-slot" id="speech-model-download-slot"></span>
@@ -1730,7 +1730,7 @@
     const frame = document.getElementById('mainwindow-frame');
     const play = document.getElementById('titlebar-play');
     homeCard?.classList.remove('requires-setup');
-    if (homeValue) homeValue.textContent = 'sherpa-zipformer-zh-en';
+    if (homeValue) homeValue.textContent = 'Zipformer 中英双语流式模型';
     frame?.classList.remove('model-required');
     if (play) {
       play.setAttribute('aria-disabled', 'false');

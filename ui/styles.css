@@ -942,6 +942,8 @@ p {
 }
 
 .history-scroll {
+  height: 400px;
+  flex: 0 0 400px;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding-right: 4px;

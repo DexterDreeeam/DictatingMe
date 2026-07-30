@@ -168,7 +168,7 @@ export class HistoryPage implements PageComponent {
   #renderLoading(): HTMLElement {
     const page = this.#createPageShell();
     const list = document.createElement('div');
-    list.className = 'history-list';
+    list.className = 'history-list history-scroll';
     list.setAttribute('aria-busy', 'true');
     list.setAttribute('aria-label', '正在加载听写历史');
     for (let index = 0; index < 4; index += 1) {

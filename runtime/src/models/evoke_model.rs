@@ -170,7 +170,7 @@ impl KwsRuntime {
         config.model_config.transducer.decoder = Some(path_string(&files.decoder)?);
         config.model_config.transducer.joiner = Some(path_string(&files.joiner)?);
         config.model_config.tokens = Some(path_string(&files.tokens)?);
-        config.model_config.num_threads = 2;
+        config.model_config.num_threads = 1;
         config.keywords_buf = Some(keyword_syntax.to_owned());
         config.keywords_threshold = sensitivity_to_threshold(0.65);
 

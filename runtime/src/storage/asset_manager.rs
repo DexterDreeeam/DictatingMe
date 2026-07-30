@@ -70,6 +70,133 @@ pub enum AssetFormat {
     TarBz2,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RecognizerEngine {
+    SherpaOnnx,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RecognizerType {
+    OnlineTransducer,
+    OfflineGenerative,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum OutputMode {
+    Streaming,
+    Utterance,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OnlineTransducerArtifacts {
+    pub encoder: String,
+    pub decoder: String,
+    pub joiner: String,
+    pub tokens: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OfflineGenerativeArtifacts {
+    pub frontend: String,
+    pub encoder: String,
+    pub decoder: String,
+    pub tokenizer: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EndpointOptions {
+    pub rule1_silence_ms: u64,
+    pub rule2_silence_ms: u64,
+    pub max_utterance_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OnlineTransducerOptions {
+    pub num_threads: i32,
+    pub decoding_method: String,
+    pub endpoint: EndpointOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SegmentationOptions {
+    pub pre_roll_ms: u64,
+    pub minimum_speech_ms: u64,
+    pub trailing_silence_ms: u64,
+    pub maximum_utterance_ms: u64,
+    pub speech_threshold: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OfflineGenerativeOptions {
+    pub num_threads: i32,
+    pub max_total_length: i32,
+    pub max_new_tokens: i32,
+    pub segmentation: SegmentationOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(
+    tag = "recognizerType",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum RecognizerDescriptor {
+    OnlineTransducer {
+        engine: RecognizerEngine,
+        output_mode: OutputMode,
+        artifacts: OnlineTransducerArtifacts,
+        options: OnlineTransducerOptions,
+    },
+    OfflineGenerative {
+        engine: RecognizerEngine,
+        output_mode: OutputMode,
+        artifacts: OfflineGenerativeArtifacts,
+        options: OfflineGenerativeOptions,
+    },
+}
+
+impl RecognizerDescriptor {
+    pub fn recognizer_type(&self) -> RecognizerType {
+        match self {
+            Self::OnlineTransducer { .. } => RecognizerType::OnlineTransducer,
+            Self::OfflineGenerative { .. } => RecognizerType::OfflineGenerative,
+        }
+    }
+
+    pub fn output_mode(&self) -> OutputMode {
+        match self {
+            Self::OnlineTransducer { output_mode, .. }
+            | Self::OfflineGenerative { output_mode, .. } => *output_mode,
+        }
+    }
+
+    fn artifact_paths(&self) -> Vec<&str> {
+        match self {
+            Self::OnlineTransducer { artifacts, .. } => vec![
+                &artifacts.encoder,
+                &artifacts.decoder,
+                &artifacts.joiner,
+                &artifacts.tokens,
+            ],
+            Self::OfflineGenerative { artifacts, .. } => vec![
+                &artifacts.frontend,
+                &artifacts.encoder,
+                &artifacts.decoder,
+                &artifacts.tokenizer,
+            ],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssetFileDescriptor {
@@ -85,6 +212,8 @@ pub struct AssetDescriptor {
     pub kind: AssetKind,
     #[serde(default)]
     pub display_name: String,
+    #[serde(default)]
+    pub file_size_bytes: Option<u64>,
     pub version: String,
     pub bundled: bool,
     pub format: AssetFormat,
@@ -95,6 +224,8 @@ pub struct AssetDescriptor {
     pub output_file: Option<String>,
     #[serde(default)]
     pub sources: Vec<String>,
+    #[serde(default)]
+    pub recognizer: Option<RecognizerDescriptor>,
     pub files: Vec<AssetFileDescriptor>,
 }
 
@@ -119,9 +250,12 @@ struct LocalizedModelSection {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct LocalizedAssetEntry {
     id: String,
     name: String,
+    #[serde(default)]
+    file_size_bytes: Option<u64>,
     #[serde(default)]
     primary: bool,
     sources: Vec<String>,
@@ -153,6 +287,9 @@ pub struct AssetSummary {
     pub kind: AssetKind,
     pub asset_group: Option<AssetGroup>,
     pub display_name: String,
+    pub file_size_bytes: Option<u64>,
+    pub recognizer_type: Option<RecognizerType>,
+    pub output_mode: Option<OutputMode>,
     pub version: String,
     pub asset_path: String,
     pub sources: Vec<String>,
@@ -229,6 +366,7 @@ pub struct AssetManager {
     manifest: Arc<LocalizedAssetManifest>,
     client: reqwest::Client,
     verified: Arc<Mutex<std::collections::HashMap<String, Vec<FileStamp>>>>,
+    verification_lock: Arc<Mutex<()>>,
 }
 
 impl AssetManager {
@@ -300,6 +438,7 @@ impl AssetManager {
             manifest: Arc::new(manifest),
             client,
             verified: Arc::new(Mutex::new(std::collections::HashMap::new())),
+            verification_lock: Arc::new(Mutex::new(())),
         })
     }
 
@@ -396,20 +535,25 @@ impl AssetManager {
             .iter()
             .map(|descriptor| {
                 let path = self.asset_path(descriptor).unwrap_or_default();
-                let status = self.verify_cached(descriptor, &path);
+                let phase = self.cached_phase(descriptor, &path);
                 AssetSummary {
                     id: descriptor.id.clone(),
                     kind: descriptor.kind,
                     asset_group: self.group_for_asset(&descriptor.id),
                     display_name: descriptor.display_name.clone(),
+                    file_size_bytes: descriptor.file_size_bytes,
+                    recognizer_type: descriptor
+                        .recognizer
+                        .as_ref()
+                        .map(RecognizerDescriptor::recognizer_type),
+                    output_mode: descriptor
+                        .recognizer
+                        .as_ref()
+                        .map(RecognizerDescriptor::output_mode),
                     version: descriptor.version.clone(),
                     asset_path: path.display().to_string(),
                     sources: descriptor.sources.clone(),
-                    phase: if status.is_ok() {
-                        AssetPhase::Ready
-                    } else {
-                        AssetPhase::Missing
-                    },
+                    phase,
                     progress: None,
                     error: None,
                     selected: selected_id == Some(descriptor.id.as_str()),
@@ -418,11 +562,43 @@ impl AssetManager {
             .collect()
     }
 
+    pub fn cached_phase_for_path(&self, asset_path: &str) -> AssetPhase {
+        self.descriptor_for_path(asset_path)
+            .ok()
+            .and_then(|descriptor| {
+                self.asset_path(descriptor)
+                    .ok()
+                    .map(|path| self.cached_phase(descriptor, &path))
+            })
+            .unwrap_or(AssetPhase::Failed)
+    }
+
+    pub fn require_verified(&self, descriptor: &AssetDescriptor) -> Result<(), StorageError> {
+        let path = self.asset_path(descriptor)?;
+        if self.cached_phase(descriptor, &path) == AssetPhase::Ready {
+            Ok(())
+        } else {
+            Err(StorageError(format!(
+                "asset '{}' has not completed SHA-256 verification",
+                descriptor.id
+            )))
+        }
+    }
+
     pub fn inspect(&self, asset_path: &str, selected_id: Option<&str>) -> AssetSummary {
         match self.descriptor_for_path(asset_path) {
             Ok(descriptor) => {
                 let path = self.asset_path(descriptor).unwrap_or_default();
-                match verify_asset_directory(&path, descriptor) {
+                let _verification = self
+                    .verification_lock
+                    .lock()
+                    .unwrap_or_else(|lock| lock.into_inner());
+                let verification = if self.cached_phase(descriptor, &path) == AssetPhase::Ready {
+                    Ok(())
+                } else {
+                    verify_asset_directory(&path, descriptor)
+                };
+                match verification {
                     Ok(()) => AssetSummary {
                         id: {
                             self.mark_verified(descriptor, &path);
@@ -431,6 +607,15 @@ impl AssetManager {
                         kind: descriptor.kind,
                         asset_group: self.group_for_asset(&descriptor.id),
                         display_name: descriptor.display_name.clone(),
+                        file_size_bytes: descriptor.file_size_bytes,
+                        recognizer_type: descriptor
+                            .recognizer
+                            .as_ref()
+                            .map(RecognizerDescriptor::recognizer_type),
+                        output_mode: descriptor
+                            .recognizer
+                            .as_ref()
+                            .map(RecognizerDescriptor::output_mode),
                         version: descriptor.version.clone(),
                         asset_path: path.display().to_string(),
                         sources: descriptor.sources.clone(),
@@ -444,6 +629,15 @@ impl AssetManager {
                         kind: descriptor.kind,
                         asset_group: self.group_for_asset(&descriptor.id),
                         display_name: descriptor.display_name.clone(),
+                        file_size_bytes: descriptor.file_size_bytes,
+                        recognizer_type: descriptor
+                            .recognizer
+                            .as_ref()
+                            .map(RecognizerDescriptor::recognizer_type),
+                        output_mode: descriptor
+                            .recognizer
+                            .as_ref()
+                            .map(RecognizerDescriptor::output_mode),
                         version: descriptor.version.clone(),
                         asset_path: path.display().to_string(),
                         sources: descriptor.sources.clone(),
@@ -459,6 +653,9 @@ impl AssetManager {
                 kind: AssetKind::ClassifierResource,
                 asset_group: None,
                 display_name: "未知资源".to_owned(),
+                file_size_bytes: None,
+                recognizer_type: None,
+                output_mode: None,
                 version: String::new(),
                 asset_path: asset_path.to_owned(),
                 sources: Vec::new(),
@@ -708,10 +905,19 @@ impl AssetManager {
             id: descriptor.id.clone(),
             kind: descriptor.kind,
             asset_group: self.group_for_asset(&descriptor.id),
-            display_name: descriptor.display_name,
-            version: descriptor.version,
+            display_name: descriptor.display_name.clone(),
+            file_size_bytes: descriptor.file_size_bytes,
+            recognizer_type: descriptor
+                .recognizer
+                .as_ref()
+                .map(RecognizerDescriptor::recognizer_type),
+            output_mode: descriptor
+                .recognizer
+                .as_ref()
+                .map(RecognizerDescriptor::output_mode),
+            version: descriptor.version.clone(),
             asset_path: destination.display().to_string(),
-            sources: descriptor.sources,
+            sources: descriptor.sources.clone(),
             phase: AssetPhase::Ready,
             progress: Some(1.0),
             error: None,
@@ -986,20 +1192,28 @@ impl AssetManager {
         Ok(probes)
     }
 
-    fn verify_cached(&self, descriptor: &AssetDescriptor, path: &Path) -> Result<(), StorageError> {
-        let current = file_stamps(path, descriptor);
-        if current.as_ref().is_ok_and(|stamps| {
-            self.verified
-                .lock()
-                .unwrap_or_else(|lock| lock.into_inner())
-                .get(&descriptor.id)
-                == Some(stamps)
-        }) {
-            return Ok(());
+    fn cached_phase(&self, descriptor: &AssetDescriptor, path: &Path) -> AssetPhase {
+        let Ok(current) = file_stamps(path, descriptor) else {
+            return AssetPhase::Missing;
+        };
+        if current
+            .iter()
+            .zip(&descriptor.files)
+            .any(|(stamp, expected)| stamp.size != expected.size_bytes)
+        {
+            return AssetPhase::Missing;
         }
-        verify_asset_directory(path, descriptor)?;
-        self.mark_verified(descriptor, path);
-        Ok(())
+        if self
+            .verified
+            .lock()
+            .unwrap_or_else(|lock| lock.into_inner())
+            .get(&descriptor.id)
+            == Some(&current)
+        {
+            AssetPhase::Ready
+        } else {
+            AssetPhase::Checking
+        }
     }
 
     fn mark_verified(&self, descriptor: &AssetDescriptor, path: &Path) {
@@ -1124,6 +1338,124 @@ fn validate_catalog(catalog: &AssetCatalog) -> Result<(), StorageError> {
                 )));
             }
         }
+        match (asset.kind, asset.recognizer.as_ref()) {
+            (AssetKind::DictationModel, Some(recognizer)) => {
+                validate_recognizer_descriptor(asset, recognizer)?;
+            }
+            (AssetKind::DictationModel, None) => {
+                return Err(StorageError(format!(
+                    "dictation model '{}' has no recognizer configuration",
+                    asset.id
+                )));
+            }
+            (_, Some(_)) => {
+                return Err(StorageError(format!(
+                    "non-dictation asset '{}' cannot define a recognizer",
+                    asset.id
+                )));
+            }
+            (_, None) => {}
+        }
+    }
+    Ok(())
+}
+
+fn validate_recognizer_descriptor(
+    asset: &AssetDescriptor,
+    recognizer: &RecognizerDescriptor,
+) -> Result<(), StorageError> {
+    match recognizer {
+        RecognizerDescriptor::OnlineTransducer {
+            engine,
+            output_mode,
+            options,
+            ..
+        } => {
+            if *engine != RecognizerEngine::SherpaOnnx || *output_mode != OutputMode::Streaming {
+                return Err(StorageError(format!(
+                    "online transducer '{}' must use sherpaOnnx with streaming output",
+                    asset.id
+                )));
+            }
+            if options.num_threads <= 0
+                || options.decoding_method.trim().is_empty()
+                || options.endpoint.rule1_silence_ms == 0
+                || options.endpoint.rule2_silence_ms == 0
+                || options.endpoint.max_utterance_ms == 0
+            {
+                return Err(StorageError(format!(
+                    "online transducer '{}' has invalid options",
+                    asset.id
+                )));
+            }
+        }
+        RecognizerDescriptor::OfflineGenerative {
+            engine,
+            output_mode,
+            options,
+            ..
+        } => {
+            if *engine != RecognizerEngine::SherpaOnnx || *output_mode != OutputMode::Utterance {
+                return Err(StorageError(format!(
+                    "offline generative recognizer '{}' must use sherpaOnnx with utterance output",
+                    asset.id
+                )));
+            }
+            let segmentation = &options.segmentation;
+            if options.num_threads <= 0
+                || options.max_total_length <= 0
+                || options.max_new_tokens <= 0
+                || segmentation.minimum_speech_ms == 0
+                || segmentation.trailing_silence_ms == 0
+                || segmentation.maximum_utterance_ms == 0
+                || segmentation.maximum_utterance_ms < segmentation.minimum_speech_ms
+                || !segmentation.speech_threshold.is_finite()
+                || segmentation.speech_threshold <= 0.0
+                || segmentation.speech_threshold > 1.0
+            {
+                return Err(StorageError(format!(
+                    "offline generative recognizer '{}' has invalid options",
+                    asset.id
+                )));
+            }
+        }
+    }
+
+    let expected_paths = asset
+        .files
+        .iter()
+        .map(|file| file.path.as_str())
+        .collect::<Vec<_>>();
+    let mut artifacts = std::collections::HashSet::new();
+    for artifact in recognizer.artifact_paths() {
+        let normalized = artifact.replace('\\', "/");
+        let path = Path::new(&normalized);
+        if normalized.is_empty()
+            || path.is_absolute()
+            || path
+                .components()
+                .any(|component| !matches!(component, std::path::Component::Normal(_)))
+        {
+            return Err(StorageError(format!(
+                "recognizer artifact '{}' for '{}' is not a safe relative path",
+                artifact, asset.id
+            )));
+        }
+        if !artifacts.insert(normalized.clone()) {
+            return Err(StorageError(format!(
+                "recognizer '{}' uses duplicate artifact path '{}'",
+                asset.id, artifact
+            )));
+        }
+        let directory_prefix = format!("{normalized}/");
+        if !expected_paths.iter().any(|expected| {
+            *expected == normalized || expected.replace('\\', "/").starts_with(&directory_prefix)
+        }) {
+            return Err(StorageError(format!(
+                "recognizer artifact '{}' for '{}' is not covered by the SHA file list",
+                artifact, asset.id
+            )));
+        }
     }
     Ok(())
 }
@@ -1205,6 +1537,14 @@ fn apply_manifest_section(
                 entry.id
             )));
         }
+        if expected_kind == AssetKind::DictationModel
+            && !entry.file_size_bytes.is_some_and(|size| size > 0)
+        {
+            return Err(StorageError(format!(
+                "localized dictation model '{}' must provide a positive fileSizeBytes",
+                entry.id
+            )));
+        }
         if entry.sources.is_empty()
             || entry
                 .sources
@@ -1239,6 +1579,7 @@ fn apply_manifest_section(
             )));
         }
         descriptor.display_name = entry.name.trim().to_owned();
+        descriptor.file_size_bytes = entry.file_size_bytes;
         descriptor.sources.clone_from(&entry.sources);
     }
     Ok(())
@@ -1489,12 +1830,32 @@ mod tests {
         assert!(!speaker.sources.is_empty());
         assert_eq!(classifier.len(), 1);
         assert_eq!(classifier[0].kind, AssetKind::ClassifierResource);
-        assert_eq!(speech_models.len(), 1);
-        assert_eq!(speech_models[0].kind, AssetKind::DictationModel);
-        assert!(speech_models[0]
-            .sources
+        assert_eq!(speech_models.len(), 2);
+        assert!(speech_models.iter().all(|model| {
+            model.kind == AssetKind::DictationModel
+                && model
+                    .sources
+                    .iter()
+                    .all(|source| source.starts_with("https://"))
+        }));
+        assert!(speech_models
             .iter()
-            .all(|source| source.starts_with("https://")));
+            .any(|model| model.id == "dictation.qwen3-asr-0.6b-int8"));
+        assert!(speech_models
+            .iter()
+            .all(|model| model.file_size_bytes.is_some_and(|size| size > 0)));
+        assert!(speech_models.iter().any(|model| {
+            model.recognizer.as_ref().is_some_and(|recognizer| {
+                recognizer.recognizer_type() == RecognizerType::OnlineTransducer
+                    && recognizer.output_mode() == OutputMode::Streaming
+            })
+        }));
+        assert!(speech_models.iter().any(|model| {
+            model.recognizer.as_ref().is_some_and(|recognizer| {
+                recognizer.recognizer_type() == RecognizerType::OfflineGenerative
+                    && recognizer.output_mode() == OutputMode::Utterance
+            })
+        }));
     }
 
     #[test]
@@ -1516,6 +1877,46 @@ mod tests {
             .descriptor("evoke.sherpa-zipformer-wenetspeech")
             .unwrap();
         verify_asset_directory(&manager.asset_path(descriptor).unwrap(), descriptor).unwrap();
+        std::fs::remove_dir_all(temporary).unwrap();
+    }
+
+    #[test]
+    fn installed_assets_are_checking_until_sha_verification_finishes() {
+        let temporary = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("target")
+            .join(format!("asset-checking-test-{}", Uuid::new_v4()));
+        let workspace_assets = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("assets");
+        let paths = AppPaths::new(temporary.clone());
+        paths.ensure().unwrap();
+        let manager = AssetManager::load(paths, &workspace_assets.join("sha.json")).unwrap();
+        manager.bootstrap_embedded().unwrap();
+        let descriptor = manager
+            .descriptor("evoke.sherpa-zipformer-wenetspeech")
+            .unwrap();
+        let asset_path = manager.asset_path(descriptor).unwrap();
+
+        manager
+            .verified
+            .lock()
+            .unwrap_or_else(|lock| lock.into_inner())
+            .clear();
+        assert_eq!(
+            manager.cached_phase(descriptor, &asset_path),
+            AssetPhase::Checking
+        );
+        assert!(manager.require_verified(descriptor).is_err());
+
+        let summary = manager.inspect(
+            asset_path.to_str().unwrap(),
+            Some("evoke.sherpa-zipformer-wenetspeech"),
+        );
+        assert_eq!(summary.phase, AssetPhase::Ready);
+        manager.require_verified(descriptor).unwrap();
         std::fs::remove_dir_all(temporary).unwrap();
     }
 

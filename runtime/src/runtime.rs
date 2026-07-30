@@ -3,7 +3,7 @@
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Cursor};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -229,7 +229,19 @@ struct RuntimeLifecycle {
     started: bool,
     shutting_down: bool,
     surfaces_activated: bool,
-    model_load: Option<JoinHandle<()>>,
+    model_load: Option<ModelLoadTask>,
+}
+
+struct ModelLoadTask {
+    handle: JoinHandle<()>,
+    cancelled: Arc<AtomicBool>,
+}
+
+impl ModelLoadTask {
+    fn cancel(self) {
+        self.cancelled.store(true, Ordering::Release);
+        self.handle.abort();
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -556,7 +568,7 @@ impl RuntimeCore {
         self.lifecycle.shutting_down = true;
         if let Some(load) = self.lifecycle.model_load.take() {
             tracing::info!("aborting in-flight dictation model load during shutdown");
-            load.abort();
+            load.cancel();
         }
         self.input_monitor.stop();
         self.audio_capture.stop();
@@ -972,16 +984,20 @@ impl RuntimeCore {
     }
 
     fn process_dictation_frame(&mut self, frame: &AudioFrame) -> Result<(), RuntimeError> {
-        let Some(update) = self.dictation_model.process_frame(frame) else {
-            return Ok(());
-        };
-        let suffix = self.text_diff.compute_suffix(&update.full_text);
-        if suffix.is_empty() {
-            return Ok(());
+        let updates = self
+            .dictation_model
+            .process_frame(frame)
+            .map_err(|error| RuntimeError(format!("dictation recognition failed: {}", error.0)))?;
+        for update in updates {
+            let suffix = self.text_diff.compute_suffix(&update.full_text);
+            if suffix.is_empty() {
+                continue;
+            }
+            self.text_injector.type_text(&suffix).map_err(|error| {
+                RuntimeError(format!("failed to inject dictated text: {}", error.0))
+            })?;
         }
-        self.text_injector
-            .type_text(&suffix)
-            .map_err(|error| RuntimeError(format!("failed to inject dictated text: {}", error.0)))
+        Ok(())
     }
 
     fn execute_effect(&mut self, effect: TransitionEffect) -> Result<(), RuntimeError> {
@@ -1000,11 +1016,12 @@ impl RuntimeCore {
             }
             TransitionEffect::StopDictationModelAndDiscardPending => {
                 self.ring_buffer.clear();
+                self.dictation_model.discard_pending();
                 Ok(())
             }
             TransitionEffect::UnloadDictationModel => {
                 if let Some(load) = self.lifecycle.model_load.take() {
-                    load.abort();
+                    load.cancel();
                 }
                 self.dictation_model.unload();
                 Ok(())
@@ -1059,29 +1076,42 @@ impl RuntimeCore {
         })?;
         if let Some(previous) = self.lifecycle.model_load.take() {
             tracing::warn!(session_id, "aborting previous dictation model load");
-            previous.abort();
+            previous.cancel();
         }
-        let model_path = self.dictation_model.model_path().to_owned();
+        let spec = self.dictation_model.spec().cloned().ok_or_else(|| {
+            RuntimeError("model loading started without a dictation model spec".to_owned())
+        })?;
         tracing::info!(
             session_id,
-            model_path = %model_path,
+            model_id = %spec.id,
+            model_path = %spec.root.display(),
+            recognizer_type = ?spec.recognizer.recognizer_type(),
+            output_mode = ?spec.output_mode(),
             "dictation model load start"
         );
         let sender = self.sender()?.clone();
-        self.lifecycle.model_load = Some(tokio::spawn(async move {
-            let mut model = DictationModelEngine::new(&model_path);
-            let result = model.load().await.map(|()| model).map_err(|error| {
-                RuntimeError(format!("failed to load dictation model: {}", error.0))
-            });
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let load_cancelled = Arc::clone(&cancelled);
+        let handle = tokio::spawn(async move {
+            let mut model = DictationModelEngine::new(Some(spec.clone()));
+            let result = model
+                .load_with_cancellation(load_cancelled)
+                .await
+                .map(|()| model)
+                .map_err(|error| {
+                    RuntimeError(format!("failed to load dictation model: {}", error.0))
+                });
             match &result {
                 Ok(_) => tracing::info!(
                     session_id,
-                    model_path = %model_path,
+                    model_id = %spec.id,
+                    model_path = %spec.root.display(),
                     "dictation model load finish"
                 ),
                 Err(error) => tracing::error!(
                     session_id,
-                    model_path = %model_path,
+                    model_id = %spec.id,
+                    model_path = %spec.root.display(),
                     %error,
                     "dictation model load error"
                 ),
@@ -1095,7 +1125,8 @@ impl RuntimeCore {
                     "model loading callback failed: runtime actor is unavailable"
                 );
             }
-        }));
+        });
+        self.lifecycle.model_load = Some(ModelLoadTask { handle, cancelled });
         Ok(())
     }
 
@@ -1338,12 +1369,7 @@ impl RuntimeCore {
             .map_err(|error| RuntimeError(error.0))?;
         self.evoke_model.set_sensitivity(bundle.config.sensitivity);
         self.dictation_model
-            .set_model_path(
-                bundle
-                    .dictation_model_path
-                    .to_str()
-                    .ok_or_else(|| RuntimeError("dictation model path is not UTF-8".to_owned()))?,
-            )
+            .set_spec(bundle.dictation_model)
             .map_err(|error| RuntimeError(error.0))?;
         self.scoring = ScoringSystem::new(
             bundle.profile,

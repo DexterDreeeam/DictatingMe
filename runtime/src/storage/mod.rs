@@ -11,7 +11,9 @@ pub use app_paths::AppPaths;
 pub use asset_manager::{
     verify_asset_directory, AssetCatalog, AssetDescriptor, AssetFormat, AssetGroup,
     AssetInstallRequest, AssetKind, AssetManager, AssetPhase, AssetProgress, AssetSummary,
-    ProgressCallback,
+    OfflineGenerativeArtifacts, OfflineGenerativeOptions, OnlineTransducerArtifacts,
+    OnlineTransducerOptions, OutputMode, ProgressCallback, RecognizerDescriptor, RecognizerEngine,
+    RecognizerType, SegmentationOptions,
 };
 pub use config_store::{AppConfig, ConfigStore};
 pub use db::{Database, StorageError};
