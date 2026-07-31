@@ -5,11 +5,8 @@ use serde::{Deserialize, Serialize};
 use sherpa_onnx::{SpeakerEmbeddingExtractor, SpeakerEmbeddingExtractorConfig};
 
 use crate::audio::AudioFrame;
-use crate::evoke_setup::features::{
-    classifier_score, dtw_similarity, extract_feature_sequence, frames_to_16k, recording_quality,
-    resample_sequence, summarize_sequence, TEMPLATE_FRAMES,
-};
-use crate::evoke_setup::processor::speaker_similarity;
+use crate::evoke_setup::audio::{frames_to_16k, recording_quality};
+use crate::evoke_setup::modes;
 use crate::evoke_setup::{EvokeArtifact, EvokeMode, EvokeProfile};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -149,12 +146,8 @@ impl ScoringSystem {
         voice_activity: f32,
     ) -> f32 {
         match &self.profile.artifact {
-            EvokeArtifact::Text { .. } => voice_activity,
-            EvokeArtifact::VoiceMatch { template } => {
-                let sequence =
-                    resample_sequence(&extract_feature_sequence(samples), TEMPLATE_FRAMES);
-                dtw_similarity(&sequence, template)
-            }
+            EvokeArtifact::Text { .. } => modes::text::score(voice_activity),
+            EvokeArtifact::VoiceMatch { template } => modes::voice_match::score(samples, template),
             EvokeArtifact::SpeakerVerify { centroid } => {
                 if !full_mode_evaluation {
                     return voice_activity * 0.55;
@@ -162,21 +155,10 @@ impl ScoringSystem {
                 let Some(extractor) = &self.speaker else {
                     return 0.0;
                 };
-                let Some(stream) = extractor.create_stream() else {
-                    return 0.0;
-                };
-                stream.accept_waveform(16_000, samples);
-                if !extractor.is_ready(&stream) {
-                    return 0.0;
-                }
-                extractor
-                    .compute(&stream)
-                    .map(|embedding| speaker_similarity(centroid, &embedding))
-                    .unwrap_or(0.0)
+                modes::speaker::score(extractor, centroid, samples)
             }
             EvokeArtifact::Classifier { weights, bias } => {
-                let feature = summarize_sequence(&extract_feature_sequence(samples));
-                classifier_score(weights, *bias, &feature)
+                modes::classifier::score(weights, *bias, samples)
             }
         }
     }
@@ -292,7 +274,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let samples = frames_to_16k(&frames);
-        let template = resample_sequence(&extract_feature_sequence(&samples), TEMPLATE_FRAMES);
+        let template = modes::voice_match::feature_sequence(&samples);
         let profile = EvokeProfile {
             id: "voice-match".to_owned(),
             mode: EvokeMode::VoiceMatch,
