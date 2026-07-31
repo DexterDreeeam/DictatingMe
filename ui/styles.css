@@ -199,6 +199,9 @@ p {
   overflow: hidden;
 }
 
+/* 离屏测量容器：高度由内容撑开。注意 `.page` 是 height:100%，
+   放进来后百分比高度会解析成 auto，所以测量代码必须显式把克隆改成
+   按内容流动的块级盒，否则量到的高度是 0。 */
 .window-measure {
   position: fixed;
   z-index: -1;
@@ -222,6 +225,12 @@ p {
 
 .page--home {
   gap: 0;
+}
+
+/* 输入设备页没有 section-heading，内容比其他二级页少一截，
+   沿用统一的 32px 底部留白会显得空。 */
+.page--devices {
+  padding-bottom: 20px;
 }
 
 .hero-wordmark {

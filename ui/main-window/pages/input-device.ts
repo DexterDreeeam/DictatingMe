@@ -196,7 +196,7 @@ export class InputDevicePage implements PageComponent {
 
   #createPageShell(): HTMLElement {
     const page = document.createElement('section');
-    page.className = 'page';
+    page.className = 'page page--devices';
     return page;
   }
 

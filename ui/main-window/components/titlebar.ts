@@ -12,11 +12,9 @@ export interface TitleBarProps {
 export function renderTitleBar(props: TitleBarProps): HTMLElement {
   const titleBar = document.createElement('header');
   titleBar.className = 'titlebar';
-  titleBar.setAttribute('data-tauri-drag-region', '');
 
   const identity = document.createElement('div');
   identity.className = 'titlebar__identity';
-  identity.setAttribute('data-tauri-drag-region', '');
 
   const homeButton = document.createElement('button');
   homeButton.className = 'titlebar__home';
@@ -31,7 +29,6 @@ export function renderTitleBar(props: TitleBarProps): HTMLElement {
 
   const pageTitle = document.createElement('div');
   pageTitle.className = 'titlebar__page-title';
-  pageTitle.setAttribute('data-tauri-drag-region', '');
   const pageTitleText = document.createElement('span');
   pageTitleText.className = 'titlebar__page-title-text';
   const count = document.createElement('span');

@@ -231,6 +231,8 @@ function start(): void {
   }, { once: true });
 }
 
+/// 真正的交互控件：在这些元素上按下鼠标是要操作控件，不是要拖窗口。
+/// 其余任何位置都应该能拖动窗口。
 const WINDOW_DRAG_EXCLUSION_SELECTOR = [
   'a',
   'button',
@@ -239,10 +241,19 @@ const WINDOW_DRAG_EXCLUSION_SELECTOR = [
   'option',
   'select',
   'textarea',
+  'summary',
   '[contenteditable="true"]',
   '[data-window-drag-exclude]',
   '[role="button"]',
+  '[role="checkbox"]',
+  '[role="link"]',
+  '[role="menuitem"]',
+  '[role="option"]',
+  '[role="radio"]',
   '[role="slider"]',
+  '[role="switch"]',
+  '[role="tab"]',
+  '[role="textbox"]',
 ].join(',');
 
 function installWindowDragging(shell: HTMLElement): () => void {
@@ -260,12 +271,15 @@ function installWindowDragging(shell: HTMLElement): () => void {
   return () => shell.removeEventListener('mousedown', handleMouseDown);
 }
 
+/// 窗口最小高度。测量正确时内容通常远高于此，这只是兜底，
+/// 防止渲染异常导致窗口塌成一条缝。
+const MIN_WINDOW_HEIGHT = 160;
+
 function createWindowResizeController(
   titleBar: HTMLElement,
   content: HTMLElement,
 ): { schedule: () => void; dispose: () => void } {
-  const appWindow = getCurrentWindow();
-  let scheduledFrame: number | null = null;
+  const appWindow = getCurrentWindow();  let scheduledFrame: number | null = null;
   let animationFrame: number | null = null;
   let animationGeneration = 0;
   let lastTarget = 0;
@@ -273,22 +287,30 @@ function createWindowResizeController(
   const measureTarget = (): number => {
     const page = content.firstElementChild;
     if (!(page instanceof HTMLElement)) {
-      return Math.max(220, Math.round(titleBar.offsetHeight + 40));
+      return Math.max(MIN_WINDOW_HEIGHT, Math.round(titleBar.offsetHeight + 40));
     }
     const measurement = document.createElement('div');
     measurement.className = 'window-measure';
     measurement.style.width = `${Math.max(320, content.clientWidth || window.innerWidth)}px`;
     const clone = page.cloneNode(true);
     if (!(clone instanceof HTMLElement)) return window.innerHeight;
+    // `.page` 是 height:100% 的 flex 容器。放进高度自适应的测量容器后，
+    // 百分比高度会解析成 auto、内容塌成 0，量出来的 scrollHeight 就没有意义。
+    // 这里把它还原成按内容撑开的普通块级流。
     clone.style.height = 'auto';
     clone.style.minHeight = '0';
+    clone.style.maxHeight = 'none';
+    clone.style.flex = 'none';
     clone.style.overflow = 'visible';
+    clone.style.position = 'static';
     measurement.append(clone);
     document.body.append(measurement);
-    const naturalHeight = titleBar.offsetHeight + clone.scrollHeight;
+    // offsetHeight 取的是含 padding 的实际布局高度，比 scrollHeight 稳。
+    const contentHeight = Math.max(clone.offsetHeight, clone.scrollHeight);
+    const naturalHeight = titleBar.offsetHeight + contentHeight;
     measurement.remove();
     return Math.round(Math.min(
-      Math.max(220, naturalHeight),
+      Math.max(MIN_WINDOW_HEIGHT, naturalHeight),
       Math.max(320, window.screen.availHeight - 80),
     ));
   };
