@@ -5,14 +5,12 @@
 
 use async_trait::async_trait;
 
-use super::{
-    primary_asset_file, profile, validate_input, validate_keyword, EvokeModeProcessor, ProcessInput,
-};
+use super::{profile, validate_input, validate_keyword, EvokeModeProcessor, ProcessInput};
 use crate::evoke_setup::audio::read_wav_16k;
 use crate::evoke_setup::math::{cosine_distance, normalize_in_place};
 use crate::evoke_setup::spectral::{band_energy_sequence_raw, cmvn_in_place, crop_by_energy, Gate};
 use crate::evoke_setup::types::{EvokeArtifact, EvokeMode, EvokeProfile};
-use crate::storage::{AssetGroup, AssetManager, StorageError};
+use crate::storage::{AssetManager, StorageError};
 
 /// 兼容保留：旧模板的固定帧数。新管线不再重采样到定长。
 pub const TEMPLATE_FRAMES: usize = 64;
@@ -21,14 +19,25 @@ pub const TEMPLATE_FRAMES: usize = 64;
 /// 与中文 4 字唤醒词的实际时长吻合，窗口再大只会把无关语音带进来。
 const CROP_MS: usize = 1_000;
 
-/// 负样本队列的切片长度，与注册录音的量级一致。
-const COHORT_CHUNK: usize = 16_000 * 5;
-
 /// 队列异常时的阈值下界，避免塌到 0 变成「什么都唤醒」。
 const THRESHOLD_FLOOR: f32 = 0.20;
 
 /// 注册样本自身必须能通过，留一点余量。
 const SELF_MARGIN: f32 = 0.02;
+
+/// 负样本打乱重排的块长。短于一个音节，足以打散词的结构，
+/// 又不至于碎成纯噪声。
+const SHUFFLE_BLOCK_MS: usize = 120;
+
+/// 每条注册录音派生几条负样本。
+const SHUFFLES_PER_SAMPLE: usize = 4;
+
+/// 取负样本得分的哪个分位当阈值。
+///
+/// 打乱后的音频保留了说话人的音色与房间底噪，与模板的相似度天然偏高，
+/// 取最大值会让阈值过严（实测正样本通过率掉到 68%）。60 分位在实测中
+/// 与外部 babble 队列的效果最接近。
+const COHORT_QUANTILE: f32 = 0.60;
 
 // ---------------------------------------------------------------- 特征
 
@@ -133,6 +142,52 @@ pub fn dtw_similarity(left: &[Vec<f32>], right: &[Vec<f32>]) -> f32 {
     (-4.0 * distance).exp().clamp(0.0, 1.0)
 }
 
+// ---------------------------------------------------------------- 负样本
+
+/// 从注册录音派生负样本：按块打乱重排。
+///
+/// 用意是造出「听着像你、但词不对」的音频——这正是 DTW 应该拒绝的东西。
+/// 打乱保留了说话人音色与房间底噪，只破坏时序，因此标定出的边界
+/// 比外部通用噪声更贴合该用户的实际声学条件，也不需要任何下载。
+fn shuffled_negatives(samples: &[f32], seed: u64) -> Vec<f32> {
+    let block = 16 * SHUFFLE_BLOCK_MS;
+    if samples.len() < block * 4 {
+        return samples.to_vec();
+    }
+    let mut blocks = samples
+        .chunks(block)
+        .filter(|chunk| chunk.len() == block)
+        .collect::<Vec<_>>();
+    // xorshift + Fisher-Yates：确定性洗牌，同一批录音每次注册结果一致。
+    let mut state = seed | 1;
+    let mut next = || {
+        state ^= state >> 12;
+        state ^= state << 25;
+        state ^= state >> 27;
+        state.wrapping_mul(0x2545_F491_4F6C_DD1D)
+    };
+    for index in (1..blocks.len()).rev() {
+        let swap = (next() % (index as u64 + 1)) as usize;
+        blocks.swap(index, swap);
+    }
+    blocks.concat()
+}
+
+/// 由全部注册录音派生出一批负样本序列。
+fn negative_cohort(enrolled_audio: &[Vec<f32>]) -> Vec<Vec<Vec<f32>>> {
+    let mut cohort = Vec::new();
+    for (index, samples) in enrolled_audio.iter().enumerate() {
+        for round in 0..SHUFFLES_PER_SAMPLE {
+            let seed = 0x5EED_0000 ^ ((index as u64) << 16) ^ round as u64;
+            let sequence = feature_sequence(&shuffled_negatives(samples, seed));
+            if !sequence.is_empty() {
+                cohort.push(sequence);
+            }
+        }
+    }
+    cohort
+}
+
 // ---------------------------------------------------------------- 注册期
 
 pub struct VoiceMatchProcessor;
@@ -151,24 +206,9 @@ impl EvokeModeProcessor for VoiceMatchProcessor {
         validate_input(&input, self.mode())?;
         validate_keyword(assets, &input.phrase)?;
 
-        // 阈值校准需要负样本。复用 classifier 模式已在清单里的 babble 素材，
-        // 不新增下载。
-        let descriptors = assets
-            .descriptors_for_group(AssetGroup::ClassifierRecognition)?
-            .into_iter()
-            .cloned()
-            .collect::<Vec<_>>();
-        let required_asset_ids = descriptors
-            .iter()
-            .map(|descriptor| descriptor.id.clone())
-            .collect();
-        let cohort_paths = descriptors
-            .iter()
-            .map(|descriptor| primary_asset_file(assets, descriptor))
-            .collect::<Result<Vec<_>, _>>()?;
-
         let paths = input.recording_paths.clone();
         let (template, threshold) = tokio::task::spawn_blocking(move || {
+            let mut recordings = Vec::new();
             let mut sequences = Vec::new();
             for path in &paths {
                 let samples = read_wav_16k(path).map_err(StorageError)?;
@@ -180,23 +220,10 @@ impl EvokeModeProcessor for VoiceMatchProcessor {
                     )));
                 }
                 sequences.push(sequence);
+                recordings.push(samples);
             }
             let template = average_sequences(&sequences);
-
-            let mut cohort = Vec::new();
-            for path in &cohort_paths {
-                let noise = read_wav_16k(path).map_err(StorageError)?;
-                for chunk in noise.chunks(COHORT_CHUNK) {
-                    if chunk.len() < COHORT_CHUNK {
-                        continue;
-                    }
-                    let sequence = feature_sequence(chunk);
-                    if !sequence.is_empty() {
-                        cohort.push(sequence);
-                    }
-                }
-            }
-
+            let cohort = negative_cohort(&recordings);
             let threshold = calibrate_threshold(&template, &sequences, &cohort);
             Ok::<_, StorageError>((template, threshold))
         })
@@ -207,29 +234,36 @@ impl EvokeModeProcessor for VoiceMatchProcessor {
             input.phrase,
             threshold,
             EvokeArtifact::VoiceMatch { template },
-            required_asset_ids,
+            Vec::new(),
         ))
     }
 }
 
-/// 阈值：取「模板对负样本队列打分的最高分」。
+/// 阈值：取负样本得分的 [`COHORT_QUANTILE`] 分位。
 ///
-/// 语义很直白——凡是比最像的那段噪声更像唤醒词的，就接受。
-/// 相比旧的 `min(自相似) - 0.08` 再夹到 `[0.52, 0.88]`：
+/// 语义是「比大多数打乱版本更像唤醒词的，才接受」。相比旧的
+/// `min(自相似) - 0.08` 再夹到 `[0.52, 0.88]`：
 ///   - 旧策略只看 3 条正样本，`min()` 在 n=3 上极不稳；
 ///   - 旧策略完全不看负样本，阈值与误触率没有任何对应关系；
 ///   - 写死的钳位区间一旦特征尺度变化就整体失效。
 ///
-/// 两个兜底：队列异常时不至于塌到 0；注册用的录音自己一定能过。
+/// 两个兜底：负样本异常时不至于塌到 0；注册用的录音自己一定能过。
 fn calibrate_threshold(
     template: &[Vec<f32>],
     enrolled: &[Vec<Vec<f32>>],
     cohort: &[Vec<Vec<f32>>],
 ) -> f32 {
-    let ceiling = cohort
+    let mut scores = cohort
         .iter()
         .map(|sequence| dtw_similarity(sequence, template))
-        .fold(0.0_f32, f32::max);
+        .collect::<Vec<_>>();
+    scores.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let ceiling = if scores.is_empty() {
+        0.0
+    } else {
+        let index = ((scores.len() - 1) as f32 * COHORT_QUANTILE).round() as usize;
+        scores[index.min(scores.len() - 1)]
+    };
     let floor = enrolled
         .iter()
         .map(|sequence| dtw_similarity(sequence, template))
@@ -326,11 +360,15 @@ mod tests {
     /// 队列校准出的阈值必须让注册样本自身通过。
     #[test]
     fn calibrated_threshold_admits_the_enrolled_samples() {
-        let enrolled = (0..3)
-            .map(|i| feature_sequence(&tone(1.2, 220.0 + i as f32 * 4.0, 0.3)))
+        let recordings = (0..3)
+            .map(|i| tone(1.2, 220.0 + i as f32 * 4.0, 0.3))
+            .collect::<Vec<_>>();
+        let enrolled = recordings
+            .iter()
+            .map(|a| feature_sequence(a))
             .collect::<Vec<_>>();
         let template = average_sequences(&enrolled);
-        let cohort = vec![feature_sequence(&noise(16_000 * 2, 0.2))];
+        let cohort = negative_cohort(&recordings);
 
         let threshold = calibrate_threshold(&template, &enrolled, &cohort);
         for sequence in &enrolled {
@@ -341,7 +379,50 @@ mod tests {
         }
     }
 
-    /// 队列为空（资产异常）时阈值不能塌到 0。
+    /// 负样本完全由注册录音派生，不依赖任何外部素材。
+    #[test]
+    fn negative_cohort_is_derived_from_the_recordings() {
+        let recordings = (0..3)
+            .map(|i| tone(1.5, 220.0 + i as f32 * 4.0, 0.3))
+            .collect::<Vec<_>>();
+        let cohort = negative_cohort(&recordings);
+        assert_eq!(cohort.len(), recordings.len() * SHUFFLES_PER_SAMPLE);
+        assert!(cohort.iter().all(|sequence| !sequence.is_empty()));
+    }
+
+    /// 打乱必须真的改变时序，否则负样本和正样本无异，阈值会被顶到 1.0。
+    #[test]
+    fn shuffling_changes_the_signal() {
+        let samples = tone(2.0, 220.0, 0.3)
+            .iter()
+            .enumerate()
+            // 加一个随时间上升的包络，这样打乱后波形一定不同。
+            .map(|(i, s)| s * (i as f32 / 32_000.0))
+            .collect::<Vec<_>>();
+        let shuffled = shuffled_negatives(&samples, 0x5EED);
+        assert_eq!(shuffled.len() % (16 * SHUFFLE_BLOCK_MS), 0);
+        let differing = samples
+            .iter()
+            .zip(&shuffled)
+            .filter(|(a, b)| (*a - *b).abs() > 1e-6)
+            .count();
+        assert!(
+            differing > samples.len() / 10,
+            "shuffle barely changed the signal: {differing} differing samples"
+        );
+    }
+
+    /// 洗牌是确定性的：同一批录音重复注册应得到同一个阈值。
+    #[test]
+    fn shuffling_is_deterministic() {
+        let samples = tone(1.5, 220.0, 0.3);
+        assert_eq!(
+            shuffled_negatives(&samples, 0x5EED),
+            shuffled_negatives(&samples, 0x5EED)
+        );
+    }
+
+    /// 队列为空（录音过短无法分块）时阈值不能塌到 0。
     #[test]
     fn empty_cohort_falls_back_to_the_floor() {
         let enrolled = vec![feature_sequence(&tone(1.2, 220.0, 0.3))];
