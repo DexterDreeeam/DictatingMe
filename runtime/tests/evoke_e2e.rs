@@ -128,7 +128,9 @@ fn run_mode(mode: EvokeMode) {
                 continue;
             }
         };
-        let mut spotter = match env.new_spotter(&group.phrase) {
+        // 与产品一致：beam 宽度按唤醒模式决定（lib.rs 也是这么传的）。
+        let mut spotter = match env.new_spotter_with_beam(&group.phrase, mode.kws_max_active_paths())
+        {
             Ok(spotter) => spotter,
             Err(error) => {
                 metrics

@@ -286,7 +286,9 @@ mod tests {
     fn recognizes_configured_qwen_fixture() {
         let _evoke = std::env::var("DICTATINGME_EVOKE_MODEL_DIR")
             .ok()
-            .map(|path| crate::models::EvokeModelEngine::new(&path, "你好".to_owned()).unwrap());
+            .map(|path| {
+                crate::models::EvokeModelEngine::new(&path, "你好".to_owned(), 4).unwrap()
+            });
         let root = PathBuf::from(
             std::env::var("DICTATINGME_QWEN_MODEL_DIR")
                 .expect("DICTATINGME_QWEN_MODEL_DIR is required"),

@@ -218,6 +218,7 @@ fn setup_runtime(app: &mut tauri::App) -> Result<(), RuntimeError> {
     let mut evoke_model = EvokeModelEngine::new(
         path_text(&evoke_path, "evoke model")?,
         bundle.profile.phrase.clone(),
+        bundle.profile.mode.kws_max_active_paths(),
     )
     .map_err(|error| RuntimeError(format!("failed to initialize evoke model: {}", error.0)))?;
     evoke_model.set_sensitivity(bundle.config.sensitivity);

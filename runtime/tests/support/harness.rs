@@ -123,12 +123,23 @@ impl TestEnv {
             .map_err(|error| error.to_string())
     }
 
+    /// 按 sherpa-onnx 默认 beam(4) 建 spotter，与既有探针的口径一致。
     pub fn new_spotter(&self, phrase: &str) -> Result<EvokeModelEngine, String> {
+        self.new_spotter_with_beam(phrase, 4)
+    }
+
+    /// 指定 beam 宽度建 spotter。voiceMatch 的测试用这个。
+    pub fn new_spotter_with_beam(
+        &self,
+        phrase: &str,
+        max_active_paths: i32,
+    ) -> Result<EvokeModelEngine, String> {
         let path = self
             .kws_model_dir
             .to_str()
             .ok_or_else(|| "preset path is not valid UTF-8".to_owned())?;
-        EvokeModelEngine::new(path, phrase.to_owned()).map_err(|error| error.0)
+        EvokeModelEngine::new(path, phrase.to_owned(), max_active_paths)
+            .map_err(|error| error.0)
     }
 }
 

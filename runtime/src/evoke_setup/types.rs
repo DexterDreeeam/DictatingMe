@@ -36,6 +36,20 @@ impl EvokeMode {
             Self::Classifier => 6,
         }
     }
+
+    /// KWS 解码保留的候选路径数（beam 宽度）。
+    ///
+    /// 放宽 beam 会让 KWS 多放进一些候选，代价按模式而不同：
+    /// text 模式 KWS 命中即唤醒，多放进来的日常语音会直接变成误唤醒；
+    /// voiceMatch 有 DTW 作第二级，实测无论 beam 取 4/8/16/32，
+    /// 日常说话的误触率都被稳定压在 1% 左右，代价只落在近音词上。
+    /// 因此 voiceMatch 可以放宽，其余模式保持 sherpa-onnx 的默认值。
+    pub fn kws_max_active_paths(self) -> i32 {
+        match self {
+            Self::VoiceMatch => 16,
+            _ => 4,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

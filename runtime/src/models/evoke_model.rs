@@ -38,7 +38,16 @@ pub struct EvokeModelEngine {
 
 impl EvokeModelEngine {
     /// 常驻加载：Runtime 启动时调用一次，此后长期驻留内存。
-    pub fn new(model_path: &str, active_word: String) -> Result<Self, ModelError> {
+    ///
+    /// `max_active_paths` 是 KWS 解码的 beam 宽度，由调用方按唤醒模式决定，
+    /// 见 [`EvokeMode::kws_max_active_paths`]。
+    ///
+    /// [`EvokeMode::kws_max_active_paths`]: crate::evoke_setup::EvokeMode::kws_max_active_paths
+    pub fn new(
+        model_path: &str,
+        active_word: String,
+        max_active_paths: i32,
+    ) -> Result<Self, ModelError> {
         let session = OnnxSession::load(model_path)?;
         let directory = validate_model_directory(model_path)?;
         let files = KwsModelFiles::resolve(&directory)?;
@@ -46,7 +55,7 @@ impl EvokeModelEngine {
         let sensitivity = 0.65;
         let normalized = normalize_keyword(&active_word, &token_set)?;
         let keyword_syntax = normalized.with_threshold(sensitivity_to_threshold(sensitivity));
-        let runtime = KwsRuntime::create(&files, &keyword_syntax)?;
+        let runtime = KwsRuntime::create(&files, &keyword_syntax, max_active_paths)?;
 
         Ok(Self {
             _session: session,
@@ -164,13 +173,18 @@ struct KwsRuntime {
 }
 
 impl KwsRuntime {
-    fn create(files: &KwsModelFiles, keyword_syntax: &str) -> Result<Self, ModelError> {
+    fn create(
+        files: &KwsModelFiles,
+        keyword_syntax: &str,
+        max_active_paths: i32,
+    ) -> Result<Self, ModelError> {
         let mut config = KeywordSpotterConfig::default();
         config.model_config.transducer.encoder = Some(path_string(&files.encoder)?);
         config.model_config.transducer.decoder = Some(path_string(&files.decoder)?);
         config.model_config.transducer.joiner = Some(path_string(&files.joiner)?);
         config.model_config.tokens = Some(path_string(&files.tokens)?);
         config.model_config.num_threads = 1;
+        config.max_active_paths = max_active_paths;
         config.keywords_buf = Some(keyword_syntax.to_owned());
         config.keywords_threshold = sensitivity_to_threshold(0.65);
 
