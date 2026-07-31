@@ -48,6 +48,24 @@ function Assert-Command {
     }
 }
 
+# Windows PowerShell 5.1 的 Get-Content -Raw 按系统 ANSI 代码页解码，
+# 读 UTF-8 的 manifest 会把中文名称变成乱码，进而破坏 JSON 结构。
+# 这里绕开 cmdlet 的编码推断，直接按 UTF-8 读。
+function Read-Utf8Json {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    $text = [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
+    try {
+        return $text | ConvertFrom-Json
+    }
+    catch {
+        throw "Failed to parse JSON at ${Path}: $($_.Exception.Message)"
+    }
+}
+
 function Assert-File {
     param(
         [Parameter(Mandatory)]
@@ -219,13 +237,39 @@ Assert-Command -Name 'npm.cmd' -Help 'Install Node.js first.'
 Assert-Command -Name 'cargo.exe' -Help 'Install the Rust toolchain first.'
 
 if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir 'node_modules') -PathType Container)) {
-    throw 'Node dependencies are missing. Run npm.cmd install first.'
+    Write-Host '[DictatingMe] Node dependencies are missing; installing...' -ForegroundColor Yellow
+    Push-Location -LiteralPath $ProjectDir
+    try {
+        # package-lock.json 在仓库里，优先用 ci：它严格按 lockfile 安装，可重复。
+        $installCommand = if (Test-Path -LiteralPath (Join-Path $ProjectDir 'package-lock.json')) {
+            'ci'
+        } else {
+            'install'
+        }
+        & npm.cmd $installCommand
+        if ($LASTEXITCODE -ne 0 -and $installCommand -eq 'ci') {
+            # lockfile 与 package.json 不同步时 ci 会失败，退回 install 让它自行修正。
+            Write-Host "[DictatingMe] npm ci failed ($LASTEXITCODE); retrying with npm install..." `
+                -ForegroundColor Yellow
+            & npm.cmd install
+        }
+        if ($LASTEXITCODE -ne 0) {
+            throw "npm dependency installation failed with exit code $LASTEXITCODE."
+        }
+    }
+    finally {
+        Pop-Location
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $ProjectDir 'node_modules') -PathType Container)) {
+        throw 'npm reported success but node_modules is still missing.'
+    }
+    Write-Host '[DictatingMe] Node dependencies installed.' -ForegroundColor Green
 }
 
 Assert-File -Path $CatalogPath -Description 'Asset SHA catalog'
 Assert-File -Path $ManifestPath -Description 'Chinese asset manifest'
-$catalog = Get-Content -LiteralPath $CatalogPath -Raw | ConvertFrom-Json
-$manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+$catalog = Read-Utf8Json -Path $CatalogPath
+$manifest = Read-Utf8Json -Path $ManifestPath
 if ($manifest.schemaVersion -ne 1 -or $manifest.locale -ne 'zh-CN') {
     throw 'manifest-cn.json must use schemaVersion 1 and locale zh-CN.'
 }

@@ -23,6 +23,7 @@ Cargo.lock
 !/assets/assets-manifest.json
 !/assets/run-package.ps1
 !/assets/run-release.ps1
+!/assets/run-release-install.ps1
 
 # Editor
 .vscode/
