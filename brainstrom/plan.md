@@ -1,8 +1,13 @@
-# DictatingMe 设计方案（Brainstorm v1.20）
+# DictatingMe 设计方案（Brainstorm v1.21）
 
 > 状态：v0.2 已实现并生成 NSIS 安装包。四份 architecture/interface 文档继续作为模块边界和后续重构方向；实际代码保留少量兼容接口以维持既有运行链路。
 
 ## 修订记录
+
+**v1.21（v0.2 实现）**：
+1. **SpeakerVerify 改为双 Gate**：基础 KWS 使用与 VoiceMatch 相同的 beam 16；候选必须继续通过 VoiceMatch 自校准门槛和固定为 0.75 的 CAM++ 声纹门槛。
+2. **同批录音生成双产物**：3 条注册录音同时生成 VoiceMatch template/threshold 与 speaker centroid；灵敏度只调整 KWS 和 VoiceMatch，不调整声纹门槛。
+3. **旧 profile 安全失效**：旧 SpeakerVerify artifact 可继续反序列化和保留，但空 template 使其不可进入 Listening；应用仍可启动到设置界面，用户需重新录制 3 条。
 
 **v1.20（v0.2 实现）**：
 1. **DictationModel 改为 manifest 驱动**：可信 `sha.json` 为每个模型声明 `engine`、`recognizerType`、`outputMode`、artifact 角色和推理参数；同一识别机制的新模型不再需要修改 Rust。
@@ -20,8 +25,8 @@
 1. **受管 AppData 已落地**：SQLite、模型、训练资源、Profile、录入样本与 History 使用 `%LOCALAPPDATA%\DictatingMe`；全部资源位于 `assets\`，下载暂存和回收目录为 `assets\.staging` / `assets\.trash`。preset/目录清单编译进 EXE 并在首次运行释放到该目录，Program Files 不保存模型，覆盖安装不删除用户数据。
 2. **AssetManager 已实现**：`assets/manifest-cn.json` 是声纹资源、分类训练资源和语音模型的中文名称、分类归属、顺序与下载源唯一配置；它作为明文文件安装到 Program Files，并在每次启动时原子覆盖同步到 `%LOCALAPPDATA%\DictatingMe\manifest-cn.json`，AssetManager 只读取 AppData 文件。`assets/sha.json` 仍内嵌并只保存格式、安装路径、文件大小和 SHA。
    - 语音模型同时配置 ModelScope、hf-mirror 两个国内拆分文件源和三个 GitHub 归档源；`{file}` 模板源按 SHA 清单逐文件下载，归档源仍安全解压，两种来源共用并发测速、总进度、逐文件 SHA 与原子安装。
-3. **四种处理器已实现**：文字使用本地汉字→拼音 token；语音匹配使用声学特征 + DTW；声纹验证使用 sherpa CAM++ embedding；分类训练使用用户正样本、MS-SNSD 负样本和 Logistic 分类器。
-4. **独立评分系统已实现**：滚动真实麦克风音频，融合语音活动、KWS、模板/声纹/分类分数和灵敏度阈值；KWS 命中后的文字分保持 800ms，再按真实时间衰减，确保 100ms Preview 能稳定越过阈值；Preview 使用非对称 EMA 与 accepted 迟滞，真实唤醒判定仍使用未平滑候选分数。
+3. **四种处理器已实现**：文字使用本地汉字→拼音 token；语音匹配使用声学特征 + DTW；声纹验证由同一批录音同时生成 VoiceMatch template 和 sherpa CAM++ centroid；分类训练使用用户正样本、MS-SNSD 负样本和 Logistic 分类器。
+4. **独立评分系统已实现**：滚动真实麦克风音频，融合语音活动、KWS、模板/声纹/分类分数和灵敏度阈值；SpeakerVerify 使用 KWS candidate、VoiceMatch Gate、固定 0.75 Speaker Gate 三项 AND，Preview 只运行 VoiceMatch；KWS 命中后的文字分保持 800ms，再按真实时间衰减；Preview 使用非对称 EMA 与 accepted 迟滞，真实唤醒判定仍使用未平滑候选分数。
 5. **实际 UI 已接入**：首页使用用户提供并处理为透明白色层次的手写 `Dictating Me` 图片字标（不可选择/拖拽/交互）；语音模型下载/选择、四模式资源门控、5 秒录音、录音锁定、处理 operation、灵敏度百分比与真实评分计量均已接入；下载按钮 Ready 后隐藏，MainWindow 根据页面实际内容以动画伸缩高度。
 6. **安装包入口已实现**：根目录 `run_install.cmd` 提权后调用 `assets/run-package.ps1` 构建 per-machine NSIS，构建成功后按精确 Program Files 路径停止旧实例，使用 `/S` 静默覆盖 `C:\Program Files\DictatingMe`，验证安装文件并启动新版；release 使用 Windows GUI subsystem（无控制台），CMD 最后暂停。旧版 LocalAppData 应用安装会在保护用户数据后清理。
    - `run_install_dev.cmd` 使用相同静默覆盖流程构建可安装 Debug NSIS；Windows 的 dev/debug/release 应用统一使用 GUI subsystem，不创建应用 console，DEBUG 级活动只写入 `%LOCALAPPDATA%\DictatingMe\logs\debug`。
@@ -160,7 +165,7 @@
 | 对象 | 用途 | 体积/加载策略 | 技术路线 |
 | --- | --- | --- | --- |
 | **Preset EvokeModel** | 基础唤醒词检测 | `assets/preset/` 随包发布，常驻内存 | sherpa-onnx KWS；所有模式都复用基础候选检测 |
-| **EvokeProfile** | 当前用户唤醒配置 | AppData 小型 manifest + artifact | 文字参数、语音模板、声纹 centroid 或分类器；同一时间只有一个 active profile |
+| **EvokeProfile** | 当前用户唤醒配置 | AppData 小型 manifest + artifact | 文字参数、语音模板、SpeakerVerify 的 template + voice threshold + centroid + 0.75 speaker threshold，或分类器；同一时间只有一个 active profile |
 | **Optional Evoke Assets** | 声纹/分类处理依赖 | 首次使用按需下载 | speaker embedding、keyword embedding、negative embedding bank |
 | **DictationModel Asset** | 语音转文字 | 体积较大，下载后选择，唤醒后加载/结束后卸载 | Zipformer 实时输出或 Qwen3-ASR 整句输出；均为本地 ONNX、离线可用 |
 
@@ -274,9 +279,10 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 
 1. `EvokeSetupService.begin(mode, phrase)` 检查模式依赖并返回统一 `EnrollmentPlan`。
 2. Runtime 使用当前输入设备固定采集 5 秒，复用现有 `input-level` event 驱动音量条；文字/语音/声纹/分类分别需要 0/3/3/6 条。
-3. `finish` 创建通用 processing operation，并由对应 `EvokeModeProcessor` 处理用户录音；Processor 只通过 Storage/Asset port 访问逻辑引用。
+3. `finish` 创建通用 processing operation，并由对应 `EvokeModeProcessor` 处理用户录音；SpeakerProcessor 用同一批 3 条录音生成 VoiceMatch template/自校准 threshold 和 CAM++ centroid/固定 0.75 threshold；Processor 只通过 Storage/Asset port 访问逻辑引用。
 4. 处理成功后原子提交 profile/artifact/asset 引用并更新 `active_evoke_profile_id`；失败或取消保留旧 active profile。
-5. 详细业务架构和接口见 `architecture-evoke-setup.html`、`interface-evoke-setup.html`。
+5. 旧 SpeakerVerify profile 缺少 template 时保留但不计为 Ready；启动阶段仅在 Runtime 内部使用默认文字 profile，config 不写回，界面继续要求重新设置。
+6. 详细业务架构和接口见 `architecture-evoke-setup.html`、`interface-evoke-setup.html`。
 
 ### 5.3 资源下载与存储数据流
 
@@ -338,6 +344,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 - 完成最后一次录制后出现“完成设置”；只有分类训练显示预计处理时间。处理成功后原子替换当前 active EvokeProfile。
 - 处理并替换 active EvokeProfile 期间继续保持全局操作锁：Home、播放和返回不可用，仅电源按钮保留。
 - 通用文字无录音；新配置默认文字为“你好”。灵敏度仍单独防抖持久化。
+- SpeakerVerify 不增加独立严格度控件；现有灵敏度只调整 KWS 与 VoiceMatch Gate，固定 0.75 的 Speaker Gate 不随 UI 设置变化。
 
 ### 6.4 SpeechModel 二级页
 
@@ -532,6 +539,7 @@ Runtime（Rust 进程）内部划分为以下模块，详见 `architecture.html`
 | 63 | RuntimeBundle（v1.17） | 进入 Listening 前一次获取完整运行依赖与 leases；Listening/Loading/Dictating 不查询 Storage |
 | 64 | SettingsSnapshot（v1.17） | UI 设置读取收敛到单一 snapshot；`settings-changed` 只携带 generation 并触发 refetch |
 | 65 | 文本注入方式（v1.19） | Streaming Output 改为 `SendInput + KEYEVENTF_UNICODE`，不再写入剪贴板；DictatingMe 以 High 完整性覆盖普通和管理员前台窗口 |
+| 66 | SpeakerVerify 双 Gate（v1.21） | KWS beam 16 candidate、VoiceMatch 自校准 Gate、固定 0.75 CAM++ Gate 必须全部通过；灵敏度只影响前两级，旧空 template profile 要求重新录制 3 条 |
 
 ---
 

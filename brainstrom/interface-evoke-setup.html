@@ -78,9 +78,31 @@
       <div class="type-grid">
         <div class="type"><strong>TextProcessor</strong><code>0 recordings</code><span>tokens / KWS params</span></div>
         <div class="type"><strong>VoiceMatchProcessor</strong><code>3 recordings</code><span>templates / threshold</span></div>
-        <div class="type"><strong>SpeakerProcessor</strong><code>3 recordings</code><span>centroid / threshold</span></div>
+        <div class="type"><strong>SpeakerProcessor</strong><code>3 recordings</code><span>template + voice threshold / centroid + speaker threshold</span></div>
         <div class="type"><strong>ClassifierProcessor</strong><code>6 recordings</code><span>classifier / metrics</span></div>
       </div>
+
+      <div class="signature">enum EvokeArtifact {
+  Text { keyword_syntax: String },
+  VoiceMatch { template: Vec&lt;Vec&lt;f32&gt;&gt; },
+  SpeakerVerify {
+    #[serde(default)]
+    template: Vec&lt;Vec&lt;f32&gt;&gt;,
+    centroid: Vec&lt;f32&gt;,
+    #[serde(default = "default_speaker_threshold")]
+    speaker_threshold: f32,
+  },
+  Classifier { weights: Vec&lt;f32&gt;, bias: f32 },
+}</div>
+
+      <div class="signature">impl EvokeProfile {
+  pub fn is_runtime_ready(&amp;self) -&gt; bool;
+}</div>
+
+      <div class="signature">voice_match module:
+pub(super) fn enroll(
+  recordings: &amp;[Vec&lt;f32&gt;],
+) -&gt; Result&lt;(Vec&lt;Vec&lt;f32&gt;&gt;, f32), StorageError&gt;;</div>
 
       <div class="signature">trait EvokeModeProcessor: Send + Sync {
   fn mode(&amp;self) -&gt; EvokeMode;
@@ -110,6 +132,7 @@
     <aside class="sidebar">
       <div class="card"><h3>Processor 禁止</h3><ul><li>访问 RuntimeCore</li><li>拼绝对路径</li><li>下载资源</li><li>提交 active ID</li></ul></div>
       <div class="card"><h3>Profile Commit</h3><p>由 EvokeStoragePort 原子执行；Processor 只返回 pending artifacts。</p></div>
+      <div class="card"><h3>SpeakerVerify Gate</h3><p><code>profile.threshold</code> 保存 VoiceMatch 自校准门槛；<code>speaker_threshold</code> 固定为 0.75。旧 profile 的空 template 可反序列化但不可运行，必须重新录制 3 条。</p></div>
     </aside>
   </section>
 

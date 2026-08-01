@@ -10,8 +10,12 @@ use super::{
 };
 use crate::evoke_setup::audio::read_wav_16k;
 use crate::evoke_setup::math::{cosine_similarity, normalize_in_place};
+use crate::evoke_setup::spectral::crop_by_energy;
 use crate::evoke_setup::types::{EvokeArtifact, EvokeMode, EvokeProfile};
 use crate::storage::{AssetGroup, AssetManager, StorageError};
+
+const SPEAKER_GATE_THRESHOLD: f32 = 0.75;
+const SPEAKER_WINDOW_MS: usize = 2_000;
 
 pub struct SpeakerProcessor;
 
@@ -38,31 +42,46 @@ impl EvokeModeProcessor for SpeakerProcessor {
             .clone();
         let model = primary_asset_file(assets, &descriptor)?;
         let paths = input.recording_paths.clone();
-        let centroid = tokio::task::spawn_blocking(move || {
+        let (template, threshold, centroid) = tokio::task::spawn_blocking(move || {
+            let mut recordings = Vec::with_capacity(paths.len());
+            for path in &paths {
+                recordings.push(read_wav_16k(path).map_err(StorageError)?);
+            }
+            let (template, threshold) = super::voice_match::enroll(&recordings)?;
+
             let mut config = SpeakerEmbeddingExtractorConfig::default();
             config.model = Some(model.display().to_string());
             config.num_threads = 2;
             let extractor = SpeakerEmbeddingExtractor::create(&config).ok_or_else(|| {
                 StorageError("failed to create speaker embedding extractor".to_owned())
             })?;
-            let mut embeddings = Vec::new();
-            for path in &paths {
-                embeddings.push(extract_speaker_embedding(&extractor, path)?);
+            let mut embeddings = Vec::with_capacity(recordings.len());
+            for (index, samples) in recordings.iter().enumerate() {
+                embeddings.push(extract_speaker_embedding_from_samples(
+                    &extractor,
+                    samples,
+                    &format!("recording {index}"),
+                )?);
             }
-            Ok::<_, StorageError>(average_embeddings(&embeddings))
+            let centroid = average_embeddings(&embeddings);
+            if centroid.is_empty() {
+                return Err(StorageError(
+                    "speaker processing produced an empty centroid".to_owned(),
+                ));
+            }
+            Ok::<_, StorageError>((template, threshold, centroid))
         })
         .await
         .map_err(|error| StorageError(format!("speaker processing task failed: {error}")))??;
-        if centroid.is_empty() {
-            return Err(StorageError(
-                "speaker processing produced an empty centroid".to_owned(),
-            ));
-        }
         Ok(profile(
             input.mode,
             input.phrase,
-            0.68,
-            EvokeArtifact::SpeakerVerify { centroid },
+            threshold,
+            EvokeArtifact::SpeakerVerify {
+                template,
+                centroid,
+                speaker_threshold: SPEAKER_GATE_THRESHOLD,
+            },
             required_asset_ids,
         ))
     }
@@ -91,21 +110,26 @@ pub fn extract_speaker_embedding(
     path: &Path,
 ) -> Result<Vec<f32>, StorageError> {
     let samples = read_wav_16k(path).map_err(StorageError)?;
+    extract_speaker_embedding_from_samples(extractor, &samples, &path.display().to_string())
+}
+
+fn extract_speaker_embedding_from_samples(
+    extractor: &SpeakerEmbeddingExtractor,
+    samples: &[f32],
+    source: &str,
+) -> Result<Vec<f32>, StorageError> {
+    let samples = crop_by_energy(samples, SPEAKER_WINDOW_MS);
     let stream = extractor
         .create_stream()
         .ok_or_else(|| StorageError("failed to create speaker embedding stream".to_owned()))?;
     stream.accept_waveform(16_000, &samples);
     if !extractor.is_ready(&stream) {
         return Err(StorageError(format!(
-            "recording '{}' is too short for speaker embedding",
-            path.display()
+            "{source} is too short for speaker embedding"
         )));
     }
     extractor.compute(&stream).ok_or_else(|| {
-        StorageError(format!(
-            "failed to compute speaker embedding for '{}'",
-            path.display()
-        ))
+        StorageError(format!("failed to compute speaker embedding for {source}"))
     })
 }
 
@@ -119,10 +143,11 @@ pub fn score(
     centroid: &[f32],
     samples: &[f32],
 ) -> f32 {
+    let samples = crop_by_energy(samples, SPEAKER_WINDOW_MS);
     let Some(stream) = extractor.create_stream() else {
         return 0.0;
     };
-    stream.accept_waveform(16_000, samples);
+    stream.accept_waveform(16_000, &samples);
     if !extractor.is_ready(&stream) {
         return 0.0;
     }

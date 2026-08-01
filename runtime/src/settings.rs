@@ -672,10 +672,16 @@ impl SettingsHandle {
 
     pub fn initial_bundle(&self) -> Result<RuntimeBundle, StorageError> {
         let config = self.config_store.load()?;
-        let profile = self
-            .store
-            .active_profile()?
-            .ok_or_else(|| StorageError("active evoke profile is missing".to_owned()))?;
+        let profile = match self.store.active_profile()? {
+            Some(profile) => profile,
+            None => self
+                .store
+                .get_profile("default-text-nihao")?
+                .filter(EvokeProfile::is_runtime_ready)
+                .ok_or_else(|| {
+                    StorageError("default startup evoke profile is missing".to_owned())
+                })?,
+        };
         let preset = self
             .assets
             .first_descriptor_of_kind(AssetKind::PresetEvoke)?;

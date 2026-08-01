@@ -116,7 +116,7 @@
       <div class="mode-grid">
         <div class="mode"><strong>通用文字</strong><div class="count">0</div><span>文字 → token/G2P → 基础 KWS 参数</span></div>
         <div class="mode"><strong>语音匹配</strong><div class="count">3 × 5s</div><span>样本 → 模板特征 → DTW/余弦阈值</span></div>
-        <div class="mode"><strong>声纹验证</strong><div class="count">3 × 5s</div><span>样本 + speaker asset → centroid</span></div>
+        <div class="mode"><strong>声纹验证</strong><div class="count">3 × 5s</div><span>样本 → template / voice threshold + centroid / speaker threshold</span></div>
         <div class="mode"><strong>分类训练</strong><div class="count">6 × 5s</div><span>样本 + embedding/negative bank → classifier</span></div>
       </div>
 
@@ -136,6 +136,14 @@
         <div class="node processor"><strong>Extract</strong><span>feature / embedding</span></div><div class="arrow">→</div>
         <div class="node processor"><strong>Build</strong><span>params / templates / model</span></div><div class="arrow">→</div>
         <div class="node service"><strong>Atomic Activate</strong><span>失败保留旧 profile</span></div>
+      </div>
+
+      <div class="bar good"><strong>SpeakerVerify 运行时：</strong>三项独立 Gate 全部通过才接受；灵敏度只调整 KWS 与 VoiceMatch，不调整声纹门槛。</div>
+      <div class="flow">
+        <div class="node runtime"><strong>Base KWS</strong><span>beam = 16 candidate</span></div><div class="arrow">→</div>
+        <div class="node processor"><strong>VoiceMatch Gate</strong><span>自校准 threshold + sensitivity</span></div><div class="arrow">→</div>
+        <div class="node processor"><strong>Speaker Gate</strong><span>CAM++ score ≥ 0.75</span></div><div class="arrow">→</div>
+        <div class="node runtime"><strong>Accepted</strong><span>KWS ∧ VoiceMatch ∧ Speaker</span></div>
       </div>
     </div>
     <aside class="sidebar">

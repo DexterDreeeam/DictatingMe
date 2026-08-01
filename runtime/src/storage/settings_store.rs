@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::evoke_setup::{
-    EnrollmentPlan, EvokeMode, EvokeProfile, EvokeProfileSummary, EvokeSetupPhase,
+    EnrollmentPlan, EvokeArtifact, EvokeMode, EvokeProfile, EvokeProfileSummary, EvokeSetupPhase,
     EvokeSetupSession, RecordingQuality,
 };
 
@@ -128,7 +128,8 @@ impl SettingsStore {
             .as_deref()
             .map(|id| self.get_profile(id))
             .transpose()?
-            .flatten();
+            .flatten()
+            .filter(EvokeProfile::is_runtime_ready);
         let asset_summaries = assets.summaries(config.active_dictation_asset_id.as_deref());
         let dictation_ready = config
             .active_dictation_asset_id
@@ -259,9 +260,10 @@ impl SettingsStore {
                     let mode = EvokeMode::parse(&mode).ok_or_else(|| {
                         StorageError(format!("invalid evoke mode in profile {id}"))
                     })?;
-                    let artifact = serde_json::from_str(&artifact_json).map_err(|error| {
-                        StorageError(format!("invalid artifact for profile {id}: {error}"))
-                    })?;
+                    let artifact: EvokeArtifact =
+                        serde_json::from_str(&artifact_json).map_err(|error| {
+                            StorageError(format!("invalid artifact for profile {id}: {error}"))
+                        })?;
                     let required_asset_ids =
                         serde_json::from_str(&required_json).map_err(|error| {
                             StorageError(format!(
@@ -290,6 +292,7 @@ impl SettingsStore {
             .map(|id| self.get_profile(id))
             .transpose()
             .map(Option::flatten)
+            .map(|profile| profile.filter(EvokeProfile::is_runtime_ready))
     }
 
     pub fn commit_profile(

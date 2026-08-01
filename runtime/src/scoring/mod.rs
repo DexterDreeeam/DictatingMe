@@ -114,7 +114,34 @@ impl ScoringSystem {
         let quality = recording_quality(&samples);
         let voice_activity = ((quality.rms - 0.003) / 0.06).clamp(0.0, 1.0).powf(0.35)
             * (0.4 + 0.6 * quality.voiced_ratio.clamp(0.0, 1.0));
-        let mode_score = self.mode_score(&samples, full_mode_evaluation, voice_activity);
+        let threshold =
+            (self.profile.threshold - (self.sensitivity - 0.5) * 0.24).clamp(0.20, 0.92);
+        let (mode_score, speaker_gates_passed) = if let EvokeArtifact::SpeakerVerify {
+            template,
+            centroid,
+            speaker_threshold,
+        } = &self.profile.artifact
+        {
+            let voice_score = modes::voice_match::score(&samples, template);
+            if full_mode_evaluation {
+                let speaker_score = self
+                    .speaker
+                    .as_ref()
+                    .map(|extractor| modes::speaker::score(extractor, centroid, &samples))
+                    .unwrap_or(0.0);
+                (
+                    voice_score.min(speaker_score),
+                    voice_score >= threshold && speaker_score >= *speaker_threshold,
+                )
+            } else {
+                (voice_score, false)
+            }
+        } else {
+            (
+                self.mode_score(&samples, full_mode_evaluation, voice_activity),
+                false,
+            )
+        };
         let overall = match self.profile.mode {
             EvokeMode::Text => self.phrase_score * 0.82 + voice_activity * 0.18,
             EvokeMode::VoiceMatch | EvokeMode::SpeakerVerify | EvokeMode::Classifier => {
@@ -126,15 +153,20 @@ impl ScoringSystem {
             }
         }
         .clamp(0.0, 1.0);
-        let threshold =
-            (self.profile.threshold - (self.sensitivity - 0.5) * 0.24).clamp(0.20, 0.92);
+        let accepted = if self.profile.mode == EvokeMode::SpeakerVerify {
+            full_mode_evaluation
+                && self.phrase_score >= threshold
+                && speaker_gates_passed
+        } else {
+            overall >= threshold
+        };
         EvokeScore {
             overall,
             threshold,
             voice_activity,
             phrase_score: self.phrase_score,
             mode_score,
-            accepted: overall >= threshold,
+            accepted,
             mode: self.profile.mode,
         }
     }
@@ -148,14 +180,17 @@ impl ScoringSystem {
         match &self.profile.artifact {
             EvokeArtifact::Text { .. } => modes::text::score(voice_activity),
             EvokeArtifact::VoiceMatch { template } => modes::voice_match::score(samples, template),
-            EvokeArtifact::SpeakerVerify { centroid } => {
+            EvokeArtifact::SpeakerVerify {
+                template, centroid, ..
+            } => {
+                let voice_score = modes::voice_match::score(samples, template);
                 if !full_mode_evaluation {
-                    return voice_activity * 0.55;
+                    return voice_score;
                 }
                 let Some(extractor) = &self.speaker else {
                     return 0.0;
                 };
-                modes::speaker::score(extractor, centroid, samples)
+                voice_score.min(modes::speaker::score(extractor, centroid, samples))
             }
             EvokeArtifact::Classifier { weights, bias } => {
                 modes::classifier::score(weights, *bias, samples)

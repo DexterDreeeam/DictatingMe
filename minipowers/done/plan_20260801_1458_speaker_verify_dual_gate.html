@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="minipowers-plan-status" content="done">
+  <meta name="minipowers-plan-created" content="2026-08-01T14:58:00+08:00">
+  <meta name="minipowers-plan-title" content="speaker_verify_dual_gate">
+  <title>SpeakerVerify 双 Gate 改造计划</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182233;
+      --muted: #64748b;
+      --line: #cbd5e1;
+      --soft: #f1f5f9;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --change: #7c3aed;
+      --interface: #b45309;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e2e8f0; color: var(--ink); }
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 10mm auto;
+      padding: 15mm 16mm;
+      background: white;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, .14);
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+    h1 { margin: 0 0 4mm; font-size: 25px; letter-spacing: -.02em; }
+    h2 { margin: 7mm 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); font-size: 18px; }
+    h3 { margin: 4mm 0 2mm; font-size: 14px; }
+    p, li, td, th { font-size: 11px; line-height: 1.48; }
+    p { margin: 1.5mm 0; }
+    ul { margin: 2mm 0 0 5mm; padding-left: 4mm; }
+    li + li { margin-top: 1.2mm; }
+    code, pre { font-family: Consolas, "Cascadia Mono", monospace; }
+    code { padding: .2mm 1mm; border-radius: 3px; background: var(--soft); font-size: 10px; }
+    pre {
+      margin: 2mm 0 0;
+      padding: 2.5mm;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #f8fafc;
+      font-size: 8.8px;
+      line-height: 1.42;
+    }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { padding: 2mm; vertical-align: top; border: 1px solid var(--line); overflow-wrap: anywhere; }
+    th { background: var(--soft); text-align: left; }
+    .meta, .summary {
+      padding: 3mm;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+    .meta { display: flex; gap: 8mm; color: var(--muted); }
+    .summary { margin-top: 4mm; border-left: 4px solid var(--accent); }
+    .legend { display: flex; gap: 3mm; margin: 2mm 0; font-size: 9px; color: var(--muted); }
+    .pill { padding: .6mm 1.5mm; border-radius: 999px; font-weight: 700; }
+    .pill.modify { color: var(--change); background: #ede9fe; }
+    .pill.interface { color: var(--interface); background: #fef3c7; }
+    .architecture {
+      padding: 3mm;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+    .architecture svg { display: block; width: 100%; height: auto; }
+    .change {
+      margin: 0 0 4mm;
+      padding: 3mm;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--change);
+      border-radius: 6px;
+      break-inside: avoid;
+    }
+    .change-head { display: flex; align-items: baseline; gap: 2mm; margin-bottom: 2mm; }
+    .change-id { color: var(--change); font-weight: 800; font-size: 12px; }
+    .op { font-weight: 700; text-transform: uppercase; color: var(--muted); font-size: 9px; }
+    .path { font-family: Consolas, monospace; font-weight: 700; font-size: 10px; overflow-wrap: anywhere; }
+    .label { color: var(--muted); font-weight: 700; }
+    .compact td:first-child { width: 25mm; color: var(--muted); font-weight: 700; }
+    .interfaces th:nth-child(1) { width: 13mm; }
+    .interfaces th:nth-child(2) { width: 39mm; }
+    .interfaces th:nth-child(3) { width: 55mm; }
+    @media print {
+      body { background: white; }
+      .page { margin: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page" data-page="overview">
+    <h1>SpeakerVerify 双 Gate 改造计划</h1>
+    <div class="meta">
+      <span><strong>生成时间</strong> 2026-08-01 14:58 +08:00</span>
+      <span><strong>状态</strong> done</span>
+      <span><strong>范围</strong> SpeakerVerify 唤醒链路</span>
+    </div>
+    <div class="summary">
+      将 SpeakerVerify 从“严格 KWS + 单一声纹分数”改为“放宽 KWS 候选 + VoiceMatch Gate + 固定声纹 Gate”。三项必须同时通过；灵敏度只调整 KWS 与 VoiceMatch，不调整固定为 0.75 的声纹门槛。
+    </div>
+
+    <h2>目标</h2>
+    <ul>
+      <li>SpeakerVerify 的 KWS 搜索宽度与 VoiceMatch 一致，使用 <code>max_active_paths = 16</code>，降低关键词候选漏检。</li>
+      <li>同一批 3 条注册录音同时生成 VoiceMatch 模板、自校准语音阈值和 CAM++ 声纹 centroid。
+        <ul>
+          <li>Gate 1：VoiceMatch 分数达到经灵敏度调整后的 profile 阈值。</li>
+          <li>Gate 2：声纹相似度达到固定阈值 <code>0.75</code>。</li>
+        </ul>
+      </li>
+      <li>最终唤醒必须同时满足 KWS candidate、VoiceMatch Gate 和 Speaker Gate；Preview 复用 VoiceMatch 分数且不持续运行 CAM++。</li>
+      <li>旧 SpeakerVerify profile 保留在存储中，但因为缺少 VoiceMatch 模板而不可进入 Listening；界面显示需要重新设置，用户重新录制 3 条后生成双 Gate profile。</li>
+      <li>不新增独立声纹严格度控件，不扩展公开 <code>EvokeScore</code> 事件结构。</li>
+    </ul>
+
+    <h2>修改范围架构</h2>
+    <div class="legend">
+      <span class="pill modify">[修改] 模块</span>
+      <span class="pill interface">[接口] 类型 / 函数</span>
+    </div>
+    <div class="architecture">
+      <svg viewBox="0 0 760 360" role="img" aria-label="SpeakerVerify 双 Gate 数据流">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+          </marker>
+          <style>
+            .box { fill:#fff; stroke:#94a3b8; stroke-width:1.5; rx:8; }
+            .changed { fill:#f5f3ff; stroke:#7c3aed; stroke-width:2; rx:8; }
+            .iface { fill:#fffbeb; stroke:#b45309; stroke-width:2; rx:8; }
+            .line { stroke:#64748b; stroke-width:1.7; fill:none; marker-end:url(#arrow); }
+            .title { font:700 13px "Segoe UI","Microsoft YaHei",sans-serif; fill:#182233; }
+            .sub { font:11px "Segoe UI","Microsoft YaHei",sans-serif; fill:#475569; }
+            .tag { font:700 10px "Segoe UI","Microsoft YaHei",sans-serif; fill:#7c3aed; }
+          </style>
+        </defs>
+        <rect class="changed" x="20" y="27" width="155" height="72"/>
+        <text class="tag" x="32" y="47">[修改]</text>
+        <text class="title" x="32" y="66">SpeakerProcessor</text>
+        <text class="sub" x="32" y="84">3 条录音，单次读取</text>
+
+        <rect class="iface" x="226" y="18" width="190" height="90"/>
+        <text class="tag" x="238" y="39">[接口]</text>
+        <text class="title" x="238" y="58">voice_match::enroll</text>
+        <text class="sub" x="238" y="76">template + voice threshold</text>
+        <text class="sub" x="238" y="93">Speaker/VoiceMatch 共用</text>
+
+        <rect class="changed" x="467" y="27" width="270" height="72"/>
+        <text class="tag" x="479" y="47">[修改] [接口]</text>
+        <text class="title" x="479" y="66">EvokeArtifact::SpeakerVerify</text>
+        <text class="sub" x="479" y="84">template + centroid + speaker_threshold</text>
+
+        <path class="line" d="M175 63 H224"/>
+        <path class="line" d="M416 63 H465"/>
+
+        <rect class="changed" x="20" y="155" width="155" height="80"/>
+        <text class="tag" x="32" y="176">[修改]</text>
+        <text class="title" x="32" y="195">EvokeModel KWS</text>
+        <text class="sub" x="32" y="213">candidate beam = 16</text>
+
+        <rect class="changed" x="226" y="139" width="190" height="112"/>
+        <text class="tag" x="238" y="160">[修改]</text>
+        <text class="title" x="238" y="179">ScoringSystem</text>
+        <text class="sub" x="238" y="198">Gate 1: VoiceMatch</text>
+        <text class="sub" x="238" y="216">Gate 2: Speaker ≥ 0.75</text>
+        <text class="sub" x="238" y="234">accepted = KWS ∧ G1 ∧ G2</text>
+
+        <rect class="changed" x="467" y="139" width="270" height="112"/>
+        <text class="tag" x="479" y="160">[修改]</text>
+        <text class="title" x="479" y="179">SettingsStore / SettingsHandle</text>
+        <text class="sub" x="479" y="198">旧 artifact 可反序列化但不可运行</text>
+        <text class="sub" x="479" y="216">snapshot 显示需要重新设置</text>
+        <text class="sub" x="479" y="234">启动使用内部安全 fallback</text>
+
+        <path class="line" d="M175 195 H224"/>
+        <path class="line" d="M467 195 H418"/>
+        <path class="line" d="M602 101 V137"/>
+
+        <rect class="changed" x="132" y="302" width="500" height="42"/>
+        <text class="tag" x="146" y="319">[修改] 设计事实</text>
+        <text class="sub" x="146" y="336">brainstrom/plan.md + architecture-evoke-setup.html + interface-evoke-setup.html</text>
+        <path class="line" d="M321 253 V300"/>
+      </svg>
+    </div>
+
+    <h2>接口改动</h2>
+    <table class="interfaces">
+      <thead>
+        <tr><th>ID</th><th>位置</th><th>最终定义</th><th>契约</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>I-01</td>
+          <td><code>EvokeArtifact::SpeakerVerify</code></td>
+          <td><pre>SpeakerVerify {
+    #[serde(default)]
+    template: Vec&lt;Vec&lt;f32&gt;&gt;,
+    centroid: Vec&lt;f32&gt;,
+    #[serde(default = "default_speaker_threshold")]
+    speaker_threshold: f32,
+}</pre></td>
+          <td>旧 JSON 缺少新字段时仍可读取；空 <code>template</code> 表示旧 profile，不具备运行条件。默认声纹阈值为 0.75。</td>
+        </tr>
+        <tr>
+          <td>I-02</td>
+          <td><code>EvokeProfile</code></td>
+          <td><pre>pub fn is_runtime_ready(&amp;self) -&gt; bool</pre></td>
+          <td>SpeakerVerify 仅在 template 非空且每帧非空、centroid 非空、speaker_threshold 为 0..=1 内有限值时返回 true；其他模式保持当前可运行语义。</td>
+        </tr>
+        <tr>
+          <td>I-03</td>
+          <td><code>voice_match</code> sibling 接口</td>
+          <td><pre>pub(super) fn enroll(
+    recordings: &amp;[Vec&lt;f32&gt;],
+) -&gt; Result&lt;(Vec&lt;Vec&lt;f32&gt;&gt;, f32), StorageError&gt;</pre></td>
+          <td>返回合并后的 VoiceMatch template 与负 cohort 自校准阈值；录音为空、特征提取失败或无法形成模板时返回 <code>StorageError</code>。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="page" data-page="changes">
+    <h1>改动清单</h1>
+    <p>按下列稳定 ID 顺序执行。所有路径均相对仓库根目录。</p>
+
+    <article class="change" data-change-id="C-01">
+      <div class="change-head"><span class="change-id">C-01</span><span class="op">modify</span><span class="path">runtime/src/evoke_setup/types.rs</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td><code>EvokeMode::kws_max_active_paths</code>、<code>EvokeArtifact::SpeakerVerify</code>、<code>EvokeProfile</code></td></tr>
+        <tr><td>改动与目的</td><td>让 SpeakerVerify 与 VoiceMatch 都返回 16 条 KWS active paths；为 SpeakerVerify artifact 增加 VoiceMatch template 和独立声纹阈值；增加运行兼容性判定以区分旧 profile。</td></tr>
+        <tr><td>接口改动</td><td>I-01、I-02 的完整定义与第一页一致；私有 <code>default_speaker_threshold() -&gt; f32</code> 固定返回 <code>0.75</code>。</td></tr>
+        <tr><td>函数内部</td><td><code>kws_max_active_paths</code>：合并 VoiceMatch/SpeakerVerify 分支为 16。<code>is_runtime_ready</code>：检查 SpeakerVerify 的 template、centroid 和阈值有效性；其他 artifact 返回当前可运行结果。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-02">
+      <div class="change-head"><span class="change-id">C-02</span><span class="op">modify</span><span class="path">runtime/src/evoke_setup/modes/voice_match.rs</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td><code>VoiceMatchProcessor::process</code>、模板构建和负 cohort 阈值校准代码段、I-03 <code>enroll</code></td></tr>
+        <tr><td>改动与目的</td><td>把纯样本级的特征提取、模板合并、分块打乱负样本和阈值校准收敛到可被 sibling processor 复用的 enrollment 函数，确保 VoiceMatch 与 SpeakerVerify 使用同一 Gate 1 算法。</td></tr>
+        <tr><td>接口改动</td><td>I-03 的完整定义与第一页一致。</td></tr>
+        <tr><td>函数内部</td><td><code>VoiceMatchProcessor::process</code> 仍负责读取录音文件，但把样本交给 <code>enroll</code>，再用返回的 template/threshold 构造原 VoiceMatch profile。现有 feature pipeline、CMVN、非定长 DTW、负 cohort 60 分位校准语义保持不变。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-03">
+      <div class="change-head"><span class="change-id">C-03</span><span class="op">modify</span><span class="path">runtime/src/evoke_setup/modes/speaker.rs</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td><code>SpeakerProcessor::process</code>、录音读取与 CAM++ embedding 提取代码段</td></tr>
+        <tr><td>改动与目的</td><td>同一批 3 条录音只读取一次：先调用 I-03 生成 template/voice threshold，再从同一批样本生成 embedding centroid；profile.threshold 保存 VoiceMatch Gate 阈值，artifact.speaker_threshold 固定为 0.75。</td></tr>
+        <tr><td>接口改动</td><td>无。</td></tr>
+        <tr><td>函数内部</td><td>增加样本切片到 speaker embedding 的内部路径，文件路径入口复用该路径；对三条 embedding 求归一化 centroid；构造 I-01 的全部字段。任一 enrollment 或 embedding 步骤失败时返回现有 <code>StorageError</code>，不提交部分 profile。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-04">
+      <div class="change-head"><span class="change-id">C-04</span><span class="op">modify</span><span class="path">runtime/src/scoring/mod.rs</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td><code>ScoringSystem::score</code>、<code>ScoringSystem::mode_score</code> 中 SpeakerVerify 分支</td></tr>
+        <tr><td>改动与目的</td><td>把 SpeakerVerify 从单分数模式改为两个独立 Gate。Preview 计算 VoiceMatch 分数，不运行 CAM++；完整 candidate 才计算 speaker score。</td></tr>
+        <tr><td>接口改动</td><td>无；<code>EvokeScore</code> 字段保持不变。</td></tr>
+        <tr><td>函数内部</td><td>SpeakerVerify Preview 的 <code>mode_score</code> 使用 VoiceMatch score；完整评估的 <code>mode_score</code> 使用 <code>min(voice_score, speaker_score)</code>。<code>accepted</code> 必须满足：完整 KWS candidate、phrase score 达到经灵敏度调整的 profile.threshold、voice score 达到同一阈值、speaker score 达到 artifact.speaker_threshold。灵敏度不得参与 speaker_threshold 的计算。其他模式沿用现有评分分支。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-05">
+      <div class="change-head"><span class="change-id">C-05</span><span class="op">modify</span><span class="path">runtime/src/storage/settings_store.rs</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td><code>SettingsStore::get_profile</code> 的 row mapping closure、<code>SettingsStore::active_profile</code>、<code>SettingsStore::snapshot</code></td></tr>
+        <tr><td>改动与目的</td><td>利用 I-01 的 serde 默认值读取旧 SpeakerVerify JSON，但使用 I-02 将其从 active runtime profile 中过滤；不删除旧数据库记录和 profile 文件。</td></tr>
+        <tr><td>接口改动</td><td>无。</td></tr>
+        <tr><td>函数内部</td><td><code>active_profile</code> 对读取结果应用 <code>is_runtime_ready</code>；<code>snapshot</code> 不为不兼容 profile 生成 active summary，并让现有 readiness/missing-profile 路径显示需要重新设置。新 profile 的读取与 active 选择流程保持不变。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-06">
+      <div class="change-head"><span class="change-id">C-06</span><span class="op">modify</span><span class="path">runtime/src/settings.rs</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td><code>SettingsHandle::runtime_bundle</code>、<code>SettingsHandle::initial_bundle</code></td></tr>
+        <tr><td>改动与目的</td><td>禁止旧 SpeakerVerify profile 进入 Listening，同时保证持有旧 active ID 的现有安装仍能启动主窗口并完成重新设置。</td></tr>
+        <tr><td>接口改动</td><td>无。</td></tr>
+        <tr><td>函数内部</td><td><code>runtime_bundle</code> 继续通过 snapshot readiness 拒绝不可运行 profile。<code>initial_bundle</code> 在 active profile 不可运行时仅为初始 Runtime 内部选择 <code>default-text-nihao</code>；不写回 config、不替换用户 active ID，因此 snapshot 仍显示需要重新设置。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-07">
+      <div class="change-head"><span class="change-id">C-07</span><span class="op">modify</span><span class="path">brainstrom/architecture-evoke-setup.html</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td>四模式 processor 架构图中的“声纹验证”节点与运行时评分数据流</td></tr>
+        <tr><td>改动与目的</td><td>把声纹模式产物改为 template + voice threshold + centroid + speaker threshold，并画明 KWS、VoiceMatch、Speaker 三项 AND 数据流。</td></tr>
+        <tr><td>接口改动</td><td>无。</td></tr>
+        <tr><td>函数内部</td><td>无。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-08">
+      <div class="change-head"><span class="change-id">C-08</span><span class="op">modify</span><span class="path">brainstrom/interface-evoke-setup.html</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td>Processor 产物说明、EvokeProfile/EvokeArtifact 接口区段</td></tr>
+        <tr><td>改动与目的</td><td>记录 I-01、I-02、I-03 的最终定义，明确 profile.threshold 是 VoiceMatch Gate 阈值，speaker_threshold 固定为 0.75，旧空模板 profile 不可运行。</td></tr>
+        <tr><td>接口改动</td><td>I-01、I-02、I-03 的文档定义与第一页一致。</td></tr>
+        <tr><td>函数内部</td><td>无。</td></tr>
+      </table>
+    </article>
+
+    <article class="change" data-change-id="C-09">
+      <div class="change-head"><span class="change-id">C-09</span><span class="op">modify</span><span class="path">brainstrom/plan.md</span></div>
+      <table class="compact">
+        <tr><td>精确位置</td><td>v0.2 已实现摘要、EvokeProfile 资产表、唤醒评分说明、决策记录</td></tr>
+        <tr><td>改动与目的</td><td>将设计事实同步为 SpeakerVerify 双 Gate：3 条录音、KWS beam 16、VoiceMatch 自校准门槛、固定 0.75 声纹门槛、灵敏度作用边界和旧 profile 重新设置策略。</td></tr>
+        <tr><td>接口改动</td><td>无。</td></tr>
+        <tr><td>函数内部</td><td>无。</td></tr>
+      </table>
+    </article>
+
+    <h2>调整记录</h2>
+    <table>
+      <thead><tr><th>时间</th><th>原因</th><th>用户选择</th><th>受影响 ID</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>2026-08-01 15:43 +08:00</td>
+          <td>当前实现没有 <code>row_to_profile</code> symbol；profile 反序列化位于 <code>SettingsStore::get_profile</code> 的 row mapping closure。</td>
+          <td>调整 plan 并继续；仅修正精确位置，文件范围、接口和运行行为不变。</td>
+          <td>C-05</td>
+        </tr>
+        <tr>
+          <td>2026-08-01 15:43 +08:00</td>
+          <td>C-01 至 C-09 已按最终 plan 完成，文件集合、接口定义和函数内部目的一致。</td>
+          <td>标记为 done 并移动到 <code>minipowers/done/</code>。</td>
+          <td>C-01–C-09</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</body>
+</html>

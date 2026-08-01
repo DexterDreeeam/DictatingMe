@@ -190,6 +190,35 @@ fn negative_cohort(enrolled_audio: &[Vec<f32>]) -> Vec<Vec<Vec<f32>>> {
 
 // ---------------------------------------------------------------- 注册期
 
+pub(super) fn enroll(
+    recordings: &[Vec<f32>],
+) -> Result<(Vec<Vec<f32>>, f32), StorageError> {
+    if recordings.is_empty() {
+        return Err(StorageError(
+            "voice enrollment requires at least one recording".to_owned(),
+        ));
+    }
+    let mut sequences = Vec::with_capacity(recordings.len());
+    for (index, samples) in recordings.iter().enumerate() {
+        let sequence = feature_sequence(samples);
+        if sequence.is_empty() {
+            return Err(StorageError(format!(
+                "recording {index} produced no acoustic features"
+            )));
+        }
+        sequences.push(sequence);
+    }
+    let template = average_sequences(&sequences);
+    if template.is_empty() {
+        return Err(StorageError(
+            "voice enrollment produced an empty template".to_owned(),
+        ));
+    }
+    let cohort = negative_cohort(recordings);
+    let threshold = calibrate_threshold(&template, &sequences, &cohort);
+    Ok((template, threshold))
+}
+
 pub struct VoiceMatchProcessor;
 
 #[async_trait]
@@ -208,24 +237,12 @@ impl EvokeModeProcessor for VoiceMatchProcessor {
 
         let paths = input.recording_paths.clone();
         let (template, threshold) = tokio::task::spawn_blocking(move || {
-            let mut recordings = Vec::new();
-            let mut sequences = Vec::new();
+            let mut recordings = Vec::with_capacity(paths.len());
             for path in &paths {
                 let samples = read_wav_16k(path).map_err(StorageError)?;
-                let sequence = feature_sequence(&samples);
-                if sequence.is_empty() {
-                    return Err(StorageError(format!(
-                        "recording '{}' produced no acoustic features",
-                        path.display()
-                    )));
-                }
-                sequences.push(sequence);
                 recordings.push(samples);
             }
-            let template = average_sequences(&sequences);
-            let cohort = negative_cohort(&recordings);
-            let threshold = calibrate_threshold(&template, &sequences, &cohort);
-            Ok::<_, StorageError>((template, threshold))
+            enroll(&recordings)
         })
         .await
         .map_err(|error| StorageError(format!("voice template task failed: {error}")))??;
