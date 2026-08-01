@@ -30,6 +30,7 @@ const MODES: Array<{
   title: string;
   description: string;
   assetGroup?: AssetGroup;
+  hidden?: boolean;
 }> = [
   { mode: 'text', title: '通用文字', description: '输入唤醒文字' },
   { mode: 'voiceMatch', title: '语音匹配', description: '录制唤醒词，使用语音比对匹配' },
@@ -44,6 +45,7 @@ const MODES: Array<{
     title: '分类训练',
     description: '录制唤醒词，训练小型分类模型',
     assetGroup: 'classifierRecognition',
+    hidden: true,
   },
 ];
 
@@ -277,6 +279,7 @@ export class EvokeWordPage implements PageComponent {
     const list = document.createElement('div');
     list.className = 'mode-list';
     for (const mode of MODES) {
+      if (mode.hidden) continue;
       const assets = mode.assetGroup
         ? this.#snapshot?.assets.filter((item) => item.assetGroup === mode.assetGroup) ?? []
         : [];
