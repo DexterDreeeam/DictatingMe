@@ -174,7 +174,7 @@ digraph sign_publish {
 
 Store workflow 使用 matrix：
 
-- x64：`windows-2022`，target `x86_64-pc-windows-msvc`。
+- x64：`windows-2025`，target `x86_64-pc-windows-msvc`。
 - arm64：`windows-11-arm`，target `aarch64-pc-windows-msvc`。
 
 两个 job 都必须是 GitHub-hosted runner，并执行：
