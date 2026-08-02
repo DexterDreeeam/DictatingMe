@@ -1200,6 +1200,10 @@ impl RuntimeCore {
     fn finish_recording(&mut self) -> Result<(), RuntimeError> {
         let text = self.text_diff.final_full_text().to_owned();
         let result = match self.recording.take() {
+            Some(recording) if text.trim().is_empty() => {
+                tracing::info!("discarding recording with empty transcription");
+                recording.discard()
+            }
             Some(recording) => recording.finalize(text).and_then(|entry| {
                 if let Err(error) = self.history_store.append(entry.clone()) {
                     tracing::error!(
@@ -1457,7 +1461,7 @@ fn enumerate_audio_devices() -> Result<Vec<AudioDeviceInfo>, RuntimeError> {
 fn transition_cue(from: State, target: State) -> Option<RuntimeCue> {
     match (from, target) {
         (State::Listening, State::Loading) => Some(RuntimeCue::Wake),
-        (State::Dictating, State::Unloading) => Some(RuntimeCue::End),
+        (State::Loading | State::Dictating, State::Unloading) => Some(RuntimeCue::End),
         _ => None,
     }
 }
@@ -1813,7 +1817,10 @@ mod tests {
             transition_cue(State::Dictating, State::Unloading),
             Some(RuntimeCue::End)
         );
-        assert_eq!(transition_cue(State::Loading, State::Unloading), None);
+        assert_eq!(
+            transition_cue(State::Loading, State::Unloading),
+            Some(RuntimeCue::End)
+        );
         assert_eq!(transition_cue(State::Unloading, State::Listening), None);
     }
 
