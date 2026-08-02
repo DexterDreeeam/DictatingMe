@@ -76,3 +76,61 @@ jobs:
 
       # SignPath submission is added here only after the Foundation supplies
       # the organization, project, artifact configuration, and policy IDs.
+
+  publish-unsigned:
+    name: Publish unsigned release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+
+    steps:
+      - name: Download both unsigned MSI artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: DictatingMe_*_unsigned.msi
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create checksums and release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum *.msi > SHA256SUMS.txt
+          cd ..
+          {
+            echo "# DictatingMe ${GITHUB_REF_NAME} unsigned Store MSI"
+            echo
+            echo "**This release is unsigned and has not been verified by SignPath Foundation.**"
+            echo
+            echo "- Architectures: Windows x64 and Windows arm64"
+            echo "- Source commit: \`${GITHUB_SHA}\`"
+            echo "- Build provenance: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo
+            echo "## SHA-256"
+            echo
+            echo '```text'
+            cat release-assets/SHA256SUMS.txt
+            echo '```'
+            echo
+            echo "Planned code signing: Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)."
+            echo
+            echo "- [Code signing policy](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/CODE_SIGNING_POLICY.md)"
+            echo "- [Privacy policy](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/PRIVACY.md)"
+            echo "- [Source archive](https://github.com/${GITHUB_REPOSITORY}/archive/refs/tags/${GITHUB_REF_NAME}.zip)"
+          } > release-notes.md
+
+      - name: Publish immutable unsigned release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            release-assets/*.msi \
+            release-assets/SHA256SUMS.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --title "DictatingMe ${GITHUB_REF_NAME} unsigned Store MSI" \
+            --notes-file release-notes.md
