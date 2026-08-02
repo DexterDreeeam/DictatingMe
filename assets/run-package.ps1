@@ -225,6 +225,23 @@ function Stop-InstalledInstance {
     }
 }
 
+function Invoke-SilentInstaller {
+    param(
+        [Parameter(Mandatory)]
+        [string]$InstallerPath
+    )
+
+    $installerProcess = Start-Process `
+        -FilePath $InstallerPath `
+        -ArgumentList @('/S', '/UPDATE') `
+        -PassThru `
+        -Wait `
+        -WindowStyle Hidden
+    if ($installerProcess.ExitCode -ne 0) {
+        throw "The installer exited with code $($installerProcess.ExitCode)."
+    }
+}
+
 Write-Host "=== DictatingMe $BuildProfile NSIS build + silent overwrite ===" -ForegroundColor Magenta
 Write-Host "Project -> $ProjectDir"
 Write-Host "Install -> $InstallDir"
@@ -370,21 +387,22 @@ if ($DebugBuild) {
 }
 
 $installStartedAt = [System.DateTime]::UtcNow
-$installerProcess = Start-Process `
-    -FilePath $installers[0].FullName `
-    -ArgumentList @('/S', '/UPDATE') `
-    -PassThru `
-    -Wait `
-    -WindowStyle Hidden
-if ($installerProcess.ExitCode -ne 0) {
-    throw "The installer exited with code $($installerProcess.ExitCode)."
-}
+Invoke-SilentInstaller -InstallerPath $installers[0].FullName
 
 Assert-File -Path $InstalledExe -Description 'Installed DictatingMe executable'
 Assert-File -Path $InstalledManifest -Description 'Installed plaintext manifest'
 $installedExecutableHash = Get-TauriExecutablePayloadSha256 -Path $InstalledExe
 if ($installedExecutableHash -ne $builtExecutableHash) {
-    throw "Installed executable does not match the packaged build: $InstalledExe"
+    Write-Host '[DictatingMe] First overwrite left the previous executable; retrying once...' `
+        -ForegroundColor Yellow
+    Start-Sleep -Seconds 2
+    Stop-InstalledInstance -ExecutablePath $InstalledExe
+    Invoke-SilentInstaller -InstallerPath $installers[0].FullName
+    Assert-File -Path $InstalledExe -Description 'Installed DictatingMe executable after retry'
+    $installedExecutableHash = Get-TauriExecutablePayloadSha256 -Path $InstalledExe
+    if ($installedExecutableHash -ne $builtExecutableHash) {
+        throw "Installed executable does not match the packaged build after retry: $InstalledExe"
+    }
 }
 
 Write-Host '[DictatingMe] Silent overwrite completed successfully.' -ForegroundColor Green
