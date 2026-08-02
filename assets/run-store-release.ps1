@@ -112,7 +112,23 @@ function Invoke-Download {
     $temporary = "$Destination.part"
     Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
     try {
-        Invoke-WebRequest -Uri $Url -OutFile $temporary -UseBasicParsing
+        $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
+        if ($null -ne $curl) {
+            & $curl.Source `
+                --fail `
+                --location `
+                --retry 5 `
+                --retry-all-errors `
+                --connect-timeout 30 `
+                --output $temporary `
+                $Url
+            if ($LASTEXITCODE -ne 0) {
+                throw "curl download failed with code $LASTEXITCODE`: $Url"
+            }
+        }
+        else {
+            Invoke-WebRequest -Uri $Url -OutFile $temporary -UseBasicParsing
+        }
         Move-Item -LiteralPath $temporary -Destination $Destination -Force
     }
     finally {
