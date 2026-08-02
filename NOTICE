@@ -1,0 +1,10 @@
+DictatingMe
+Copyright 2026 DexterDreeeam
+
+This product includes software developed by the Tauri, sherpa-onnx, Tokio,
+Rodio, CPAL, rusqlite, and other open-source projects. Their licenses and
+attributions are described in THIRD_PARTY_NOTICES.md and in the package
+metadata recorded by Cargo.lock and package-lock.json.
+
+DictatingMe can download optional speech and speaker models. Model provenance
+and license information is listed in THIRD_PARTY_NOTICES.md.

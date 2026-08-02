@@ -10,8 +10,8 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'ui/main-window/index.html'),
-        hud: resolve(__dirname, 'ui/hud-window/index.html'),
+        main: resolve(import.meta.dirname, 'ui/main-window/index.html'),
+        hud: resolve(import.meta.dirname, 'ui/hud-window/index.html'),
       },
     },
   },

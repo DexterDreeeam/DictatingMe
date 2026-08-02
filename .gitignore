@@ -1,6 +1,5 @@
 # Rust
 /target
-Cargo.lock
 
 # Node / frontend
 /node_modules
@@ -24,6 +23,7 @@ Cargo.lock
 !/assets/run-package.ps1
 !/assets/run-release.ps1
 !/assets/run-release-install.ps1
+!/assets/run-store-release.ps1
 
 # Editor
 .vscode/

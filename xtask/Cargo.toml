@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 description = "DictatingMe 开发期工具：合成唤醒词 E2E 测试语料（见 brainstrom/evoke-e2e-test.html）"
+license = "Apache-2.0"
+repository = "https://github.com/DexterDreeeam/DictatingMe"
+homepage = "https://github.com/DexterDreeeam/DictatingMe"
 
 [[bin]]
 name = "xtask"

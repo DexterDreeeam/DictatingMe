@@ -1,0 +1,72 @@
+name: Unsigned Store MSI build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.architecture }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            target: x86_64-pc-windows-msvc
+            runner: windows-2022
+          - architecture: arm64
+            target: aarch64-pc-windows-msvc
+            runner: windows-11-arm
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build unsigned Store MSI
+        shell: pwsh
+        run: .\assets\run-store-release.ps1 -Target '${{ matrix.target }}'
+
+      - name: Record artifact digest
+        shell: pwsh
+        run: |
+          Get-FileHash .\release\store\${{ matrix.architecture }}\*.msi -Algorithm SHA256 |
+            Format-Table Path, Hash -AutoSize
+
+      - name: Upload unsigned installer
+        id: upload-unsigned-installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: DictatingMe-${{ matrix.architecture }}-unsigned-${{ github.ref_name }}-${{ github.sha }}
+          path: release/store/${{ matrix.architecture }}/DictatingMe_*_${{ matrix.architecture }}_unsigned.msi
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+      # SignPath submission is added here only after the Foundation supplies
+      # the organization, project, artifact configuration, and policy IDs.

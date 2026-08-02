@@ -1,0 +1,9 @@
+* @DexterDreeeam
+
+/.github/workflows/ @DexterDreeeam
+/.signpath/ @DexterDreeeam
+/CODE_SIGNING_POLICY.md @DexterDreeeam
+/Cargo.lock @DexterDreeeam
+/package-lock.json @DexterDreeeam
+/runtime/Cargo.toml @DexterDreeeam
+/xtask/Cargo.toml @DexterDreeeam
