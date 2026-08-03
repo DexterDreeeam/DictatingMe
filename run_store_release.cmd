@@ -45,20 +45,20 @@ goto success
 
 :run_target
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass ^
-  -File "%~dp0assets\run-store-release.ps1" -Target "%~1"
+  -File "%~dp0assets\run-store-release.ps1" -Target "%~1" -Bundle msi
 exit /b %ERRORLEVEL%
 
 :failed
 set "EXIT_CODE=%ERRORLEVEL%"
 echo.
-echo [DictatingMe] Unsigned Store MSI build failed with code %EXIT_CODE%.
+echo [DictatingMe] Store MSI build failed with code %EXIT_CODE%.
 echo [DictatingMe] Press any key to close this window.
 pause >nul
 exit /b %EXIT_CODE%
 
 :success
 echo.
-echo [DictatingMe] Unsigned Store MSI exported to: %~dp0release\store\
+echo [DictatingMe] Store MSI exported to: %~dp0release\store\
 echo [DictatingMe] Press any key to close this window.
 pause >nul
 exit /b 0

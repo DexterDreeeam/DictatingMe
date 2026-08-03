@@ -1,18 +1,24 @@
 <#
 .SYNOPSIS
-    Builds the release MSI for one Windows architecture.
+    Builds the release installer for one Windows architecture.
 
 .DESCRIPTION
     Verifies the bundled KWS model, downloads the matching hash-pinned
     sherpa-onnx static library archive, builds with the Store-only Tauri
-    configuration, and exports the MSI plus its SHA-256.
+    configuration, and exports the installer plus its SHA-256.
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [ValidateSet('x86_64-pc-windows-msvc', 'aarch64-pc-windows-msvc')]
-    [string]$Target
+    [string]$Target,
+
+    # nsis 是发到 GitHub Release 的安装包：带卸载向导和「删除应用数据」选项，
+    # 会走 runtime/windows-nsis-hooks.nsh。msi 留给 Microsoft Store 提交，
+    # 它的卸载不提供任何用户数据清理入口。
+    [ValidateSet('nsis', 'msi')]
+    [string]$Bundle = 'nsis'
 )
 
 Set-StrictMode -Version Latest
@@ -55,7 +61,8 @@ $sherpaCacheDir = Join-Path $BuildCache 'sherpa-onnx'
 $sherpaArchivePath = Join-Path $sherpaCacheDir $sherpaArchive.Name
 $sherpaRoot = Join-Path $sherpaCacheDir $sherpaRootName
 $sherpaLibDir = Join-Path $sherpaRoot 'lib'
-$MsiDir = Join-Path $ProjectDir "target\$Target\release\bundle\msi"
+$BundleDir = Join-Path $ProjectDir "target\$Target\release\bundle\$Bundle"
+$BundleExt = if ($Bundle -eq 'nsis') { 'exe' } else { 'msi' }
 $ExportDir = Join-Path $ProjectDir "release\store\$architecture"
 
 function Assert-Command {
@@ -253,7 +260,7 @@ function Initialize-Arm64MsvcEnvironment {
     }
 }
 
-Write-Host "=== DictatingMe release MSI ($architecture) ===" `
+Write-Host "=== DictatingMe release $Bundle ($architecture) ===" `
     -ForegroundColor Magenta
 Write-Host "Target -> $Target"
 Write-Host "Publisher -> Dexter Tsou"
@@ -291,14 +298,20 @@ if ($LASTEXITCODE -ne 0) {
 
 $previousSherpaLibDir = $env:SHERPA_ONNX_LIB_DIR
 $env:SHERPA_ONNX_LIB_DIR = $sherpaLibDir
+
+# MSI 走 Store 专用配置；NSIS 必须用主配置——Store 配置把 bundle.targets 换成
+# msi，且它的 bundle.windows 不含 nsis.installerHooks，用它构建出来的 NSIS 包
+# 会丢掉卸载时清理用户数据的 hook。
+$configArgs = if ($Bundle -eq 'msi') { @('--config', $StoreConfigPath) } else { @() }
+
 Push-Location $ProjectDir
 try {
     & npm.cmd run tauri -- build `
         --target $Target `
-        --bundles msi `
-        --config $StoreConfigPath
+        --bundles $Bundle `
+        @configArgs
     if ($LASTEXITCODE -ne 0) {
-        throw "Tauri Store MSI build exited with code $LASTEXITCODE."
+        throw "Tauri $Bundle build exited with code $LASTEXITCODE."
     }
 }
 finally {
@@ -307,11 +320,11 @@ finally {
 }
 
 $installers = @(
-    Get-ChildItem -LiteralPath $MsiDir -Filter '*.msi' -File -ErrorAction SilentlyContinue |
+    Get-ChildItem -LiteralPath $BundleDir -Filter "*.$BundleExt" -File -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTimeUtc -Descending
 )
 if ($installers.Count -eq 0) {
-    throw "No MSI installer was produced in $MsiDir"
+    throw "No $Bundle installer was produced in $BundleDir"
 }
 
 $config = Read-Utf8Json -Path $MainConfigPath
@@ -319,23 +332,23 @@ $version = [string]$config.version
 New-Item -ItemType Directory -Path $ExportDir -Force | Out-Null
 Get-ChildItem -LiteralPath $ExportDir -File -ErrorAction SilentlyContinue |
     Remove-Item -Force
-$exportedMsi = Join-Path $ExportDir "DictatingMe_${version}_${architecture}.msi"
-Copy-Item -LiteralPath $installers[0].FullName -Destination $exportedMsi
+$exported = Join-Path $ExportDir "DictatingMe_${version}_${architecture}.$BundleExt"
+Copy-Item -LiteralPath $installers[0].FullName -Destination $exported
 
-$signature = Get-AuthenticodeSignature -LiteralPath $exportedMsi
+$signature = Get-AuthenticodeSignature -LiteralPath $exported
 if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
-    throw "Build unexpectedly carries a signature ($($signature.Status)): $exportedMsi"
+    throw "Build unexpectedly carries a signature ($($signature.Status)): $exported"
 }
 
-$hash = Get-Sha256 -Path $exportedMsi
-$hashFile = "$exportedMsi.sha256"
+$hash = Get-Sha256 -Path $exported
+$hashFile = "$exported.sha256"
 [System.IO.File]::WriteAllText(
     $hashFile,
-    "$hash  $([System.IO.Path]::GetFileName($exportedMsi))`r`n",
+    "$hash  $([System.IO.Path]::GetFileName($exported))`r`n",
     [System.Text.UTF8Encoding]::new($false)
 )
 
 Write-Host ''
-Write-Host '[DictatingMe] Release MSI completed.' -ForegroundColor Green
-Write-Host "MSI -> $exportedMsi" -ForegroundColor Green
+Write-Host "[DictatingMe] Release $Bundle completed." -ForegroundColor Green
+Write-Host "Installer -> $exported" -ForegroundColor Green
 Write-Host "SHA-256 -> $hash" -ForegroundColor Green

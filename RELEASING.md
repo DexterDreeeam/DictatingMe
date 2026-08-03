@@ -4,7 +4,7 @@ Releases are currently published without code signing. Nothing in the release
 may claim SignPath verification or any other signature.
 
 1. Create a version commit and `v*` tag from the default branch.
-2. Let `.github/workflows/release-build.yml` build separate x64 and arm64 MSI
+2. Let `.github/workflows/release-build.yml` build separate x64 and arm64 NSIS
    installers on GitHub-hosted Windows runners.
 3. Record the source commit and both SHA-256 digests.
 4. Publish both installers and the source archive in one GitHub Release.
@@ -18,6 +18,11 @@ Release notes must identify:
 - link to the source archive for the same tag.
 
 Published files must not be modified or replaced afterwards.
+
+Releases ship the NSIS installer, whose uninstaller offers a "delete application
+data" checkbox wired up in `runtime/windows-nsis-hooks.nsh`. The MSI produced by
+`run-store-release.ps1 -Bundle msi` exists only for Microsoft Store submission —
+its uninstall path leaves user data behind and offers no way to remove it.
 
 ## If code signing is adopted later
 

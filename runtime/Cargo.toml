@@ -1,6 +1,6 @@
 [package]
 name = "dictatingme-runtime"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "DictatingMe Runtime：状态机 + 音频 + 模型 + 存储 + 窗口/托盘编排（见 brainstrom/plan.md）"
 license = "Apache-2.0"
