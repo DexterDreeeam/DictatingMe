@@ -68,7 +68,57 @@
   }
   .scene.on{opacity:1}
 
-  /* 静帧模式（?still=<场景>）：让所有入场动画瞬间跑完，无头浏览器截图用。
+  /* ---------- 竖屏（?vertical=1）：1080x1920，给手机用 ----------
+     不是简单缩放——横排的元素要改竖排，字号要放大，否则手机上看不清。 */
+  body.vertical #stage{width:1080px;height:1920px}
+
+  /* 三种模式：横排 -> 竖排，图标移到左侧 */
+  body.vertical .modes{flex-direction:column;gap:32px}
+  body.vertical .mode{
+    width:900px;padding:40px 44px;text-align:left;
+    display:grid;grid-template-columns:auto 1fr;
+    grid-template-rows:auto auto;gap:8px 32px;align-items:center;
+  }
+  body.vertical .mode__icon{grid-row:1 / span 2;margin:0;width:96px;height:96px}
+  body.vertical .mode__icon svg{width:46px;height:46px}
+  body.vertical .mode__name{align-self:end;font-size:42px}
+  body.vertical .mode__desc{align-self:start;font-size:28px}
+  body.vertical .mode__desc br{display:none}
+
+  /* 说话转文字 / 注入窗口：占满宽度，字放大 */
+  body.vertical .dictate{width:990px;gap:80px}
+  body.vertical .waveform{height:150px}
+  body.vertical .waveform i{width:7px}
+  body.vertical .typed{font-size:58px;min-height:300px}
+  body.vertical .app-window{width:1000px}
+  body.vertical .app-window__body{font-size:38px;min-height:520px;padding:44px}
+  body.vertical .app-window__bar{padding:16px 20px}
+  body.vertical .app-window__title{font-size:26px}
+
+  /* 品牌页：logo 和字号整体放大，竖屏视野更窄 */
+  body.vertical .brand{gap:38px}
+  body.vertical .brand__mark{width:260px;height:260px}
+  body.vertical .brand__name{font-size:96px}
+  body.vertical .brand__word{width:820px}
+  body.vertical .brand__tag{font-size:40px}
+  body.vertical .brand__sub{font-size:28px;letter-spacing:.14em}
+  body.vertical .brand__link{font-size:32px}
+
+  /* HUD 在竖屏里要更大才看得清（横屏是 2.6） */
+  body.vertical .hud-wrap{transform:scale(4.4)}
+
+  /* 收尾页 */
+  body.vertical .outro{gap:42px}
+  body.vertical .outro__icon{width:160px;height:160px}
+  body.vertical .outro__line{font-size:64px}
+  body.vertical .outro__sub{font-size:30px}
+
+  /* 字幕：竖屏底部留白更多，字更大 */
+  body.vertical .caption{bottom:230px;gap:20px}
+  body.vertical .caption__main{font-size:50px}
+  body.vertical .caption__sub{font-size:34px}
+
+  /* ---------- 静帧模式（?still=<场景>）：让所有入场动画瞬间跑完，无头浏览器截图用。
      不能写 animation:none —— 这些元素初始 opacity 就是 0，靠动画才变可见。 */
   body.still #hud-controls{display:none}
   body.still *{
@@ -452,22 +502,39 @@
 
 <script>
 // ============================ 缩放适配 ============================
+// 舞台是固定像素画布，靠 scale 适配窗口，这样录出来永远是标准分辨率。
+// ?vertical=1 切到 1080x1920 的竖屏画布（CSS 里 body.vertical 那一段）。
+const VERTICAL = new URLSearchParams(location.search).get('vertical') === '1';
+if(VERTICAL) document.body.classList.add('vertical');
+const STAGE_W = VERTICAL ? 1080 : 1920;
+const STAGE_H = VERTICAL ? 1920 : 1080;
+
 const stage = document.getElementById('stage');
 function fitStage(){
-  const scale = Math.min(innerWidth / 1920, innerHeight / 1080);
+  const scale = Math.min(innerWidth / STAGE_W, innerHeight / STAGE_H);
   stage.style.transform = `translate(-50%,-50%) scale(${scale})`;
 }
 addEventListener('resize', fitStage);
 fitStage();
 
 // ============================ 音效（WebAudio 合成，无外部文件） ============================
+// ?record=1 进入录制模式：隐藏控制栏、把配音接入音频总线，并暴露 __rec 给
+// 外部（CDP）驱动。见 brainstrom/make-promo-video.cjs。
+const REC = new URLSearchParams(location.search).get('record') === '1';
 let ac = null;
+let bus = null;                       // 所有声音的总线，录制时从这里分流
 const soundOn = () => document.getElementById('sound').checked;
 function audio(){
-  if(!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if(!ac){
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    bus = ac.createGain();
+    bus.connect(ac.destination);
+  }
   if(ac.state === 'suspended') ac.resume();
   return ac;
 }
+/** 音频总线。一律接这里而不是 ctx.destination，否则录制时抓不到。 */
+function out(){ audio(); return bus; }
 /** 单个音符。type: sine/triangle/square/sawtooth */
 function tone({freq=440, dur=.15, type='sine', gain=.12, delay=0, slideTo=null}){
   if(!soundOn()) return;
@@ -479,7 +546,7 @@ function tone({freq=440, dur=.15, type='sine', gain=.12, delay=0, slideTo=null})
   g.gain.setValueAtTime(0, t0);
   g.gain.linearRampToValueAtTime(gain, t0 + .012);
   g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
-  osc.connect(g).connect(c.destination);
+  osc.connect(g).connect(out());
   osc.start(t0); osc.stop(t0 + dur + .02);
 }
 /** 键盘敲击声：短促的噪声脉冲 */
@@ -496,7 +563,7 @@ function keyClick(){
   const bp = c.createBiquadFilter(); bp.type = 'bandpass';
   bp.frequency.value = 1900 + Math.random() * 700; bp.Q.value = 1.1;
   const g = c.createGain(); g.gain.value = .05;
-  src.connect(bp).connect(g).connect(c.destination);
+  src.connect(bp).connect(g).connect(out());
   src.start(t0);
 }
 const sfx = {
@@ -609,7 +676,7 @@ const bgm = (() => {
       master = c.createGain();
       master.gain.setValueAtTime(0, c.currentTime);
       master.gain.linearRampToValueAtTime(.30, c.currentTime + .7);   // 快节奏，淡入要短
-      master.connect(c.destination);
+      master.connect(out());
       step = 0;
       nextTime = c.currentTime + .06;
       tick();
@@ -647,6 +714,13 @@ const voice = (() => {
       a.preload = 'auto';
       a.volume = 1.0;
       cache[name] = a;
+      // 录制时配音必须走 WebAudio 总线才能被抓到。注意 createMediaElementSource
+      // 会接管这个元素的输出，且同一元素只能建一次 source；file:// 下还会因为
+      // 跨源污染录出静音，所以只在录制模式（走本地 http）下接。
+      if(REC){
+        try{ audio().createMediaElementSource(a).connect(out()); }
+        catch(e){ console.warn('配音接入总线失败：', e.message); }
+      }
     }
     return cache[name];
   }
@@ -925,6 +999,53 @@ addEventListener('keydown', e => {
     running ? stopAll() : void playAll();
   }
 });
+
+// ---------------------------- 录制驱动（?record=1）----------------------------
+// 由 make-promo-video.cjs 通过 CDP 调用：
+//   __rec.arm()  建好录音管线并预热音频，返回后才能开始 screencast
+//   __rec.run()  播放全片并同时录音，返回 base64 的 webm 音轨
+if(REC){
+  document.getElementById('hud-controls').style.display = 'none';
+  window.__rec = {
+    async arm(){
+      const c = audio();
+      // headless 下 AudioContext 可能是 suspended
+      if(c.state !== 'running') await c.resume();
+      voice.preload();
+      // 等配音真正可播，否则第一段会因为还在缓冲而错位
+      await Promise.all(['wake','sentence'].map(n => new Promise(res => {
+        const a = new Audio(`promo-voice/${n}.mp3`);
+        a.preload = 'auto';
+        a.oncanplaythrough = res;
+        a.onerror = res;
+        setTimeout(res, 4000);
+      })));
+      this._dest = c.createMediaStreamDestination();
+      bus.connect(this._dest);              // 并联，不影响正常输出
+      return { state: c.state, sampleRate: c.sampleRate };
+    },
+    async run(){
+      const rec = new MediaRecorder(this._dest.stream, { mimeType: 'audio/webm' });
+      const chunks = [];
+      rec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
+      const stopped = new Promise(r => rec.onstop = r);
+      rec.start();
+      const t0 = performance.now();
+      await playAll();
+      const ms = performance.now() - t0;
+      rec.stop();
+      await stopped;
+      const buf = await new Blob(chunks).arrayBuffer();
+      // 二进制过不了 CDP，转 base64
+      let s = '';
+      const b = new Uint8Array(buf);
+      for(let i = 0; i < b.length; i += 0x8000){
+        s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+      }
+      return { durationMs: ms, audioB64: btoa(s), bytes: buf.byteLength };
+    },
+  };
+}
 
 // ---------------------------- 静帧模式 --------------------------------------
 // ?still=<场景 id> 直接定格该场景的终态，不播动画、不出声、不显示控制栏。

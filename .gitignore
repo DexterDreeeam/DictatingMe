@@ -38,3 +38,6 @@ brainstrom/promo-voice/*
 # 宣传片分发包（跑 brainstrom/make-promo-kit.cmd 可重新生成）
 brainstrom/promo-kit/
 brainstrom/promo-kit.zip
+
+# 宣传视频（跑 brainstrom/make-promo-video.cjs 可重新生成）
+brainstrom/promo-video/
