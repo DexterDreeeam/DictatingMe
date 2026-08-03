@@ -87,20 +87,11 @@ npm ci
 生成的安装包位于 `release\`。构建使用 `Cargo.lock` 和
 `package-lock.json` 固定依赖版本。
 
-发布用的 x64/arm64 MSI 使用：
-
-```powershell
-.\run_store_release.cmd all
-```
-
-对应产物位于 `release\store\x64` 和 `release\store\arm64`。
-
 ## 隐私与安全
 
 - [隐私政策](PRIVACY.md)
 - [安全政策](SECURITY.md)
 - [第三方许可与模型来源](THIRD_PARTY_NOTICES.md)
-- [发布流程](RELEASING.md)
 
 ## 贡献
 
