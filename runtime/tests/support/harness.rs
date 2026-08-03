@@ -138,8 +138,7 @@ impl TestEnv {
             .kws_model_dir
             .to_str()
             .ok_or_else(|| "preset path is not valid UTF-8".to_owned())?;
-        EvokeModelEngine::new(path, phrase.to_owned(), max_active_paths)
-            .map_err(|error| error.0)
+        EvokeModelEngine::new(path, phrase.to_owned(), max_active_paths).map_err(|error| error.0)
     }
 }
 

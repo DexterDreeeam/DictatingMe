@@ -7,10 +7,7 @@ use super::metrics::{percent, ModeMetrics};
 
 pub fn print_and_persist(mode: &str, metrics: &ModeMetrics) {
     println!("\n================ 模式 {mode} ================");
-    println!(
-        "{:<28} {:>7} {:>7} {:>9}",
-        "分类", "样本", "唤醒", "比率"
-    );
+    println!("{:<28} {:>7} {:>7} {:>9}", "分类", "样本", "唤醒", "比率");
     let row = |label: &str, counter: &super::metrics::Counter| {
         println!(
             "{:<28} {:>7} {:>7} {:>9}",

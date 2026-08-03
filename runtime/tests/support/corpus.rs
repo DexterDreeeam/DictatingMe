@@ -124,7 +124,9 @@ pub fn load_groups() -> Result<Vec<WakeGroup>, String> {
                 continue;
             }
         }
-        let dir = assets.join("corpus").join(format!("{}-{}", entry.id, entry.slug));
+        let dir = assets
+            .join("corpus")
+            .join(format!("{}-{}", entry.id, entry.slug));
         if !dir.is_dir() {
             continue;
         }
@@ -149,7 +151,11 @@ pub fn load_groups() -> Result<Vec<WakeGroup>, String> {
                 ));
             }
             let Some(role) = Role::parse(parts[2]) else {
-                return Err(format!("corpus file '{}' has unknown role '{}'", path.display(), parts[2]));
+                return Err(format!(
+                    "corpus file '{}' has unknown role '{}'",
+                    path.display(),
+                    parts[2]
+                ));
             };
             utterances.push(Utterance {
                 voice: parts[1].to_owned(),
