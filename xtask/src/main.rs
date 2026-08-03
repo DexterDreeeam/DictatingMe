@@ -29,6 +29,7 @@ fn main() {
     let command = args.first().map(String::as_str).unwrap_or("help");
     let result = match command {
         "corpus" => run_corpus(&args[1..]),
+        "say" => run_say(&args[1..]),
         "help" | "--help" | "-h" => {
             print_help();
             Ok(())
@@ -44,8 +45,72 @@ fn main() {
 fn print_help() {
     println!(
         "xtask commands:\n  \
-         corpus [--force] [--groups w01,w05]   合成唤醒词 E2E 语料到 assets/corpus 与 assets/freespeech"
+         corpus [--force] [--groups w01,w05]   合成唤醒词 E2E 语料到 assets/corpus 与 assets/freespeech\n  \
+         say <文本> --out <路径.wav> [--model <目录名>] [--sid N] [--speed F] [--gain F]\n                                        \
+         合成一句配音，保留模型原生采样率"
     );
+}
+
+/// 合成任意一句话，用于宣传片配音这类一次性需求。
+fn run_say(args: &[String]) -> Result<(), String> {
+    let mut text: Option<String> = None;
+    let mut out: Option<PathBuf> = None;
+    let mut model = "vits-zh-hf-fanchen-C".to_string();
+    let mut sid: i32 = 0;
+    let mut speed: f32 = 1.0;
+    let mut gain: f32 = 0.9;
+
+    let mut index = 0;
+    while index < args.len() {
+        let arg = args[index].as_str();
+        let mut next = |what: &str| -> Result<String, String> {
+            index += 1;
+            args.get(index)
+                .cloned()
+                .ok_or_else(|| format!("{what}需要一个值"))
+        };
+        match arg {
+            "--out" => out = Some(PathBuf::from(next("--out")?)),
+            "--model" => model = next("--model")?,
+            "--sid" => sid = next("--sid")?.parse().map_err(|_| "--sid 必须是整数".to_string())?,
+            "--speed" => {
+                speed = next("--speed")?.parse().map_err(|_| "--speed 必须是小数".to_string())?
+            }
+            "--gain" => {
+                gain = next("--gain")?.parse().map_err(|_| "--gain 必须是小数".to_string())?
+            }
+            other if other.starts_with("--") => return Err(format!("未知参数 '{other}'")),
+            other => text = Some(other.to_string()),
+        }
+        index += 1;
+    }
+
+    let text = text.ok_or("缺少要合成的文本")?;
+    let out = out.ok_or("缺少 --out <路径.wav>")?;
+
+    let root = repo_root();
+    let synth = Synth::open(&root.join("assets/models/tts").join(&model))?;
+    if sid >= synth.num_speakers {
+        return Err(format!(
+            "模型 '{model}' 只有 {} 个说话人，sid {sid} 越界",
+            synth.num_speakers
+        ));
+    }
+
+    let mut samples = synth.say(&text, sid, speed)?;
+    let trimmed = audio::trim_silence(&samples, 0.008).to_vec();
+    samples = if trimmed.is_empty() { samples } else { trimmed };
+    audio::normalize_peak(&mut samples, gain);
+
+    let rate = synth.sample_rate();
+    let out_path = if out.is_absolute() { out } else { root.join(out) };
+    audio::write_wav(&out_path, &samples, rate)?;
+    println!(
+        "[say ] \"{text}\" -> {} ({:.2}s @ {rate}Hz, model={model} sid={sid} speed={speed})",
+        out_path.display(),
+        samples.len() as f32 / rate as f32
+    );
+    Ok(())
 }
 
 fn repo_root() -> PathBuf {

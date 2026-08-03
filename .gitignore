@@ -29,3 +29,12 @@
 .vscode/
 .idea/
 *.log
+
+# 宣传片配音（edge-tts 合成，跑 brainstrom/make-promo-voice.cmd 可重新生成）
+# 台词文本是脚本的输入，要跟仓库走
+brainstrom/promo-voice/*
+!brainstrom/promo-voice/lines/
+
+# 宣传片分发包（跑 brainstrom/make-promo-kit.cmd 可重新生成）
+brainstrom/promo-kit/
+brainstrom/promo-kit.zip

@@ -150,13 +150,21 @@ pub fn place_in_window(
 }
 
 pub fn write_wav_16k(path: &std::path::Path, samples: &[f32]) -> Result<(), String> {
+    write_wav(path, samples, 16_000)
+}
+
+pub fn write_wav(
+    path: &std::path::Path,
+    samples: &[f32],
+    sample_rate: u32,
+) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)
             .map_err(|error| format!("failed to create '{}': {error}", parent.display()))?;
     }
     let spec = hound::WavSpec {
         channels: 1,
-        sample_rate: 16_000,
+        sample_rate,
         bits_per_sample: 16,
         sample_format: hound::SampleFormat::Int,
     };

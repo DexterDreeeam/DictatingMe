@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DictatingMe · 宣传视频素材</title>
+<style>
+  /* 产品真实配色，取自 ui/styles.css */
+  :root{
+    --bg:#000;
+    --panel:#2b2d31;
+    --panel-alt:#313338;
+    --border:#3f4248;
+    --text:#dbdee1;
+    --text-muted:#949ba4;
+    --accent:#5865f2;
+    --green:#23a55a;
+    --red:#f23f42;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  body{
+    font-family:"Segoe UI","Microsoft YaHei UI",system-ui,sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- 录制舞台：固定 1920x1080，缩放适配窗口 ---------- */
+  #stage{
+    position:absolute;left:50%;top:50%;
+    width:1920px;height:1080px;
+    transform-origin:center center;
+    background:#000;
+    overflow:hidden;
+  }
+
+  /* ---------- 控制条（录制时隐藏） ---------- */
+  #hud-controls{
+    position:fixed;left:0;right:0;bottom:0;z-index:9999;
+    display:flex;gap:8px;align-items:center;justify-content:center;
+    padding:10px 14px;background:rgba(12,13,16,.94);
+    border-top:1px solid #2a2d33;
+    font-size:12px;color:#9aa3b4;
+  }
+  #hud-controls.hidden{display:none}
+  #hud-controls button{
+    padding:7px 14px;border:1px solid #3a3f48;border-radius:7px;
+    background:#1b1e24;color:#dbe5f8;cursor:pointer;font:inherit;font-weight:600;
+  }
+  #hud-controls button:hover{background:#242832;border-color:#4a515c}
+  #hud-controls button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  #hud-controls select{
+    padding:6px 10px;border:1px solid #3a3f48;border-radius:7px;
+    background:#1b1e24;color:#dbe5f8;font:inherit;
+  }
+  #hud-controls .sep{width:1px;height:22px;background:#2f343c}
+  kbd{
+    padding:2px 6px;border:1px solid #3a3f48;border-radius:4px;
+    background:#15181d;font:11px monospace;color:#aeb8ff;
+  }
+
+  /* ---------- 场景通用 ---------- */
+  .scene{
+    position:absolute;inset:0;
+    display:grid;place-items:center;
+    opacity:0;pointer-events:none;
+  }
+  .scene.on{opacity:1}
+
+  /* 静帧模式（?still=<场景>）：让所有入场动画瞬间跑完，无头浏览器截图用。
+     不能写 animation:none —— 这些元素初始 opacity 就是 0，靠动画才变可见。 */
+  body.still #hud-controls{display:none}
+  body.still *{
+    animation-duration:.001s !important;
+    animation-delay:0s !important;
+    transition-duration:.001s !important;
+  }
+
+  /* ---------- 标题字幕 ---------- */
+  .caption{
+    position:absolute;left:0;right:0;bottom:104px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+    text-align:center;
+    text-shadow:0 2px 18px rgba(0,0,0,.9);
+    opacity:0;transition:opacity .32s var(--ease);
+  }
+  .caption.on{opacity:1}
+  .caption__main{font-size:30px;font-weight:400;letter-spacing:.1em;color:#fff}
+  .caption__sub{
+    font-size:21px;font-weight:300;letter-spacing:.16em;
+    color:rgba(226,229,233,.8);
+  }
+
+  /* ---------- 场景 1：品牌开场 ---------- */
+  .brand{
+    display:flex;flex-direction:column;align-items:center;gap:22px;
+  }
+  .brand__mark{
+    width:150px;height:150px;
+    filter:drop-shadow(0 0 46px rgba(255,255,255,.16));
+    opacity:0;transform:scale(.82);
+  }
+  .brand.play .brand__mark{
+    animation:markIn .7s var(--ease) forwards;
+  }
+  @keyframes markIn{to{opacity:1;transform:scale(1)}}
+  /* 开场用常规字体 —— 手写体虽好看，但第一眼要让人读清楚品牌名 */
+  .brand__name{
+    font-size:66px;font-weight:300;letter-spacing:.1em;
+    color:#fff;text-shadow:0 2px 30px rgba(0,0,0,.6);
+    opacity:0;transform:translateY(14px);
+  }
+  .brand.play .brand__name{animation:fadeUp .6s var(--ease) .26s forwards}
+  /* 收尾用手写体字标，取自 ui/assets —— 与软件内保持一致 */
+  .brand__word{
+    width:560px;height:auto;display:block;
+    opacity:0;transform:translateY(14px);
+  }
+  .brand.play .brand__word{animation:fadeUp .6s var(--ease) .26s forwards}
+  .brand__link{
+    font-family:Consolas,"Cascadia Mono","SF Mono",monospace;
+    font-size:26px;font-weight:400;letter-spacing:.04em;
+    color:rgba(232,235,239,.9);
+    opacity:0;transform:translateY(12px);
+  }
+  .brand.play .brand__link{animation:fadeUp .6s var(--ease) .5s forwards}
+  .brand__tag{
+    font-size:25px;font-weight:400;letter-spacing:.16em;
+    color:#fff;opacity:0;transform:translateY(12px);
+  }
+  .brand.play .brand__tag{animation:fadeUp .6s var(--ease) .5s forwards}
+  .brand__sub{
+    font-size:19px;font-weight:300;letter-spacing:.24em;
+    color:rgba(219,222,225,.72);opacity:0;transform:translateY(12px);
+  }
+  .brand.play .brand__sub{animation:fadeUp .6s var(--ease) .72s forwards}
+  @keyframes fadeUp{to{opacity:1;transform:translateY(0)}}
+
+  /* ---------- 场景 2：待命 HUD ---------- */
+  /* 复刻 ui/hud-window/hud.css 的真实尺寸，再整体放大以适配 1080p 画面 */
+  .hud-wrap{position:relative;display:grid;place-items:center;transform:scale(2.6)}
+  .hud{
+    position:relative;z-index:2;
+    display:flex;width:126px;height:30px;
+    align-items:center;justify-content:center;gap:8px;
+    border:1px solid rgba(255,255,255,.08);border-radius:10px;
+    background:rgba(0,0,0,.5);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    color:#f2f3f5;font-size:11.5px;
+    transition:border-color .18s var(--ease);
+  }
+  .hud__light{
+    width:8px;height:8px;flex:0 0 auto;border-radius:50%;
+    background:#949ba4;
+    transition:background-color .18s var(--ease),box-shadow .18s var(--ease);
+  }
+  /* 等待唤醒：黄灯 + 双层光晕（与 hud.css 的 data-light="yellow" 一致） */
+  .hud--wait{border-color:rgba(240,178,50,.35)}
+  .hud--wait .hud__light{
+    background:#f0b232;
+    box-shadow:0 0 5px #fff2a3, 0 0 12px rgba(240,178,50,.78);
+  }
+  /* 正在记录：绿灯，产品里没有光晕 */
+  .hud--rec{border-color:rgba(35,165,90,.34)}
+  .hud--rec .hud__light{background:#46e58a;box-shadow:none}
+  /* 待命时的缓慢呼吸 */
+  .hud--idle .hud__light{animation:breathe 2.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.45}50%{opacity:1}}
+
+  /* HUD 波形条 */
+  .bars{display:flex;align-items:center;gap:2px;height:14px}
+  .bars i{
+    display:block;width:2px;height:3px;border-radius:1px;
+    background:currentColor;opacity:.35;
+    transition:height .07s linear,opacity .07s linear;
+  }
+
+  /* 唤醒时向两侧扩散的光带 */
+  .ray{
+    position:absolute;top:50%;height:2px;width:0;
+    background:linear-gradient(90deg,transparent,rgba(70,229,138,.9),transparent);
+    opacity:0;
+  }
+  .ray--l{right:50%;transform:translateY(-50%)}
+  .ray--r{left:50%;transform:translateY(-50%)}
+  .hud-wrap.flash .ray{animation:rayOut .85s var(--ease) forwards}
+  @keyframes rayOut{
+    0%{width:0;opacity:0}
+    25%{opacity:1}
+    100%{width:360px;opacity:0}
+  }
+
+  /* ---------- 场景 3：说话 → 文字 ---------- */
+  .dictate{
+    display:flex;flex-direction:column;align-items:center;gap:74px;
+    width:1180px;
+  }
+  .waveform{
+    display:flex;align-items:center;justify-content:center;gap:5px;height:120px;
+  }
+  .waveform i{
+    display:block;width:5px;height:8px;border-radius:3px;
+    background:#46e58a;opacity:.5;
+    transition:height .08s linear,opacity .08s linear;
+  }
+  .typed{
+    min-height:150px;width:100%;
+    font-size:44px;font-weight:300;line-height:1.62;letter-spacing:.03em;
+    text-align:center;color:#fff;
+  }
+  .cursor{
+    display:inline-block;width:3px;height:.98em;margin-left:5px;
+    background:#46e58a;vertical-align:text-bottom;
+    animation:blink 1.05s steps(1) infinite;
+  }
+  @keyframes blink{0%,50%{opacity:1}50.01%,100%{opacity:0}}
+
+  /* ---------- 场景 4：注入到编辑器 ---------- */
+  .app-window{
+    width:1300px;border-radius:8px;overflow:hidden;
+    border:1px solid var(--border);background:var(--panel);
+    box-shadow:0 26px 90px rgba(0,0,0,.75);
+    opacity:0;transform:translateY(20px) scale(.985);
+  }
+  .dictate.play .app-window,
+  .inject.play .app-window{animation:fadeUp .7s var(--ease) forwards}
+  /* Windows 11 风格标题栏：左侧图标+标题，右侧最小化/最大化/关闭 */
+  .app-window__bar{
+    display:flex;align-items:center;
+    height:42px;padding-left:14px;
+    background:#232529;border-bottom:1px solid var(--border);
+  }
+  .app-window__icon{
+    width:17px;height:17px;flex:0 0 auto;color:var(--text-muted);
+  }
+  .app-window__title{
+    margin-left:11px;font-size:13px;color:var(--text);
+  }
+  .app-window__spacer{flex:1}
+  .win-buttons{display:flex;align-self:stretch}
+  .win-buttons button{
+    display:grid;place-items:center;
+    width:46px;border:0;background:transparent;
+    color:var(--text);cursor:default;
+  }
+  .win-buttons button svg{width:11px;height:11px}
+  .win-buttons button:last-child:hover{background:#c42b1c;color:#fff}
+  .win-buttons button:hover{background:rgba(255,255,255,.07)}
+  .app-window__body{
+    min-height:330px;padding:34px 40px;
+    font-family:Consolas,"Cascadia Mono","Microsoft YaHei UI",monospace;
+    font-size:22px;line-height:1.9;color:var(--text);
+    text-align:left;
+  }
+  .app-window__body .cursor{height:.95em}
+
+  /* ---------- 场景 5：三种唤醒模式 ---------- */
+  .modes{display:flex;gap:34px}
+  .mode{
+    width:330px;padding:38px 30px;border-radius:16px;
+    border:1px solid var(--border);background:var(--panel);
+    text-align:center;opacity:0;transform:translateY(24px);
+  }
+  .modes.play .mode:nth-child(1){animation:fadeUp .5s var(--ease) .04s forwards}
+  .modes.play .mode:nth-child(2){animation:fadeUp .5s var(--ease) .16s forwards}
+  .modes.play .mode:nth-child(3){animation:fadeUp .5s var(--ease) .28s forwards}
+  .mode__icon{
+    display:grid;place-items:center;
+    width:70px;height:70px;margin:0 auto 22px;border-radius:19px;
+    background:rgba(88,101,242,.13);color:var(--accent);
+  }
+  .mode__icon svg{width:34px;height:34px}
+  .mode__name{font-size:25px;font-weight:400;margin-bottom:11px;color:#fff}
+  .mode__desc{font-size:16px;font-weight:300;color:var(--text-muted);line-height:1.6}
+
+  /* ---------- 场景 6：隐私收尾 ---------- */
+  .outro{display:flex;flex-direction:column;align-items:center;gap:34px}
+  .outro__icon{
+    width:96px;height:96px;color:var(--green);
+    opacity:0;transform:scale(.85);
+  }
+  .outro.play .outro__icon{animation:markIn .6s var(--ease) forwards}
+  .outro__line{
+    font-size:42px;font-weight:200;letter-spacing:.1em;color:#fff;
+    opacity:0;transform:translateY(14px);
+  }
+  .outro.play .outro__line{animation:fadeUp .6s var(--ease) .26s forwards}
+  .outro__sub{
+    font-size:20px;font-weight:300;letter-spacing:.22em;color:var(--text-muted);
+    opacity:0;transform:translateY(12px);
+  }
+  .outro.play .outro__sub{animation:fadeUp .6s var(--ease) .48s forwards}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <!-- 1 品牌 -->
+  <section class="scene" data-scene="brand">
+    <div class="brand">
+      <img class="brand__mark" src="../runtime/icons/logo-dark.png" alt="" />
+      <div class="brand__name">Dictating Me</div>
+      <div class="brand__tag">免费开源语音输入</div>
+      <div class="brand__sub">轻量运行 · 快速唤醒 · 准确转换 · 隐私安全</div>
+    </div>
+  </section>
+
+  <!-- 2 待命 -->
+  <section class="scene" data-scene="idle">
+    <div class="hud-wrap">
+      <span class="ray ray--l"></span>
+      <span class="ray ray--r"></span>
+      <div class="hud hud--wait hud--idle">
+        <span class="hud__light"></span>
+        <span class="hud__text">等待唤醒</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 唤醒 -->
+  <section class="scene" data-scene="wake">
+    <div class="hud-wrap">
+      <span class="ray ray--l"></span>
+      <span class="ray ray--r"></span>
+      <div class="hud hud--rec">
+        <span class="hud__light"></span>
+        <span class="hud__text">正在记录</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 听写 -->
+  <section class="scene" data-scene="dictate">
+    <div class="dictate">
+      <div class="waveform"></div>
+      <div class="typed"></div>
+    </div>
+  </section>
+
+  <!-- 5 注入编辑器 -->
+  <section class="scene" data-scene="inject">
+    <div class="inject">
+      <div class="app-window">
+        <div class="app-window__bar">
+          <svg class="app-window__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 3v5h5"/>
+          </svg>
+          <span class="app-window__title">会议纪要.txt - 记事本</span>
+          <span class="app-window__spacer"></span>
+          <div class="win-buttons">
+            <button aria-label="最小化">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1">
+                <path d="M1 6h10"/>
+              </svg>
+            </button>
+            <button aria-label="最大化">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1">
+                <rect x="1.5" y="1.5" width="9" height="9" rx="0.5"/>
+              </svg>
+            </button>
+            <button aria-label="关闭">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1">
+                <path d="M1.5 1.5l9 9M10.5 1.5l-9 9"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="app-window__body"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 三种模式 -->
+  <section class="scene" data-scene="modes">
+    <div class="modes">
+      <div class="mode">
+        <div class="mode__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7V5h16v2M9 19h6M12 5v14"/>
+          </svg>
+        </div>
+        <div class="mode__name">通用文字</div>
+        <div class="mode__desc">任何人说出唤醒词<br>都能唤醒</div>
+      </div>
+      <div class="mode">
+        <div class="mode__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h2l2-6 3 12 3-9 2 5h6"/>
+          </svg>
+        </div>
+        <div class="mode__name">语音匹配</div>
+        <div class="mode__desc">比对你注册的声音<br>更少误触</div>
+      </div>
+      <div class="mode">
+        <div class="mode__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M5 20a7 7 0 0 1 14 0"/>
+          </svg>
+        </div>
+        <div class="mode__name">声纹验证</div>
+        <div class="mode__desc">只有你本人<br>才能唤醒</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 隐私收尾 -->
+  <section class="scene" data-scene="outro">
+    <div class="outro">
+      <svg class="outro__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6l-8-4z"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+      <div class="outro__line">全部在本机完成</div>
+      <div class="outro__sub">音频与文本不上传</div>
+    </div>
+  </section>
+
+  <!-- 8 品牌回归（与开场同一构图，形成首尾呼应） -->
+  <section class="scene" data-scene="endcard">
+    <div class="brand">
+      <img class="brand__mark" src="../runtime/icons/logo-dark.png" alt="" />
+      <img class="brand__word" src="../ui/assets/dictating-me-wordmark.png" alt="Dictating Me" />
+      <div class="brand__link">github.com/DexterDreeeam/DictatingMe</div>
+    </div>
+  </section>
+
+  <div class="caption"></div>
+</div>
+
+<div id="hud-controls">
+  <button class="primary" data-act="play">▶ 播放全片</button>
+  <button data-act="stop">■ 停止</button>
+  <div class="sep"></div>
+  <span>单段：</span>
+  <select id="jump"></select>
+  <button data-act="one">播放该段</button>
+  <div class="sep"></div>
+  <label><input type="checkbox" id="sound" checked /> 音效</label>
+  <label><input type="checkbox" id="music" checked /> 背景音乐</label>
+  <label><input type="checkbox" id="speech" checked /> 配音</label>
+  <div class="sep"></div>
+  <span>录制时按 <kbd>H</kbd> 隐藏此栏 · <kbd>空格</kbd> 播放</span>
+</div>
+
+<script>
+// ============================ 缩放适配 ============================
+const stage = document.getElementById('stage');
+function fitStage(){
+  const scale = Math.min(innerWidth / 1920, innerHeight / 1080);
+  stage.style.transform = `translate(-50%,-50%) scale(${scale})`;
+}
+addEventListener('resize', fitStage);
+fitStage();
+
+// ============================ 音效（WebAudio 合成，无外部文件） ============================
+let ac = null;
+const soundOn = () => document.getElementById('sound').checked;
+function audio(){
+  if(!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if(ac.state === 'suspended') ac.resume();
+  return ac;
+}
+/** 单个音符。type: sine/triangle/square/sawtooth */
+function tone({freq=440, dur=.15, type='sine', gain=.12, delay=0, slideTo=null}){
+  if(!soundOn()) return;
+  const c = audio(), t0 = c.currentTime + delay;
+  const osc = c.createOscillator(), g = c.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if(slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(gain, t0 + .012);
+  g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  osc.connect(g).connect(c.destination);
+  osc.start(t0); osc.stop(t0 + dur + .02);
+}
+/** 键盘敲击声：短促的噪声脉冲 */
+function keyClick(){
+  if(!soundOn()) return;
+  const c = audio(), t0 = c.currentTime;
+  const len = Math.floor(c.sampleRate * .022);
+  const buf = c.createBuffer(1, len, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i = 0; i < len; i++){
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+  }
+  const src = c.createBufferSource(); src.buffer = buf;
+  const bp = c.createBiquadFilter(); bp.type = 'bandpass';
+  bp.frequency.value = 1900 + Math.random() * 700; bp.Q.value = 1.1;
+  const g = c.createGain(); g.gain.value = .05;
+  src.connect(bp).connect(g).connect(c.destination);
+  src.start(t0);
+}
+const sfx = {
+  boot:  () => { tone({freq:392, dur:.5, type:'sine', gain:.09}); tone({freq:587, dur:.6, type:'sine', gain:.07, delay:.1}); },
+  wake:  () => { tone({freq:660, dur:.13, type:'sine', gain:.13}); tone({freq:990, dur:.28, type:'sine', gain:.1, delay:.09}); },
+  listen:() => tone({freq:520, dur:.2, type:'triangle', gain:.08, slideTo:760}),
+  done:  () => { tone({freq:784, dur:.16, type:'sine', gain:.11}); tone({freq:1047, dur:.34, type:'sine', gain:.085, delay:.1}); },
+  swipe: () => tone({freq:300, dur:.24, type:'sine', gain:.055, slideTo:520}),
+  key:   keyClick,
+};
+
+// ============================ 背景音乐 ============================
+// 合成一段舒缓的循环铺底：低音持续 + 缓慢琶音。
+// 全部用 WebAudio 生成，不依赖任何音频文件。
+// ---------------------------- 背景音乐（抖音风格，全合成，无版权顾虑） ----------
+// 128 BPM 四四拍：four-on-the-floor 底鼓 + 八分 hi-hat + 2/4 拍手 +
+// Am-F-C-G 循环上的短促 pluck 动机。用 look-ahead 调度保证节奏不飘。
+const bgm = (() => {
+  const BPM = 128;
+  const SPS = (60 / BPM) / 4;          // 每个十六分音符的秒数
+  const STEPS = 16;                    // 一小节 16 步
+  const CHORDS = [                     // 每小节一个和弦
+    {root:110.00, notes:[440.00, 523.25, 659.25]},   // Am
+    {root: 87.31, notes:[349.23, 440.00, 523.25]},   // F
+    {root:130.81, notes:[523.25, 659.25, 783.99]},   // C
+    {root: 98.00, notes:[392.00, 493.88, 587.33]},   // G
+  ];
+  const RIFF = [0,-1,1,-1, 2,-1,1,0, -1,1,-1,2, 1,-1,0,2];   // -1 = 休止
+
+  let master = null, timer = null, step = 0, nextTime = 0, noiseBuf = null;
+
+  function noiseSource(){
+    const c = audio();
+    if(!noiseBuf){
+      noiseBuf = c.createBuffer(1, Math.floor(c.sampleRate * .3), c.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const s = c.createBufferSource();
+    s.buffer = noiseBuf;
+    return s;
+  }
+  function kick(t){
+    const c = audio(), o = c.createOscillator(), g = c.createGain();
+    o.frequency.setValueAtTime(160, t);
+    o.frequency.exponentialRampToValueAtTime(46, t + .09);
+    g.gain.setValueAtTime(.85, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + .2);
+    o.connect(g).connect(master); o.start(t); o.stop(t + .22);
+  }
+  function hat(t, open){
+    const c = audio(), s = noiseSource(), hp = c.createBiquadFilter(), g = c.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 7600;
+    const dur = open ? .11 : .035;
+    g.gain.setValueAtTime(open ? .10 : .14, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    s.connect(hp).connect(g).connect(master); s.start(t); s.stop(t + dur + .02);
+  }
+  function clap(t){
+    const c = audio(), s = noiseSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 1700; bp.Q.value = 1.1;
+    g.gain.setValueAtTime(.30, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + .15);
+    s.connect(bp).connect(g).connect(master); s.start(t); s.stop(t + .17);
+  }
+  function pluck(t, freq, gain){
+    const c = audio(), o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+    o.type = 'triangle'; o.frequency.value = freq;
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(4600, t);
+    lp.frequency.exponentialRampToValueAtTime(1000, t + .22);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(gain, t + .006);      // 极快起音 = 弹拨感
+    g.gain.exponentialRampToValueAtTime(.001, t + .3);
+    o.connect(lp).connect(g).connect(master); o.start(t); o.stop(t + .32);
+  }
+  function bass(t, freq, dur){
+    const c = audio(), o = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    lp.type = 'lowpass'; lp.frequency.value = 400; lp.Q.value = .7;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(.24, t + .02);
+    g.gain.setValueAtTime(.24, t + dur * .65);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(lp).connect(g).connect(master); o.start(t); o.stop(t + dur + .05);
+  }
+
+  function tick(){
+    if(!master) return;
+    const c = audio();
+    while(nextTime < c.currentTime + .15){          // 提前 150ms 排好
+      const s = step % STEPS;
+      const chord = CHORDS[Math.floor(step / STEPS) % CHORDS.length];
+      if(s % 4 === 0) kick(nextTime);                     // 每拍底鼓
+      if(s === 4 || s === 12) clap(nextTime);             // 2、4 拍拍手
+      if(s % 2 === 0) hat(nextTime, s % 8 === 6);         // 八分 hi-hat
+      if(s === 0 || s === 10) bass(nextTime, chord.root, SPS * 6);
+      const r = RIFF[s];
+      if(r >= 0) pluck(nextTime, chord.notes[r], .11);
+      nextTime += SPS;
+      step++;
+    }
+    timer = setTimeout(tick, 25);
+  }
+
+  return {
+    start(){
+      if(!document.getElementById('music').checked || master) return;
+      const c = audio();
+      master = c.createGain();
+      master.gain.setValueAtTime(0, c.currentTime);
+      master.gain.linearRampToValueAtTime(.30, c.currentTime + .7);   // 快节奏，淡入要短
+      master.connect(c.destination);
+      step = 0;
+      nextTime = c.currentTime + .06;
+      tick();
+    },
+    /** 配音期间把音乐压低，让人声出得来 */
+    duck(on){
+      if(!master) return;
+      const c = audio();
+      master.gain.cancelScheduledValues(c.currentTime);
+      master.gain.setValueAtTime(master.gain.value, c.currentTime);
+      master.gain.linearRampToValueAtTime(on ? .10 : .30, c.currentTime + .18);
+    },
+    stop(){
+      if(!master) return;
+      const c = audio(), m = master;
+      master = null;
+      clearTimeout(timer); timer = null;
+      m.gain.cancelScheduledValues(c.currentTime);
+      m.gain.setValueAtTime(m.gain.value, c.currentTime);
+      m.gain.linearRampToValueAtTime(0, c.currentTime + .8);
+      setTimeout(() => { try{ m.disconnect(); }catch(_){} }, 1000);
+    },
+  };
+})();
+
+// ---------------------------- 配音（xtask say 合成的 wav） -------------------
+// 用 <audio> 而不是 WebAudio：file:// 下 fetch+decodeAudioData 会被 CORS 拦，
+// 而 HTMLAudioElement 加载同目录文件是允许的。
+const voice = (() => {
+  const cache = {};
+  const on = () => document.getElementById('speech').checked;
+  function el(name){
+    if(!cache[name]){
+      const a = new Audio(`promo-voice/${name}.mp3`);
+      a.preload = 'auto';
+      a.volume = 1.0;
+      cache[name] = a;
+    }
+    return cache[name];
+  }
+  return {
+    preload(){ ['wake','sentence'].forEach(el); },
+    /** 播放并等它放完；关掉配音时退化成一个等长的静默等待 */
+    play(name, fallbackMs){
+      if(!on()) return wait(fallbackMs || 0);
+      const a = el(name);
+      try{ a.currentTime = 0; }catch(_){}
+      bgm.duck(true);
+      const p = a.play();
+      if(p && p.catch) p.catch(() => {});
+      return new Promise(res => {
+        let done = false;
+        const finish = () => {
+          if(done) return;
+          done = true;
+          bgm.duck(false);
+          res();
+        };
+        a.onended = finish;
+        const id = setTimeout(finish, (fallbackMs || 4000) + 1500);   // 兜底
+        timers.push(id);
+      });
+    },
+    stop(){
+      Object.values(cache).forEach(a => { try{ a.pause(); a.currentTime = 0; }catch(_){} });
+    },
+  };
+})();
+// ============================ 动画基础设施 ============================
+let running = false;
+let timers = [];
+const wait = ms => new Promise(res => {
+  const id = setTimeout(res, ms);
+  timers.push(id);
+});
+function clearTimers(){
+  timers.forEach(clearTimeout);
+  timers = [];
+}
+
+const scenes = {};
+document.querySelectorAll('[data-scene]').forEach(el => scenes[el.dataset.scene] = el);
+const caption = document.querySelector('.caption');
+
+function show(name){
+  Object.values(scenes).forEach(s => {
+    s.classList.remove('on');
+    // 重置动画：移除 play 再强制回流
+    s.querySelectorAll('.play').forEach(p => p.classList.remove('play'));
+  });
+  const s = scenes[name];
+  s.classList.add('on');
+  void s.offsetWidth;
+  s.querySelectorAll('.brand,.modes,.inject,.dictate,.outro').forEach(p => p.classList.add('play'));
+  return s;
+}
+function setCaption(main, sub){
+  if(!main){ caption.classList.remove('on'); return; }
+  caption.innerHTML = '';
+  const m = document.createElement('span');
+  m.className = 'caption__main';
+  m.textContent = main;
+  caption.appendChild(m);
+  if(sub){
+    const s = document.createElement('span');
+    s.className = 'caption__sub';
+    s.textContent = sub;
+    caption.appendChild(s);
+  }
+  caption.classList.add('on');
+}
+
+/** 逐字输入，带敲击声 */
+async function typeInto(el, text, {speed=68, sound=true} = {}){
+  el.innerHTML = '';
+  const span = document.createElement('span');
+  const cur = document.createElement('span');
+  cur.className = 'cursor';
+  el.append(span, cur);
+  for(const ch of text){
+    if(!running) return;
+    span.textContent += ch;
+    if(sound && ch.trim()) sfx.key();
+    await wait(speed + Math.random() * 34);
+  }
+}
+
+/** 波形动画：返回停止函数 */
+function animateBars(container, count, {min=6, max=110, speed=95} = {}){
+  container.innerHTML = '';
+  const bars = [];
+  for(let i = 0; i < count; i++){
+    const b = document.createElement('i');
+    container.append(b);
+    bars.push(b);
+  }
+  const center = (count - 1) / 2;
+  let raf = null, last = 0, phase = 0;
+  const tick = now => {
+    if(now - last > speed){
+      last = now; phase += .55;
+      bars.forEach((b, i) => {
+        const dist = Math.abs(i - center) / center;
+        const env = 1 - dist * .72;                       // 中间高两边低
+        const wob = (Math.sin(phase + i * .7) + 1) / 2;   // 平滑起伏
+        const rnd = Math.random() * .5 + .5;
+        const h = min + (max - min) * env * wob * rnd;
+        b.style.height = h.toFixed(1) + 'px';
+        b.style.opacity = (.34 + env * wob * .66).toFixed(2);
+      });
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  return () => {
+    cancelAnimationFrame(raf);
+    bars.forEach(b => { b.style.height = '6px'; b.style.opacity = '.3'; });
+  };
+}
+
+// ============================ 分段脚本 ============================
+const DEMO_TEXT = '今天下午三点和产品团队开会，讨论下一个版本的发布计划。';
+const INJECT_TEXT = '今天下午三点和产品团队开会，讨论下一个版本的发布计划。';
+
+const segments = [
+  {
+    id:'brand', name:'1 · 品牌开场（约 3 秒）',
+    run: async () => {
+      show('brand'); sfx.boot();
+      await wait(2600);
+    }
+  },
+  {
+    id:'idle', name:'2 · 常驻待命（约 2.4 秒）',
+    run: async () => {
+      show('idle');
+      setCaption('常驻后台，等待你的唤醒词');
+      await wait(2200);
+      setCaption('');
+    }
+  },
+  {
+    id:'wake', name:'3 · 唤醒（约 3 秒）',
+    run: async () => {
+      const s = show('wake');
+      setCaption('“小迪小迪”', '支持全自定义唤醒词');
+      const wrap = s.querySelector('.hud-wrap');
+      await wait(200);
+      await voice.play('wake', 1350);         // 念出唤醒词
+      wrap.classList.add('flash'); sfx.wake();  // 念完才亮灯，因果关系才对
+      await wait(1250);
+      wrap.classList.remove('flash');
+      setCaption('');
+    }
+  },
+  {
+    id:'dictate', name:'4 · 说话转文字（约 6 秒）',
+    run: async () => {
+      const s = show('dictate');
+      setCaption('开口说话，文字实时出现');
+      sfx.listen();
+      const stop = animateBars(s.querySelector('.waveform'), 34);
+      await wait(300);
+      // 配音与打字同时进行，打字速度按语速对齐（27 字 / 4.7 秒 ≈ 170ms 一字）
+      const spoken = voice.play('sentence', 4700);
+      await typeInto(s.querySelector('.typed'), DEMO_TEXT, {speed:170});
+      await spoken;
+      await wait(200);
+      stop(); sfx.done();
+      await wait(600);
+      setCaption('');
+    }
+  },
+  {
+    id:'inject', name:'5 · 直接输入到当前窗口（约 6 秒）',
+    run: async () => {
+      const s = show('inject');
+      setCaption('文字直接落进你正在用的窗口');
+      await wait(560);
+      await typeInto(s.querySelector('.app-window__body'), INJECT_TEXT, {speed:74});
+      await wait(320);
+      sfx.done();
+      await wait(760);
+      setCaption('');
+    }
+  },
+  {
+    id:'modes', name:'6 · 三种唤醒方式（约 3.4 秒）',
+    run: async () => {
+      show('modes'); sfx.swipe();
+      setCaption('三种唤醒方式，按需选择');
+      await wait(3100);
+      setCaption('');
+    }
+  },
+  {
+    id:'outro', name:'7 · 隐私收尾（约 3.2 秒）',
+    run: async () => {
+      show('outro'); sfx.swipe();
+      await wait(3000);
+    }
+  },
+  {
+    id:'endcard', name:'8 · 品牌回归（约 4 秒）',
+    run: async () => {
+      show('endcard'); sfx.boot();
+      await wait(3800);
+    }
+  },
+];
+
+// ============================ 播放控制 ============================
+async function playAll(){
+  stopAll();
+  running = true;
+  bgm.start();
+  await wait(360);                      // 留出录制起手的黑场
+  for(const seg of segments){
+    if(!running) return;
+    await seg.run();
+    if(!running) return;
+    await wait(120);
+  }
+  await wait(600);
+  bgm.stop();
+  finish();
+}
+async function playOne(id){
+  stopAll();
+  running = true;
+  bgm.start();
+  await wait(300);
+  const seg = segments.find(s => s.id === id);
+  if(seg) await seg.run();
+  bgm.stop();
+  finish();
+}
+function finish(){
+  running = false;
+  Object.values(scenes).forEach(s => s.classList.remove('on'));
+  setCaption('');
+}
+function stopAll(){
+  running = false;
+  clearTimers();
+  bgm.stop();
+  voice.stop();
+  finish();
+}
+voice.preload();
+
+// 下拉框
+const jump = document.getElementById('jump');
+segments.forEach(s => {
+  const o = document.createElement('option');
+  o.value = s.id; o.textContent = s.name;
+  jump.append(o);
+});
+
+document.getElementById('hud-controls').addEventListener('click', e => {
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if(act === 'play') void playAll();
+  if(act === 'stop') stopAll();
+  if(act === 'one')  void playOne(jump.value);
+});
+
+addEventListener('keydown', e => {
+  if(e.key === 'h' || e.key === 'H'){
+    document.getElementById('hud-controls').classList.toggle('hidden');
+  }
+  if(e.code === 'Space'){
+    e.preventDefault();
+    running ? stopAll() : void playAll();
+  }
+});
+
+// ---------------------------- 静帧模式 --------------------------------------
+// ?still=<场景 id> 直接定格该场景的终态，不播动画、不出声、不显示控制栏。
+// README 的配图就是无头浏览器访问这些地址截出来的。
+(function still(){
+  const q = new URLSearchParams(location.search);
+  const want = q.get('still');
+  if(!want) return;
+  const s = scenes[want];
+  if(!s){
+    console.warn(`未知场景 '${want}'，可选：${Object.keys(scenes).join(', ')}`);
+    return;
+  }
+  // 字幕是绝对定位在画面底部的，做静态配图时会在中间留一大片空白，
+  // 所以 README 那批截图用 nocap=1 关掉它。
+  const cap = q.get('nocap') === '1' ? () => {} : setCaption;
+  document.body.classList.add('still');
+  show(want);
+  // 有些场景的内容是播放过程中填进去的，静帧要补上
+  if(want === 'wake'){
+    s.querySelector('.hud-wrap')?.classList.add('flash');   // 两侧唤醒光线
+    cap('“小迪小迪”', '支持全自定义唤醒词');
+  }
+  if(want === 'dictate'){
+    const t = s.querySelector('.typed');
+    if(t) t.textContent = DEMO_TEXT;
+    animateBars(s.querySelector('.waveform'), 34);
+    cap('开口说话，文字实时出现');
+  }
+  if(want === 'inject'){
+    const b = s.querySelector('.app-window__body');
+    if(b) b.textContent = INJECT_TEXT;
+    cap('文字直接落进你正在用的窗口');
+  }
+  if(want === 'modes') cap('三种唤醒方式，按需选择');
+  // 告诉截图脚本可以下快门了
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.body.dataset.stillReady = '1';
+  }));
+})();
+</script>
+</body>
+</html>
