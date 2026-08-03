@@ -39,3 +39,23 @@
   ; Remove it as DictatingMe only uses Start Menu and tray entry points.
   Delete "$DESKTOP\${PRODUCTNAME}.lnk"
 !macroend
+
+!macro NSIS_HOOK_POSTUNINSTALL
+  ; "Delete application data" only removes $APPDATA\${BUNDLEID} and
+  ; $LOCALAPPDATA\${BUNDLEID} in Tauri's template, but the app stores everything
+  ; under $LOCALAPPDATA\${PRODUCTNAME} (see runtime/src/lib.rs, which takes the
+  ; parent of Tauri's app_local_data_dir and joins the product name). Without
+  ; this hook the checkbox silently leaves the whole data directory behind,
+  ; including downloaded models that can reach several hundred MB.
+  ;
+  ; This macro is inserted after the template's own delete-app-data block, so
+  ; both state variables are already resolved and can be reused here to honour
+  ; the checkbox and to keep data across updates.
+  ${If} $DeleteAppDataCheckboxState = 1
+  ${AndIf} $UpdateMode <> 1
+    ; The template switches to the current-user context before deleting user
+    ; data; do the same or $LOCALAPPDATA resolves per-machine on this installer.
+    SetShellVarContext current
+    RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}"
+  ${EndIf}
+!macroend
