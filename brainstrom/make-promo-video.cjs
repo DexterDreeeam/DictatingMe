@@ -115,7 +115,7 @@ async function record(preset, label) {
     if (!version) throw new Error('DevTools 端口没起来');
 
     cdp = await Cdp.connect(version.webSocketDebuggerUrl);
-    const url = `http://127.0.0.1:${PORT_HTTP}/promo-footage.html?record=1${preset.query}`;
+    const url = `http://127.0.0.1:${PORT_HTTP}/brainstrom/promo-footage.html?record=1${preset.query}`;
     const { targetId } = await cdp.send('Target.createTarget', { url });
     const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
 
@@ -211,7 +211,10 @@ async function record(preset, label) {
   const jobs = which === 'both' ? ['landscape', 'portrait'] : [which];
   for (const j of jobs) if (!PRESETS[j]) throw new Error(`未知目标 '${j}'，可选 landscape / portrait / both`);
 
-  const server = await serve(path.join(REPO, 'brainstrom'), PORT_HTTP);
+  // 服务整个仓库而不是只服务 brainstrom：页面用 ../runtime/icons 和
+  // ../ui/assets 引用 logo，root 卡在 brainstrom 的话这些请求会被拦成 404，
+  // 录出来 logo 是破图。
+  const server = await serve(REPO, PORT_HTTP);
   try {
     for (const j of jobs) {
       const p = PRESETS[j];

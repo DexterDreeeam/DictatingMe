@@ -80,8 +80,8 @@
     grid-template-rows:auto auto;gap:8px 32px;align-items:center;
   }
   body.vertical .mode__icon{grid-row:1 / span 2;margin:0;width:96px;height:96px}
-  body.vertical .mode__icon svg{width:46px;height:46px}
-  body.vertical .mode__name{align-self:end;font-size:42px}
+  body.vertical .mode__icon svg{width:52px;height:52px}
+  body.vertical .mode__name{align-self:end;font-size:44px}
   body.vertical .mode__desc{align-self:start;font-size:28px}
   body.vertical .mode__desc br{display:none}
 
@@ -89,7 +89,7 @@
   body.vertical .dictate{width:990px;gap:80px}
   body.vertical .waveform{height:150px}
   body.vertical .waveform i{width:7px}
-  body.vertical .typed{font-size:58px;min-height:300px}
+  body.vertical .typed{font-size:66px;min-height:340px}
   body.vertical .app-window{width:1000px}
   body.vertical .app-window__body{font-size:38px;min-height:520px;padding:44px}
   body.vertical .app-window__bar{padding:16px 20px}
@@ -98,7 +98,7 @@
   /* 品牌页：logo 和字号整体放大，竖屏视野更窄 */
   body.vertical .brand{gap:38px}
   body.vertical .brand__mark{width:260px;height:260px}
-  body.vertical .brand__name{font-size:96px}
+  body.vertical .brand__name{font-size:104px}
   body.vertical .brand__word{width:820px}
   body.vertical .brand__tag{font-size:40px}
   body.vertical .brand__sub{font-size:28px;letter-spacing:.14em}
@@ -144,10 +144,10 @@
 
   /* ---------- 场景 1：品牌开场 ---------- */
   .brand{
-    display:flex;flex-direction:column;align-items:center;gap:22px;
+    display:flex;flex-direction:column;align-items:center;gap:34px;
   }
   .brand__mark{
-    width:150px;height:150px;
+    width:230px;height:230px;
     filter:drop-shadow(0 0 46px rgba(255,255,255,.16));
     opacity:0;transform:scale(.82);
   }
@@ -157,7 +157,7 @@
   @keyframes markIn{to{opacity:1;transform:scale(1)}}
   /* 开场用常规字体 —— 手写体虽好看，但第一眼要让人读清楚品牌名 */
   .brand__name{
-    font-size:66px;font-weight:300;letter-spacing:.1em;
+    font-size:98px;font-weight:300;letter-spacing:.1em;
     color:#fff;text-shadow:0 2px 30px rgba(0,0,0,.6);
     opacity:0;transform:translateY(14px);
   }
@@ -176,12 +176,12 @@
   }
   .brand.play .brand__link{animation:fadeUp .6s var(--ease) .5s forwards}
   .brand__tag{
-    font-size:25px;font-weight:400;letter-spacing:.16em;
+    font-size:38px;font-weight:400;letter-spacing:.16em;
     color:#fff;opacity:0;transform:translateY(12px);
   }
   .brand.play .brand__tag{animation:fadeUp .6s var(--ease) .5s forwards}
   .brand__sub{
-    font-size:19px;font-weight:300;letter-spacing:.24em;
+    font-size:27px;font-weight:300;letter-spacing:.22em;
     color:rgba(219,222,225,.72);opacity:0;transform:translateY(12px);
   }
   .brand.play .brand__sub{animation:fadeUp .6s var(--ease) .72s forwards}
@@ -189,7 +189,7 @@
 
   /* ---------- 场景 2：待命 HUD ---------- */
   /* 复刻 ui/hud-window/hud.css 的真实尺寸，再整体放大以适配 1080p 画面 */
-  .hud-wrap{position:relative;display:grid;place-items:center;transform:scale(2.6)}
+  .hud-wrap{position:relative;display:grid;place-items:center;transform:scale(3.6)}
   .hud{
     position:relative;z-index:2;
     display:flex;width:126px;height:30px;
@@ -243,11 +243,11 @@
 
   /* ---------- 场景 3：说话 → 文字 ---------- */
   .dictate{
-    display:flex;flex-direction:column;align-items:center;gap:74px;
-    width:1180px;
+    display:flex;flex-direction:column;align-items:center;gap:96px;
+    width:1520px;
   }
   .waveform{
-    display:flex;align-items:center;justify-content:center;gap:5px;height:120px;
+    display:flex;align-items:center;justify-content:center;gap:6px;height:160px;
   }
   .waveform i{
     display:block;width:5px;height:8px;border-radius:3px;
@@ -255,8 +255,8 @@
     transition:height .08s linear,opacity .08s linear;
   }
   .typed{
-    min-height:150px;width:100%;
-    font-size:44px;font-weight:300;line-height:1.62;letter-spacing:.03em;
+    min-height:210px;width:100%;
+    font-size:62px;font-weight:300;line-height:1.62;letter-spacing:.03em;
     text-align:center;color:#fff;
   }
   .cursor{
@@ -268,7 +268,7 @@
 
   /* ---------- 场景 4：注入到编辑器 ---------- */
   .app-window{
-    width:1300px;border-radius:8px;overflow:hidden;
+    width:1560px;border-radius:10px;overflow:hidden;
     border:1px solid var(--border);background:var(--panel);
     box-shadow:0 26px 90px rgba(0,0,0,.75);
     opacity:0;transform:translateY(20px) scale(.985);
@@ -278,7 +278,7 @@
   /* Windows 11 风格标题栏：左侧图标+标题，右侧最小化/最大化/关闭 */
   .app-window__bar{
     display:flex;align-items:center;
-    height:42px;padding-left:14px;
+    height:54px;padding-left:18px;
     background:#232529;border-bottom:1px solid var(--border);
   }
   .app-window__icon{
@@ -298,9 +298,9 @@
   .win-buttons button:last-child:hover{background:#c42b1c;color:#fff}
   .win-buttons button:hover{background:rgba(255,255,255,.07)}
   .app-window__body{
-    min-height:330px;padding:34px 40px;
+    min-height:430px;padding:44px 52px;
     font-family:Consolas,"Cascadia Mono","Microsoft YaHei UI",monospace;
-    font-size:22px;line-height:1.9;color:var(--text);
+    font-size:30px;line-height:1.9;color:var(--text);
     text-align:left;
   }
   .app-window__body .cursor{height:.95em}
@@ -308,7 +308,7 @@
   /* ---------- 场景 5：三种唤醒模式 ---------- */
   .modes{display:flex;gap:34px}
   .mode{
-    width:330px;padding:38px 30px;border-radius:16px;
+    width:430px;padding:52px 40px;border-radius:18px;
     border:1px solid var(--border);background:var(--panel);
     text-align:center;opacity:0;transform:translateY(24px);
   }
@@ -317,12 +317,12 @@
   .modes.play .mode:nth-child(3){animation:fadeUp .5s var(--ease) .28s forwards}
   .mode__icon{
     display:grid;place-items:center;
-    width:70px;height:70px;margin:0 auto 22px;border-radius:19px;
+    width:92px;height:92px;margin:0 auto 28px;border-radius:24px;
     background:rgba(88,101,242,.13);color:var(--accent);
   }
-  .mode__icon svg{width:34px;height:34px}
-  .mode__name{font-size:25px;font-weight:400;margin-bottom:11px;color:#fff}
-  .mode__desc{font-size:16px;font-weight:300;color:var(--text-muted);line-height:1.6}
+  .mode__icon svg{width:44px;height:44px}
+  .mode__name{font-size:33px;font-weight:400;margin-bottom:14px;color:#fff}
+  .mode__desc{font-size:21px;font-weight:300;color:var(--text-muted);line-height:1.6}
 
   /* ---------- 场景 6：隐私收尾 ---------- */
   .outro{display:flex;flex-direction:column;align-items:center;gap:34px}
