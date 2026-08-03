@@ -118,6 +118,20 @@
   body.vertical .caption__main{font-size:50px}
   body.vertical .caption__sub{font-size:34px}
 
+  /* ---------- 封面（?still=brand&cover=1）：视频缩略图用 ----------
+     只留 logo / 名字 / 一句话三个元素，整体再放大一档——封面在列表里会被
+     缩到很小，横屏那套字号缩完就看不清了。 */
+  body.cover .brand__sub{display:none}
+  body.cover .brand{gap:46px}
+  body.cover .brand__mark{width:310px;height:310px;
+    filter:drop-shadow(0 0 70px rgba(255,255,255,.2))}
+  body.cover .brand__name{font-size:132px;letter-spacing:.08em}
+  body.cover .brand__tag{font-size:48px;letter-spacing:.2em}
+  body.cover.vertical .brand{gap:54px}
+  body.cover.vertical .brand__mark{width:380px;height:380px}
+  body.cover.vertical .brand__name{font-size:124px}
+  body.cover.vertical .brand__tag{font-size:52px}
+
   /* ---------- 静帧模式（?still=<场景>）：让所有入场动画瞬间跑完，无头浏览器截图用。
      不能写 animation:none —— 这些元素初始 opacity 就是 0，靠动画才变可见。 */
   body.still #hud-controls{display:none}
@@ -506,6 +520,7 @@
 // ?vertical=1 切到 1080x1920 的竖屏画布（CSS 里 body.vertical 那一段）。
 const VERTICAL = new URLSearchParams(location.search).get('vertical') === '1';
 if(VERTICAL) document.body.classList.add('vertical');
+if(new URLSearchParams(location.search).get('cover') === '1') document.body.classList.add('cover');
 const STAGE_W = VERTICAL ? 1080 : 1920;
 const STAGE_H = VERTICAL ? 1920 : 1080;
 
