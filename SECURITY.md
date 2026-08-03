@@ -16,7 +16,7 @@ public disclosure are coordinated after the issue is reproduced and fixed.
 
 ## Release integrity
 
-The release process and signing roles are documented in
-[CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md). A release is signed only
-after SignPath Foundation approval and signing workflow integration; until
-then, release notes must identify artifacts as unsigned.
+Releases are currently published without code signing, and no release claims
+otherwise. Verify a download against the SHA-256 digests in its release notes.
+If code signing is adopted later, the roles and process are documented in
+[CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).

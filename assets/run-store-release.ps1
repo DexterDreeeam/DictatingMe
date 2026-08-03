@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Builds an unsigned Microsoft Store MSI for one Windows architecture.
+    Builds the release MSI for one Windows architecture.
 
 .DESCRIPTION
     Verifies the bundled KWS model, downloads the matching hash-pinned
     sherpa-onnx static library archive, builds with the Store-only Tauri
-    configuration, and exports an explicitly unsigned MSI plus SHA-256.
+    configuration, and exports the MSI plus its SHA-256.
 #>
 
 [CmdletBinding()]
@@ -253,7 +253,7 @@ function Initialize-Arm64MsvcEnvironment {
     }
 }
 
-Write-Host "=== DictatingMe unsigned Microsoft Store MSI ($architecture) ===" `
+Write-Host "=== DictatingMe release MSI ($architecture) ===" `
     -ForegroundColor Magenta
 Write-Host "Target -> $Target"
 Write-Host "Publisher -> Dexter Tsou"
@@ -319,12 +319,12 @@ $version = [string]$config.version
 New-Item -ItemType Directory -Path $ExportDir -Force | Out-Null
 Get-ChildItem -LiteralPath $ExportDir -File -ErrorAction SilentlyContinue |
     Remove-Item -Force
-$exportedMsi = Join-Path $ExportDir "DictatingMe_${version}_${architecture}_unsigned.msi"
+$exportedMsi = Join-Path $ExportDir "DictatingMe_${version}_${architecture}.msi"
 Copy-Item -LiteralPath $installers[0].FullName -Destination $exportedMsi
 
 $signature = Get-AuthenticodeSignature -LiteralPath $exportedMsi
 if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
-    throw "Unsigned build unexpectedly has signature status $($signature.Status): $exportedMsi"
+    throw "Build unexpectedly carries a signature ($($signature.Status)): $exportedMsi"
 }
 
 $hash = Get-Sha256 -Path $exportedMsi
@@ -336,6 +336,6 @@ $hashFile = "$exportedMsi.sha256"
 )
 
 Write-Host ''
-Write-Host '[DictatingMe] Unsigned Store MSI completed.' -ForegroundColor Green
+Write-Host '[DictatingMe] Release MSI completed.' -ForegroundColor Green
 Write-Host "MSI -> $exportedMsi" -ForegroundColor Green
 Write-Host "SHA-256 -> $hash" -ForegroundColor Green
